@@ -12,18 +12,11 @@
 
 Physical AI connects computational decisions to physical action. In this project, a robot transports an open cup through a materials-processing cell while respecting equipment and sample constraints. Genesis evaluates how the planned motion affects the robot, container and contents.
 
-Preserve all **four beads** while reducing carrying distance and completion time. Design robot placement, handoff locations, seven-joint paths and speed.
+Design robot placement, handoff locations, seven-joint paths and speed to reduce carrying distance and completion time. For the glass-bead stage, preserve all **four original beads**.
 
-This student package uses **glass beads only**. Process liquid and silica sand remain locked. The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
+Complete the required transport tasks for the materials released for your selected complexity. **Glass beads are released first.** Additional materials will be released according to students’ progress. 
 
-
-| Glass beads | Aqueous solution | Silica sand |
-| --- | --- | --- |
-| **Open** | **Closed (To be updated)** | **Closed (To be updated)** |
-
-![Original Project Outline material concepts: glass beads, aqueous solution and silica sand](docs/outline-materials.png)
-
-*Concept illustrations from the original Project Outline. The active task uses four glass beads. Aqueous solution and silica sand are not available for execution or scoring.*
+The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
 
 ### 1.1 Your Implementation
 
@@ -78,6 +71,14 @@ All scenes contain three robot models. Unused arms remain parked collision geome
 *Figure 5. Layout illustrations from the original Project Outline. See the [current map](docs/project-map-overview.png) and [3D viewer](docs/map_viewer.html) for exact geometry and permitted placements.*
 
 Open `docs/map_viewer.html` from your cloned repository in a browser. Keep `motion_preview.js` beside it. Choose your complexity, then use **Preview your design JSON** to inspect selected bases and exact handoff points. Use **Preview your saved motion** to load an exported motion preview, then choose **Stage** and **Frame** to inspect planned joint motion. Use the [map constraints](docs/MAPS_AND_DESIGN.md) when choosing placements.
+
+Use the materials marked **Open** for your current work.
+
+| **Open** | **Closed**<br>To be updated | **Closed**<br>To be updated |
+| :---: | :---: | :---: |
+| ![Glass beads](docs/material-glass-beads.png)<br>**Glass beads** | ![Aqueous solution](docs/material-aqueous-solution.png)<br>**Aqueous solution** | ![Silica sand](docs/material-silica-sand.png)<br>**Silica sand** |
+
+*Original Project Outline concept illustrations. The glass-bead task uses four original beads.*
 
 ### 2.2 Design Inputs
 

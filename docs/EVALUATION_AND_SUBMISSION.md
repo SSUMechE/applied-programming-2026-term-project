@@ -148,10 +148,10 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 
 ### Check and apply an announced release
 
-Set `RELEASE` to the exact tag announced by the instructor. The first release containing this updater is shown below:
+Set `RELEASE` to the exact tag announced by the instructor. The current documentation release is shown below:
 
 ```bat
-set "RELEASE=term-v3-student-updates-20261114"
+set "RELEASE=term-v3-material-table-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -190,7 +190,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-student-updates-20261114"
+set "RELEASE=term-v3-material-table-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
