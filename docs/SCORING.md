@@ -2,7 +2,7 @@
 
 **2026-02 · Beads only · term_v3**
 
-The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. Candidate staging results are not official scores until the instructor activates the verified rule.
+The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. The three term_v3 bead rules are active. Instructor qualification records remain separate from classroom standings.
 
 ## Base assessment
 
@@ -69,7 +69,7 @@ A(C) = -N * (C - C4) / (Cmax - C4)
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**. The title slide is excluded. Each member presents their named section. This gives 5–6, 8–9 or 11–12 content slides for teams of one, two or three.
 
-The common part explains the mission, method, constraints, route and speed choices, results and interpretation. Include the public repository URL, final full 40-character commit ID, case/settings and reproduction instructions. Each member identifies their role, changed files/functions, key code, effect on results and relevant commits or pull requests. Explain each person's contribution to joint work.
+The common part explains the mission, method, constraints, route and speed choices, results and interpretation. Include the shared private repository URL, final full 40-character commit ID, case/settings and reproduction instructions. Each member identifies their role, changed files/functions, key code, effect on results and links to their pushed commits and relevant pull requests. Explain each person's contribution to joint work using the actual commit and push history.
 
 Presentation contributes −10 to +10 after the base ceiling: shared team quality from −5 to +5, plus individual presentation from −5 to +5. Both apply to solo students too.
 
@@ -80,4 +80,4 @@ Presentation contributes −10 to +10 after the base ceiling: shared team qualit
 
 Intermediate scores may be awarded. Code contribution evaluates actual work. Presentation evaluates the explanation and evidence.
 
-The project culminates in the Week 15 presentation and final submission. Use one shared public repository for a multi-person team, with individual accounts. Submit the repository URL and full 40-character commit ID in the LMS. Retain code/settings and supplied run records supporting the presentation. Select the successful representative using [the run guide](EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). The instructor announces the exact closure and freezes selections. No extra student form or verification report is required.
+The project culminates in the Week 15 presentation and final submission. Use **one shared private repository** for the team's work and submission. Give all members and **SSUMechE** access. Each member must commit and push their own work from their own GitHub account. Submit the repository URL and full 40-character commit ID in the LMS. Retain code/settings and supplied run records supporting the presentation. Select the successful representative using [the run guide](EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). The instructor announces the exact closure and freezes selections. No extra student form or verification report is required.

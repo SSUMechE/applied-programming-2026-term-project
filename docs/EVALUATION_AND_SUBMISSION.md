@@ -4,7 +4,7 @@
 
 Design your layout, seven-joint path and speed. Supplied code performs grasping and placement. The exact saved CPU path is reused by empty-cup and bead replay. [Inputs and API](STUDENT_API.md) · [Maps](MAPS_AND_DESIGN.md) · [Scoring](SCORING.md)
 
-The supplied bead workflows have been tested on an RTX 4090. Verify your own layout, path and speed with the steps below. GTX 1660 SUPER qualification is pending. Test history is not an official competition record until instructor activation. Final representative selection opens after that activation. Process liquid and silica sand remain locked.
+The supplied bead workflows have been tested on an RTX 4090. Verify your own layout, path and speed with the steps below. Official bead competition and final representative selection are active. Instructor test records are separate from classroom standings. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and silica sand remain locked.
 
 ## 1. Check the environment and your implementation
 
@@ -115,7 +115,7 @@ This resends pending diagnostics and leaderboard records using the configured to
 python -B -m leaderboard.auto_record record --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --review-dir "%RUN%/full" --token-file "%USERPROFILE%\applied-programming-team.token"
 ```
 
-Open the [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), or inspect your team's history:
+The public leaderboard shows result summaries. It does not publish robot layouts, handoff coordinates, joint paths or student code. Detailed attempts and history require your own team token. Open the [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), or inspect your team's history:
 
 ```bat
 python -B -m leaderboard.auto_record history --rule-id ap2026-%LEVEL%-beads-term-v3 --token-file "%USERPROFILE%\applied-programming-team.token"
@@ -125,7 +125,7 @@ The live comparison uses each team's latest successful run. A later failure stay
 
 ## 7. Select the final representative and submit
 
-After the instructor activates the verified rule, choose one successful acknowledged run. Commit the evaluated student files using your usual Git workflow, then obtain its full ID:
+Choose one successful acknowledged run under your active complexity rule. Commit and push the evaluated student files to the shared team repository using your usual Git workflow, then obtain the full ID:
 
 ```bat
 git rev-parse HEAD
@@ -139,7 +139,73 @@ python -B -m leaderboard.auto_record select --review-dir "%RUN%/full" --commit Y
 
 Confirm `status: selected`, the intended `run_id` and your full `commit_id` in the response. The command checks every `.py` and `.json` file under `student/`, including helper modules and unused tier designs, against the evaluated snapshot. A changed planner or design cannot be attached to an older result. The instructor freezes official selections for assessment. The schedule remains Week 15, with the exact closure announced by the instructor.
 
-Use one public team repository and individual contributor accounts. Submit the repository URL and full 40-character commit ID in the LMS. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository reference, settings, run instructions and relevant execution evidence. Each member explains their own named contribution with commit or pull-request links. See [assessment details](SCORING.md). Leaderboard registration does not replace these deliverables.
+Create **one shared private team repository** from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Submit the repository URL and full 40-character commit ID in the LMS. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository reference, settings, run instructions and relevant execution evidence. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md). Leaderboard registration does not replace these deliverables.
+
+
+## Keep supplied code current
+
+Use these maintenance commands from your repository root in **Windows Anaconda Prompt**. Stop **all** project commands first, including direct CPU debugging, preview export and leaderboard commands. Use the existing `applied-programming-cuda` environment. The updater preserves `student/`, saved results, pending uploads, credentials, unknown files and Git history. It changes only verified supplied files. It does not install dependencies, commit changes, plan a path or launch Genesis.
+
+### Check and apply an announced release
+
+Set `RELEASE` to the exact tag announced by the instructor. The first release containing this updater is shown below:
+
+```bat
+set "RELEASE=term-v3-student-updates-20261114"
+python -B project_run.py update check --release "%RELEASE%"
+```
+
+`UPDATE_CHECK_PASS` means the official release and your current supplied files passed the update checks. It does not apply files. Read its proposed changes, then apply that same tag:
+
+```bat
+python -B project_run.py update apply --release "%RELEASE%"
+python -B project_run.py update status
+```
+
+`UPDATE_APPLIED` includes a `backup_id`. Keep the backup under `output/project_updates/`. `UPDATE_ALREADY_CURRENT` means no update was needed. `UPDATE_STATUS` reports local release and recovery information. Use `update check` to verify that state against the official release. Your own Python/JSON files and existing result records stay in place.
+
+After an applied update, run the environment check and supplied tests. Review the supplied-file changes with your usual Git workflow and commit them to your team repository. The updater does not stage, commit or push for you. Create a **fresh CPU export** before the next physical replay. Do not edit or relabel older runs. A retry still uploads the original queued record under its original rule.
+
+```bat
+python -B project_run.py check --cuda --output output/update_environment.json
+python -B project_run.py test
+```
+
+If the updater reports `UPDATE_REFUSED`, read its `code` and named paths. `LOCAL_SUPPLIED_FILE_CHANGED` means a supplied file differs from its released version. `UNMANAGED_FILE_COLLISION` means a new supplied file would overwrite another local file. Both stop before overwriting that work. Keep the files and ask the instructor to resolve the conflict. Do not reset your repository or copy a whole new package over it. `UPDATE_BUSY` means another project or maintenance command is running. Let it finish before retrying.
+
+### Restore the supplied files from a backup
+
+If an applied update causes a problem, stop project commands and replace `BACKUP_ID` with the exact ID printed by `UPDATE_APPLIED` or listed by `update status`:
+
+```bat
+python -B project_run.py update rollback --backup BACKUP_ID
+```
+
+Continue after `UPDATE_ROLLED_BACK`. Rollback restores supplied files only. It preserves student edits made after the update, results and Git history. It refuses to overwrite supplied files that you changed after applying the update. If you had already committed the update, commit the rollback as a new change through your normal Git workflow. Retain the backup and existing run records.
+
+If a maintenance command was interrupted, run `python -B project_run.py update status` before doing project work. The updater first recovers an unfinished file transaction. Ordinary runner commands refuse an unfinished update with `PROJECT_UPDATE_RECOVERY_REQUIRED`. If the main entry point is unavailable during the first migration, use the retained bootstrap file with `python -B "%BOOT%\update_project.py" status`. Recovery uses the local backup and does not need a network connection. Follow any reported recovery error instead of starting a new run.
+
+### First update from the earlier template
+
+Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
+
+```bat
+set "RELEASE=term-v3-student-updates-20261114"
+set "BOOT=output\update_bootstrap_01"
+mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
+python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
+```
+
+Continue only after `UPDATE_CHECK_PASS`, then apply:
+
+```bat
+python -B "%BOOT%\update_project.py" apply --release "%RELEASE%"
+python -B project_run.py update status
+```
+
+The one-time bootstrap fetch updates Git's `FETCH_HEAD`. It does not merge branches, alter your index, replace commits or change your remote URL. Normal updater fetches use their own isolated cache. Keep the bootstrap file. If rollback restores the old runner without an update command, invoke that saved file instead: `python -B "%BOOT%\update_project.py" rollback --backup BACKUP_ID`.
+
+If creating the bootstrap folder or fetching the release failed, stop and preserve the error. Do not run a previously downloaded file by assuming the failed command succeeded. No package reinstall is part of an update.
 
 ## Interpret time and cost
 

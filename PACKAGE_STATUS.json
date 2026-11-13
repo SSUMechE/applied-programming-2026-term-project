@@ -2,12 +2,16 @@
   "schema_version": "ap-term-project-package-status-v3",
   "semester": "2026-02",
   "date": "2026-11-14",
-  "status": "STUDENT_WORKSPACE_LAB_QUALIFICATION_PENDING",
+  "status": "STUDENT_DISTRIBUTION_ACTIVE_CURRENT_PC_VALIDATED",
   "current_rule_version": "term_v3",
-  "materials": {"beads": "available_for_student_design_and_verification", "process_liquid": "locked", "sand": "locked"},
+  "materials": {
+    "beads": "available_for_student_design_and_verification",
+    "process_liquid": "locked",
+    "sand": "locked"
+  },
   "PyTorch": "2.14.0+cu126 unchanged",
   "Genesis": "1.3.2 unchanged",
-  "student_release_approved": false,
+  "student_release_approved": true,
   "student_source_publication_authorized": true,
   "qualification_is_external_to_immutable_rule": true,
   "same_protected_physics_source_full_native_matrix_completed": true,
@@ -16,8 +20,13 @@
   "GTX1660_SUPER_final_source_measured": false,
   "leaderboard_url": "https://phoniness-reenact-veggie.ngrok-free.dev",
   "installed_term_v3_rule_digests_match": true,
-  "official_competition_activated": false,
+  "official_competition_activated": true,
   "classroom_team_credentials_distributed": false,
   "preview_scope": "Optional CPU geometry preview of the student's own saved plan. No Genesis execution or physical certification.",
-  "scope": "Student workspace and English guidance publication. The protected bead physics and rules retain their current-PC validation. Final lab qualification and official competition activation remain separate pending gates. No reference solution is included."
+  "scope": "Student workspace and English guidance for the activated term_v3 bead competition. Protected physics, source and rule hashes match retained current-PC native evidence. GTX1660 SUPER performance remains unmeasured. No reference solution is included.",
+  "release_authorization_scope": "Instructor explicitly requested student distribution and official activation on 2026-11-14. Current-PC native evidence retained. GTX1660 SUPER qualification is still pending.",
+  "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
+  "student_repository_visibility": "one private shared repository per team",
+  "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
+  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics."
 }

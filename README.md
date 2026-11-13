@@ -14,7 +14,16 @@ Physical AI connects computational decisions to physical action. In this project
 
 Preserve all **four beads** while reducing carrying distance and completion time. Design robot placement, handoff locations, seven-joint paths and speed.
 
-This student package uses **glass beads only**. Process liquid and silica sand remain locked. The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. GTX 1660 SUPER qualification is pending, and official competition opens after instructor activation.
+This student package uses **glass beads only**. Process liquid and silica sand remain locked. The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
+
+
+| Glass beads | Aqueous solution | Silica sand |
+| --- | --- | --- |
+| **Open** | **Closed (To be updated)** | **Closed (To be updated)** |
+
+![Original Project Outline material concepts: glass beads, aqueous solution and silica sand](docs/outline-materials.png)
+
+*Concept illustrations from the original Project Outline. The active task uses four glass beads. Aqueous solution and silica sand are not available for execution or scoring.*
 
 ### 1.1 Your Implementation
 
@@ -100,7 +109,7 @@ After a handoff, the donor follows its reverse path kinematically with **zero ph
 
 ## 3 Start and Test Your Design
 
-On GitHub, choose **Use this template → Create a new repository**. Create one public repository per team and add teammates as collaborators. Save the instructor-issued team token outside Git at `%USERPROFILE%\applied-programming-team.token`.
+On GitHub, choose **Use this template → Create a new repository**. The course template is public. Create **one private repository per team** for all shared work and final submission. Add every teammate and the instructor account **SSUMechE** as collaborators. Each member must commit and push their own work using their own GitHub account. Keep the team repository private so other teams cannot inspect your designs or paths. Do not post design files, saved paths or motion previews publicly. Save the instructor-issued team token outside Git at `%USERPROFILE%\applied-programming-team.token`.
 
 Use **Windows Anaconda Prompt** and the existing `applied-programming-cuda` environment. Replace the two placeholders with your repository URL and folder name:
 
@@ -133,10 +142,19 @@ The run guide gives success markers, failure recovery, optional single-stage CPU
 
 Every completed full bead review automatically records success or failure. A full physical pass requires `review_accepted`, `physical_transport_accepted` and `full_mission_passed` all true in `REVIEW_SUPERVISOR.json`. `LEADERBOARD_STATUS.json` separately reports `uploaded` or `pending`.
 
-[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev). Select your complexity and `term_v3` rule. The live comparison uses each team's latest successful run. A later failure stays in history without replacing that success. Official ranking uses the successful representative each team selects after instructor activation.
+[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev). Select your complexity and `term_v3` rule. The live comparison uses each team's latest successful run. A later failure stays in history without replacing that success. Official ranking uses the successful representative each team explicitly selects. Instructor test runs are kept outside the classroom standings.
 
-The supplied runner reports failures privately to the instructor. If a connection fails, keep your output and run `python -B project_run.py retry` after reconnecting. This uploads queued results and diagnostics without rerunning Genesis. Students need no ngrok, VPN or bug-report form.
+The public leaderboard shares result summaries, not robot layouts, handoff coordinates, joint paths or student source code. Your detailed attempt history requires your own team token.
+
+The supplied runner reports failed check, test, plan and review commands privately to the instructor. If a connection fails, keep your output and run `python -B project_run.py retry` after reconnecting. This uploads queued results and diagnostics without rerunning Genesis. Students need no ngrok, VPN or bug-report form.
 
 Choose one successful run that matches all submitted student Python/JSON files and select it with the [final-selection command](docs/EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). Confirm `status: selected` with the intended run and full commit ID.
 
-Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution. Submit the repository URL and full **40-character commit ID** in the LMS. The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
+Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of that shared repository. Submit the repository URL and full **40-character commit ID** in the LMS. The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
+
+
+## 5 Updates and Recovery
+
+Use the supplied updater when the instructor announces a fix. It preserves your `student/` work, `output/` records and upload queues, credentials and Git history. It applies verified supplied files from an exact official release and keeps a rollback backup. It does not install packages or run Genesis.
+
+Run `python -B project_run.py update status` to see the installed release. Follow [the update and rollback commands](docs/EVALUATION_AND_SUBMISSION.md#keep-supplied-code-current). That guide also covers the first update from the earlier template. Stop running project commands before applying an update. Local changes to supplied files cause a refusal rather than being overwritten.
