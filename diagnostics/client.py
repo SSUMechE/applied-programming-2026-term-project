@@ -112,7 +112,61 @@ def configuration(root, argv=()):
             token = ""
     except (OSError, UnicodeError):
         token = ""
-    return {"server": server_url(str(url)), "token_file": token_file, "token": token}
+    result = {"server": server_url(str(url)), "token_file": token_file, "token": token}
+    if not token:
+        from .enrollment_client import stored_account
+        account = stored_account(root, result["server"])
+        if account:
+            return account
+    return result
+
+
+def account_configuration(root, argv=(), *, force=False):
+    """First use signs in without requiring instructor-issued credentials."""
+    from .enrollment_client import EnrollmentError, ensure_account
+    try:
+        config = configuration(root, argv)
+        if force or not config["token"]:
+            config = ensure_account(root, config["server"], force=force,
+                                    write=lambda message: console(message + "\n"))
+        if config.get("team_name"):
+            console("Team: " + config["team_name"] + "\n")
+        return config
+    except (EnrollmentError, OSError, ValueError, EOFError) as exc:
+        code = getattr(exc, "code", "TEAM_SIGN_IN_UNAVAILABLE")
+        message = str(exc) if isinstance(exc, EnrollmentError) else "Team sign-in is unavailable."
+        console(code + ": " + message + " Local work and results are kept.\n", error=True)
+        # A failed sign-in must not select a different default server or account.
+        try:
+            configured = configuration(root, argv)
+            return {"server": configured["server"], "token_file": None, "token": ""}
+        except (OSError, ValueError):
+            return {"server": DEFAULT_SERVER, "token_file": None, "token": ""}
+
+
+def account_environment(config):
+    env = os.environ.copy()
+    env["AP_LEADERBOARD_URL"] = config["server"]
+    if config["token"]:
+        env["AP_LEADERBOARD_TEAM_TOKEN"] = config["token"]
+        if config.get("token_file"):
+            env["AP_LEADERBOARD_TOKEN_FILE"] = str(config["token_file"])
+        else:
+            env.pop("AP_LEADERBOARD_TOKEN_FILE", None)
+    else:
+        env.pop("AP_LEADERBOARD_TEAM_TOKEN", None)
+        env.pop("AP_LEADERBOARD_TOKEN_FILE", None)
+    return env
+
+
+def run_account_action(root, action, argv, config=None):
+    args = [sys.executable, "-B", "-m", "leaderboard.auto_record", action, *argv]
+    if any(arg in ("-h", "--help") for arg in argv):
+        return subprocess.run(args, cwd=root).returncode
+    config = config or account_configuration(root, argv)
+    # The unchanged recording module reads the child environment. No password
+    # or credential is placed in the command line or printed output.
+    return subprocess.run(args, cwd=root, env=account_environment(config)).returncode
 
 
 def child_command(kind, argv):
@@ -436,14 +490,13 @@ def stop_owned_child(process):
 
 def run_course(root, kind, argv):
     root = Path(root).resolve()
-    try:
-        config = configuration(root, argv)
-    except (ValueError, OSError):
-        config = {"server": DEFAULT_SERVER, "token_file": None, "token": ""}
+    if any(arg in ("-h", "--help") for arg in argv):
+        return subprocess.run(child_command(kind, argv), cwd=root).returncode
+    config = account_configuration(root, argv)
     files = observed_files(root, kind, argv)
     before = {name: fingerprint(path) for name, path in files.items()}
     source = metadata_source(root, argv)
-    env = os.environ.copy()
+    env = account_environment(config)
     # The existing evaluator reads these same environment variables. No solver
     # option, cache setting, command flag, trajectory or clock is changed.
     if config["token_file"] and not env.get("AP_LEADERBOARD_TOKEN_FILE"):
@@ -502,16 +555,26 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] in COMMANDS:
         return run_course(ROOT, argv[0], argv[1:])
+    if argv and argv[0] in ("history", "select", "record"):
+        return run_account_action(ROOT, argv[0], argv[1:])
     parser = argparse.ArgumentParser(description="Supplied course commands with automatic instructor diagnostics.")
     commands = parser.add_subparsers(dest="action", required=True)
-    setup = commands.add_parser("configure", help="Store the team token file path once, never the token.")
-    setup.add_argument("--token-file", required=True)
+    setup = commands.add_parser("configure", help="Sign in to the team once. Normal project commands also sign in automatically.")
+    setup.add_argument("--token-file", help="Compatibility option for an existing instructor-issued credential.")
     setup.add_argument("--server", default=DEFAULT_SERVER)
     commands.add_parser("retry", help="Retry queued diagnostics and full-review records without simulation.")
+    for name in ("history", "select", "record"):
+        commands.add_parser(name, help="Use your stored team sign-in with the supplied " + name + " command.")
     for name in COMMANDS:
         commands.add_parser(name, help="Forward remaining arguments unchanged to the supplied " + name + " command.")
     args = parser.parse_args(argv)
     if args.action == "configure":
+        if not args.token_file:
+            config = account_configuration(ROOT, ["--server-url", args.server], force=True)
+            if not config["token"]:
+                return 2
+            atomic_json(ROOT / CONFIG, {"server": config["server"]})
+            return 0
         path = Path(args.token_file).expanduser().resolve()
         if path.is_relative_to(ROOT):
             parser.error("Keep the team token file outside the repository.")
@@ -525,12 +588,8 @@ def main(argv=None):
         print("REPORTING_CONFIGURED: only the token file path is stored in ignored output/.")
         return 0
     if args.action == "retry":
-        config = configuration(ROOT)
+        config = account_configuration(ROOT)
         outcomes = retry(ROOT, config)
         print(json.dumps({"diagnostics": outcomes, "simulation_launched": False}))
-        from leaderboard.auto_record import retry_queue
-        result = retry_queue(ROOT / "output/leaderboard_queue", server_url=config["server"],
-                             token_file=config["token_file"])
-        print(json.dumps(result))
-        return 0
+        return run_account_action(ROOT, "retry", ["--queue-dir", str(ROOT / "output/leaderboard_queue")], config)
     return 2

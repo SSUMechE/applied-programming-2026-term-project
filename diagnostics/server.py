@@ -85,7 +85,7 @@ class DiagnosticsApplication:
             team = self.leaderboard.store.authenticate_token(token)
         except Unauthorized:
             raise DiagnosticError("UNAUTHORIZED", "A valid team token is required.", 401) from None
-        return team, token
+        return team, environ.get("ap.enrollment.device_token", token)
 
     def _same_origin(self, environ):
         try:
@@ -300,8 +300,9 @@ class DiagnosticsApplication:
 
 
 def create_app(leaderboard_db, diagnostics_db, admin_secret_file, *, public_origin, session_ttl_s=3600):
-    return DiagnosticsApplication(leaderboard_db, diagnostics_db, admin_secret_file,
-        public_origin=public_origin, session_ttl_s=session_ttl_s)
+    from .enrollment_server import EnrollmentApplication
+    return EnrollmentApplication(DiagnosticsApplication(leaderboard_db, diagnostics_db, admin_secret_file,
+        public_origin=public_origin, session_ttl_s=session_ttl_s))
 
 
 def main(argv=None):

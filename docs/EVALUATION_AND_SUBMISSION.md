@@ -8,16 +8,19 @@ The supplied bead workflows have been tested on an RTX 4090. Verify your own lay
 
 ## 1. Check the environment and your implementation
 
-Use **Windows Anaconda Prompt**, from your project repository root. Copy commands without prompts or printed output. Save the instructor-issued team token outside Git at `%USERPROFILE%\applied-programming-team.token`, then configure it once for this checkout:
+Use **Windows Anaconda Prompt**, from your project repository root. Copy commands without prompts or printed output. The first interactive check registers or signs in to your team's account:
 
 ```bat
 conda activate applied-programming-cuda
-python -B project_run.py configure --token-file "%USERPROFILE%\applied-programming-team.token"
 python -B project_run.py check --cuda --output output/environment.json
 python -B project_run.py test
 ```
 
-Continue after `REPORTING_CONFIGURED`. The configuration stores only the token-file path and server address in ignored `output/diagnostics_config.json`. Keep the token file in place and do not commit it. Students do not install ngrok or a VPN.
+Agree on one unique team name and a shared project password of at least **12 characters**. Each teammate enters the same pair once per checkout on each computer. Use a password made for this project, not a GitHub password. Type it only at the hidden prompt. Do not paste it into a command, design file or Git commit.
+
+The supplied client creates the team on first use or signs in to an existing team. Confirm `TEAM_CONNECTED: <your team name>`. The client saves a separate credential for this checkout on this computer outside Git and reuses it automatically. It does not store the password. No instructor-issued token, token-file copying, ngrok or VPN installation is needed. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
+
+If sign-in fails or first use is offline, a `TEAM_SIGN_IN_*` message explains the issue and local check, test, plan and review work can continue. Keep your output. After reconnecting, run `python -B project_run.py retry` to sign in and upload queued records. Unattended commands do not invent a team or wait for interactive input.
 
 The environment check must print `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep the existing PyTorch environment. A mismatch is reported automatically when connected. Wait for instructor guidance before changing packages. Complete `student/joint_strategy.py` and the selected design JSON before planning. The unfinished starter has two path errors. After implementing it, all three supplied checks should pass.
 
@@ -92,7 +95,7 @@ This uses the same layout, initial robot/cup poses, paths, times and rigid16 set
 ## 5. Replay the full path with beads
 
 ```bat
-python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --token-file "%USERPROFILE%\applied-programming-team.token" --output "%RUN%/full"
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --output "%RUN%/full"
 ```
 
 Genesis replays the saved path without new RRT or online IK. Lower completes one carry, Moderate two and Higher three, using the same cup and four bead IDs. Actual joint velocity/acceleration violations, tracking failure, prohibited contact, bead loss or an unmet final support/rest condition reject the run. The [speed contract](STUDENT_API.md#design-speed) gives the fixed limits and explains automatic acceleration/deceleration. Actual loss stops the run. A lost bead is not regenerated, restored or converted into a competitive partial result.
@@ -103,22 +106,22 @@ Every completed full bead review automatically records success or failure. `stat
 
 ## 6. Retry an upload without repeating Genesis
 
-If the server or token was unavailable, keep your output and run:
+If the server or team sign-in was unavailable, keep your output and run:
 
 ```bat
 python -B project_run.py retry
 ```
 
-This resends pending diagnostics and leaderboard records using the configured token. Inspect each returned status. An acknowledged duplicate does not create an extra record. This command launches no physics. If a local automatic competition record was not created, recover it from the completed review:
+This resends pending diagnostics and leaderboard records using your saved team sign-in. Inspect each returned status. An acknowledged duplicate does not create an extra record. This command launches no physics. If a local automatic competition record was not created, recover it from the completed review:
 
 ```bat
-python -B -m leaderboard.auto_record record --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --review-dir "%RUN%/full" --token-file "%USERPROFILE%\applied-programming-team.token"
+python -B project_run.py record --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --review-dir "%RUN%/full"
 ```
 
-The public leaderboard shows result summaries. It does not publish robot layouts, handoff coordinates, joint paths or student code. Detailed attempts and history require your own team token. Open the [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), or inspect your team's history:
+The public leaderboard shows result summaries. It does not publish robot layouts, handoff coordinates, joint paths or student code. Detailed attempts and history require your own team sign-in. Open the [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), or inspect your team's history:
 
 ```bat
-python -B -m leaderboard.auto_record history --rule-id ap2026-%LEVEL%-beads-term-v3 --token-file "%USERPROFILE%\applied-programming-team.token"
+python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v3
 ```
 
 The live comparison uses each team's latest successful run. A later failure stays in history and does not replace that success. The official comparison uses the successful run explicitly selected by each team.
@@ -134,7 +137,7 @@ git rev-parse HEAD
 Replace the placeholder with those exact 40 characters. Set `RUN` to the selected run's folder before this command.
 
 ```bat
-python -B -m leaderboard.auto_record select --review-dir "%RUN%/full" --commit YOUR_FULL_40_CHARACTER_COMMIT_ID --token-file "%USERPROFILE%\applied-programming-team.token"
+python -B project_run.py select --review-dir "%RUN%/full" --commit YOUR_FULL_40_CHARACTER_COMMIT_ID
 ```
 
 Confirm `status: selected`, the intended `run_id` and your full `commit_id` in the response. The command checks every `.py` and `.json` file under `student/`, including helper modules and unused tier designs, against the evaluated snapshot. A changed planner or design cannot be attached to an older result. The instructor freezes official selections for assessment. The schedule remains Week 15, with the exact closure announced by the instructor.
@@ -148,10 +151,10 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 
 ### Check and apply an announced release
 
-Set `RELEASE` to the exact tag announced by the instructor. The current documentation release is shown below:
+Set `RELEASE` to the exact tag announced by the instructor. The automatic-registration release is shown below:
 
 ```bat
-set "RELEASE=term-v3-material-table-20261114"
+set "RELEASE=term-v3-auto-registration-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -190,7 +193,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-material-table-20261114"
+set "RELEASE=term-v3-auto-registration-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

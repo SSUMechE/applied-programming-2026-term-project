@@ -110,7 +110,7 @@ After a handoff, the donor follows its reverse path kinematically with **zero ph
 
 ## 3 Start and Test Your Design
 
-On GitHub, choose **Use this template → Create a new repository**. The course template is public. Create **one private repository per team** for all shared work and final submission. Add every teammate and the instructor account **SSUMechE** as collaborators. Each member must commit and push their own work using their own GitHub account. Keep the team repository private so other teams cannot inspect your designs or paths. Do not post design files, saved paths or motion previews publicly. Save the instructor-issued team token outside Git at `%USERPROFILE%\applied-programming-team.token`.
+On GitHub, choose **Use this template → Create a new repository**. The course template is public. Create **one private repository per team** for all shared work and final submission. Add every teammate and the instructor account **SSUMechE** as collaborators. Each member must commit and push their own work using their own GitHub account. Keep the team repository private so other teams cannot inspect your designs or paths. Do not post design files, saved paths or motion previews publicly.
 
 Use **Windows Anaconda Prompt** and the existing `applied-programming-cuda` environment. Replace the two placeholders with your repository URL and folder name:
 
@@ -118,11 +118,14 @@ Use **Windows Anaconda Prompt** and the existing `applied-programming-cuda` envi
 git clone YOUR_PROJECT_REPOSITORY_URL
 cd YOUR_PROJECT_REPOSITORY_NAME
 conda activate applied-programming-cuda
-python -B project_run.py configure --token-file "%USERPROFILE%\applied-programming-team.token"
 python -B project_run.py check --cuda --output output/environment.json
 ```
 
-Continue after `REPORTING_CONFIGURED` and `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for guidance before changing packages.
+On the first interactive check, enter your team's agreed unique name and shared password when prompted. Every teammate uses the same pair once per checkout on each computer. Use a project-specific password of at least **12 characters**, not your GitHub password. Enter it at the hidden prompt, never in a command or repository file. The supplied client registers or signs in to your team and stores this computer's credential outside Git. Confirm `TEAM_CONNECTED: <your team name>`. Later commands reuse that sign-in automatically. No instructor-issued token is required.
+
+If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
+
+The environment check must print `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for guidance before changing packages. If first use is offline, keep your local work and run `python -B project_run.py retry` after reconnecting.
 
 Complete your planner and selected design JSON, then run:
 
@@ -145,7 +148,7 @@ Every completed full bead review automatically records success or failure. A ful
 
 [Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev). Select your complexity and `term_v3` rule. The live comparison uses each team's latest successful run. A later failure stays in history without replacing that success. Official ranking uses the successful representative each team explicitly selects. Instructor test runs are kept outside the classroom standings.
 
-The public leaderboard shares result summaries, not robot layouts, handoff coordinates, joint paths or student source code. Your detailed attempt history requires your own team token.
+The public leaderboard shares result summaries, not robot layouts, handoff coordinates, joint paths or student source code. Your detailed attempt history is available only through your saved team sign-in.
 
 The supplied runner reports failed check, test, plan and review commands privately to the instructor. If a connection fails, keep your output and run `python -B project_run.py retry` after reconnecting. This uploads queued results and diagnostics without rerunning Genesis. Students need no ngrok, VPN or bug-report form.
 
