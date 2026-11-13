@@ -1,0 +1,23 @@
+{
+  "schema_version": "ap-term-project-package-status-v3",
+  "semester": "2026-02",
+  "date": "2026-11-14",
+  "status": "STUDENT_WORKSPACE_LAB_QUALIFICATION_PENDING",
+  "current_rule_version": "term_v3",
+  "materials": {"beads": "available_for_student_design_and_verification", "process_liquid": "locked", "sand": "locked"},
+  "PyTorch": "2.14.0+cu126 unchanged",
+  "Genesis": "1.3.2 unchanged",
+  "student_release_approved": false,
+  "student_source_publication_authorized": true,
+  "qualification_is_external_to_immutable_rule": true,
+  "same_protected_physics_source_full_native_matrix_completed": true,
+  "five_independent_student_role_solves_reviewed": true,
+  "student_role_scope": "Agent role exercises, including revisions after failed attempts. Not measured human workload.",
+  "GTX1660_SUPER_final_source_measured": false,
+  "leaderboard_url": "https://phoniness-reenact-veggie.ngrok-free.dev",
+  "installed_term_v3_rule_digests_match": true,
+  "official_competition_activated": false,
+  "classroom_team_credentials_distributed": false,
+  "preview_scope": "Optional CPU geometry preview of the student's own saved plan. No Genesis execution or physical certification.",
+  "scope": "Student workspace and English guidance publication. The protected bead physics and rules retain their current-PC validation. Final lab qualification and official competition activation remain separate pending gates. No reference solution is included."
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학생 실행 문제 · 교사용</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#171717;background:#fff;font-size:16px}
+*{box-sizing:border-box}body{margin:0 auto;padding:24px;max-width:1440px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;border-bottom:2px solid #111;padding-bottom:18px}h1{font-size:27px;margin:0 0 8px}h2{font-size:21px;margin:0 0 12px}p{line-height:1.6;margin:8px 0}a{color:inherit}button,input,select,textarea{font:inherit;color:inherit;background:white;border:1px solid #555;border-radius:4px;padding:8px}button{cursor:pointer}button:hover{background:#eee}button:disabled{opacity:.55;cursor:wait}button.primary{background:#171717;color:white}label{display:flex;flex-direction:column;gap:6px}input,select{min-width:0}textarea{width:100%;min-height:90px}.panel{padding:20px;border:1px solid #bbb;border-radius:6px;margin-top:20px}.login{max-width:520px}.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.filters{display:grid;grid-template-columns:repeat(5,minmax(110px,1fr));gap:12px}.subtle{font-size:14px;color:#444}.notice{min-height:1.6em;margin-top:12px;font-weight:600}.tablewrap{overflow:auto;margin-top:14px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid #ccc;overflow-wrap:anywhere}th{white-space:nowrap}td button{font-size:14px}.wide{min-width:210px}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:42vh;overflow:auto;font-size:13px;line-height:1.6;border:1px solid #ccc;padding:12px;background:#fafafa}details{margin:16px 0}summary{cursor:pointer}.columns{display:grid;grid-template-columns:2fr 1fr;gap:20px}.stack{display:grid;gap:12px}.attempts{display:flex;gap:8px;flex-wrap:wrap}.attempts button{font-size:13px}[hidden]{display:none!important}@media(max-width:850px){body{padding:16px}.filters{grid-template-columns:1fr 1fr}.columns{grid-template-columns:1fr}header{align-items:flex-start}.wide{min-width:170px}}
+</style>
+</head>
+<body>
+<header><div><h1>학생 실행 문제</h1><p>실패 보고를 확인하고 처리 상태와 수정 내용을 공유합니다.</p></div><div class="actions"><a href="/">공개 리더보드</a><button id="logout" hidden>로그아웃</button></div></header>
+<p class="subtle">교사용 비공개 화면입니다. 진단 보고와 처리 상태는 점수·물리 평가 결과를 바꾸지 않습니다. 성공한 실행은 이 목록에 보고되지 않습니다.</p>
+<section id="loginPanel" class="panel login"><h2>교사 로그인</h2><form id="loginForm"><label>교사용 접속 키<input id="token" name="token" type="password" required autocomplete="off" maxlength="512"></label><p><button class="primary" type="submit">로그인</button></p></form><p id="loginMessage" class="notice" role="status"></p></section>
+<main id="workspace" hidden>
+<section class="panel"><h2>문제 목록</h2><form id="filters" class="filters">
+<label>팀 ID<input name="team_id" maxlength="128" placeholder="전체 팀"></label>
+<label>분류<select name="category"><option value="">전체</option><option value="physics_rejection">물리 평가 거절</option><option value="planning_failure">경로 생성 실패</option><option value="test_failure">제공 테스트 실패</option><option value="program_error">프로그램 오류</option><option value="environment_error">환경 오류</option><option value="interrupted">실행 중단</option></select></label>
+<label>패키지 버전<input name="version" maxlength="128" placeholder="전체 버전 (정확히 일치)"></label>
+<label>처리 상태<select name="status"><option value="">전체</option><option value="new">신규</option><option value="investigating">확인 중</option><option value="resolved">처리 완료</option></select></label>
+<div class="actions"><button class="primary" type="submit">필터 적용</button><button id="refresh" type="button">새로 고침</button></div></form>
+<p class="subtle">같은 버전·단계·오류 유형을 묶어 보여 줍니다. 횟수는 현재 필터에 해당하는 보고 수입니다. 실행 중의 진행 상황은 수집하지 않으며, 실패가 보고된 뒤 약 15초마다 갱신합니다.</p>
+<p id="listMessage" class="notice" role="status"></p>
+<div class="tablewrap"><table><thead><tr><th>최근 접수</th><th>최근 팀 / 버전</th><th class="wide">분류 / 단계 / 코드</th><th>보고 수 / 팀 수</th><th>신규 / 확인 중 / 완료</th><th>상세</th></tr></thead><tbody id="issues"></tbody></table></div></section>
+<section id="detailPanel" class="panel" hidden><h2 id="detailTitle">실행 상세</h2><p id="detailIdentity" class="subtle"></p><div class="columns"><div><h3>실패 내용</h3><pre id="failure"></pre><details><summary>원본 실행 기록 (수정 불가)</summary><pre id="report"></pre></details><details><summary>처리 이력</summary><pre id="history"></pre></details></div><form id="statusForm" class="stack"><label>이 실행의 처리 상태<select id="status"><option value="new">신규</option><option value="investigating">확인 중</option><option value="resolved">처리 완료</option></select></label><label>수정 커밋 (선택)<input id="fixedCommit" maxlength="40" pattern="[0-9a-f]{40}" placeholder="40자리 커밋 ID"></label><label>해당 팀에 공유되는 처리 메모 (선택)<textarea id="note" maxlength="2000"></textarea></label><div><button class="primary" type="submit">처리 상태 저장</button></div><p class="subtle">이 실행의 처리 정보만 갱신합니다. 학생 코드와 원본 오류 기록은 바뀌지 않습니다.</p><p id="statusMessage" class="notice" role="status"></p></form></div><h3>같은 유형의 실행</h3><div id="related" class="attempts"></div><p id="relatedLimit" class="subtle"></p></section>
+</main>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let authenticated = false, loading = false, selected = null, listBefore = null, nextBefore = null, relatedBefore = null, detailGeneration = 0;
+const firstPage=document.createElement("button"), olderPage=document.createElement("button"), pager=document.createElement("div"), relatedMore=document.createElement("button");
+firstPage.type=olderPage.type=relatedMore.type="button"; firstPage.textContent="최근 유형부터"; olderPage.textContent="이전 유형 보기"; relatedMore.textContent="같은 유형의 이전 실행 더 보기";
+pager.className="actions"; pager.append(firstPage,olderPage); $("issues").closest("section").append(pager); $("relatedLimit").after(relatedMore); relatedMore.hidden=true;
+const categoryLabels = {physics_rejection:"물리 평가 거절",planning_failure:"경로 생성 실패",test_failure:"제공 테스트 실패",program_error:"프로그램 오류",environment_error:"환경 오류",interrupted:"실행 중단"};
+const statusLabels = {new:"신규",investigating:"확인 중",resolved:"처리 완료"};
+function session(on) {
+  authenticated = on; $("loginPanel").hidden = on; $("workspace").hidden = !on; $("logout").hidden = !on;
+  if (!on) { detailGeneration++; selected = null; $("issues").replaceChildren(); $("detailPanel").hidden = true; $("report").textContent = ""; $("failure").textContent = ""; $("history").textContent = ""; $("related").replaceChildren(); $("note").value = ""; }
+}
+async function api(path, options={}) {
+  const response = await fetch(path, {credentials:"same-origin",cache:"no-store",...options});
+  const value = await response.json();
+  if (response.status === 401) session(false);
+  if (!response.ok) throw new Error(value.error ? value.error.message : "요청을 처리하지 못했습니다.");
+  return value;
+}
+function timeLabel(stamp) { const date = new Date(stamp); return Number.isNaN(date.getTime()) ? stamp : date.toLocaleString(); }
+function cell(row, value) { const td = document.createElement("td"); td.textContent = value; row.append(td); return td; }
+async function loadIssues() {
+  if (loading) return; loading = true;
+  try {
+    const query = new URLSearchParams();
+    for (const [key,value] of new FormData($("filters"))) if (value.trim()) query.set(key,value.trim());
+    if (listBefore !== null) query.set("before",String(listBefore));
+    const result = await api("/api/instructor/issues/list?"+query.toString()); session(true);
+    nextBefore=result.next_before; firstPage.disabled=listBefore===null; olderPage.disabled=nextBefore===null;
+    $("issues").replaceChildren();
+    for (const issue of result.issues) {
+      const row = document.createElement("tr");
+      cell(row,timeLabel(issue.received_at_utc)); cell(row,issue.team_id+"\n"+issue.version);
+      cell(row,(categoryLabels[issue.category] || issue.category)+"\n"+(issue.phase || "단계 정보 없음")+"\n"+(issue.code || issue.exception_type || "코드 없음"));
+      cell(row,issue.occurrences+" / "+issue.teams); cell(row,issue.new_count+" / "+issue.investigating_count+" / "+issue.resolved_count);
+      const button = document.createElement("button"); button.type="button"; button.textContent="최근 실행 보기";
+      button.addEventListener("click",()=>loadDetail(issue.team_id,issue.report_id)); cell(row,"").append(button); $("issues").append(row);
+    }
+    $("listMessage").textContent = result.issues.length ? result.issues.length+"개 유형 · "+new Date().toLocaleTimeString()+" 갱신"+(result.truncated ? " · 이전 유형은 아래 버튼으로 계속 볼 수 있습니다." : " · 마지막 페이지") : "조건에 맞는 실패 보고가 없습니다.";
+  } catch (error) { (authenticated ? $("listMessage") : $("loginMessage")).textContent = error.message; }
+  finally { loading = false; }
+}
+function showDetail(result) {
+  const item=result.attempt; selected={team_id:item.team_id,report_id:item.report_id};
+  $("detailPanel").hidden=false; $("detailTitle").textContent=item.team_id+" · "+(statusLabels[item.status] || item.status);
+  $("detailIdentity").textContent="접수 "+timeLabel(item.received_at_utc)+" · 보고 ID "+item.report_id;
+  $("failure").textContent=item.report.failure.message+"\n\n"+item.report.failure.traceback_tail;
+  $("report").textContent=JSON.stringify(item.report,null,2); $("history").textContent=JSON.stringify(result.status_history,null,2);
+  $("status").value=item.status; $("fixedCommit").value=item.fixed_commit || ""; $("note").value=item.note;
+  $("related").replaceChildren();
+  appendRelated(result);
+}
+function appendRelated(result) {
+  for (const other of result.related_attempts) { const button=document.createElement("button"); button.type="button"; button.textContent=other.team_id+" · "+timeLabel(other.received_at_utc)+" · "+(statusLabels[other.status] || other.status); button.addEventListener("click",()=>loadDetail(other.team_id,other.report_id)); $("related").append(button); }
+  relatedBefore=result.related_next_before; relatedMore.hidden=relatedBefore===null;
+  $("relatedLimit").textContent=$("related").childElementCount+"개 실행 표시 · "+(relatedBefore===null ? "같은 유형의 이전 실행까지 모두 표시했습니다." : "이전 실행은 아래 버튼으로 계속 볼 수 있습니다.");
+}
+async function loadDetail(team,report) {
+  const generation=++detailGeneration; selected=null; $("detailPanel").hidden=true;
+  try { const query=new URLSearchParams({team_id:team,report_id:report}); const result=await api("/api/instructor/issues/detail?"+query.toString()); if(generation===detailGeneration && authenticated) {showDetail(result); $("statusMessage").textContent="";} }
+  catch (error) { $("listMessage").textContent=error.message; }
+}
+$("loginForm").addEventListener("submit",async event=>{
+  event.preventDefault(); const token=$("token").value; $("token").value=""; $("loginMessage").textContent="";
+  try { await api("/instructor/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({token})}); session(true); await loadIssues(); }
+  catch (error) { $("loginMessage").textContent=error.message; }
+});
+$("logout").addEventListener("click",async()=>{ try { await api("/instructor/logout",{method:"POST"}); session(false); $("loginMessage").textContent="로그아웃했습니다."; } catch(error) { $("listMessage").textContent=error.message; } });
+$("filters").addEventListener("submit",event=>{event.preventDefault();listBefore=null;loadIssues();}); $("refresh").addEventListener("click",()=>{if(!loading){listBefore=null;loadIssues();}});
+firstPage.addEventListener("click",()=>{if(!loading){listBefore=null;loadIssues();}});
+olderPage.addEventListener("click",()=>{if(!loading && nextBefore!==null){listBefore=nextBefore;loadIssues();}});
+relatedMore.addEventListener("click",async()=>{
+  if(!selected || relatedBefore===null) return; const generation=detailGeneration; relatedMore.disabled=true;
+  try {const query=new URLSearchParams({...selected,before:String(relatedBefore)}); const result=await api("/api/instructor/issues/detail?"+query.toString()); if(generation===detailGeneration && authenticated) appendRelated(result);}
+  catch(error){$("statusMessage").textContent=error.message;} finally{relatedMore.disabled=false;}
+});
+$("statusForm").addEventListener("submit",async event=>{
+  event.preventDefault(); if (!selected) return;
+  const button=event.currentTarget.querySelector("button"); button.disabled=true;
+  const body={...selected,status:$("status").value,fixed_commit:$("fixedCommit").value || null,note:$("note").value};
+  try { const result=await api("/api/instructor/issues/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); if(selected && selected.team_id===body.team_id && selected.report_id===body.report_id){showDetail(result); $("statusMessage").textContent="처리 상태를 저장했습니다.";} await loadIssues(); }
+  catch(error) { $("statusMessage").textContent=error.message; } finally {button.disabled=false;}
+});
+setInterval(()=>{if(authenticated && !document.hidden) loadIssues();},15000);
+loadIssues();
+</script>
+</body>
+</html>

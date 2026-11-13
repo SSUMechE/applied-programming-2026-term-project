@@ -1,0 +1,20 @@
+{
+  "schema_version": "provided-three-arm-task-inputs-v1",
+  "files": {
+    "cases/difficulty_20261106/hard_industrial_v1/initialization.json": "d205f1f69a5fae0d19e9d45bc9752503c7827211dcfe287cd22a90d332d748f3",
+    "cases/difficulty_20261106/hard_industrial_v1/physics_settings_reference.json": "b8b5c299ec0bc47ecd69d29d6b4d888057236dd6855d57df94ba5dee76f7754e",
+    "cases/difficulty_20261106/hard_industrial_v1/world.json": "513be26ad5433bdb5a890d119142df3f64f877c22c54cf91106f6f8a22ec328d"
+  },
+  "source_case": {
+    "cases/three_arm_cell_bead16_v2/world.json": "5685cd75be630c89d7bac2432622e79c9e66e92a3f9efb94da37a6c772f888f4",
+    "cases/three_arm_cell_bead16_v2/initialization.json": "2c99b0ec98210ab194e82ff8ec202149fdd059fc04d0328a98b640e5cf4bf9d1",
+    "cases/three_arm_cell_bead16_v2/manifest.json": "6e955acfbf36dd03f3b314307e8d3903b3a24c43ff88824efa4f5fff7876c297"
+  },
+  "instructor_builder_sha256": "05eb3820be2a01bdcf7277c8eef87d4c442de9dd6fc28bbf9f02098064a64c02",
+  "fixed_physics_and_criteria_signature_sha256": "2ea9171ad62a65a128ad56525774759a5b9ed95f886951744214b956826c7135",
+  "scope": "Immutable supplied physical geometry and initial joints. Student installation and internal handoff choices must be supplied separately. Release qualification is external to this input manifest.",
+  "supplemental_files": {
+    "cases/difficulty_20261106/hard_industrial_v1/difficulty_target.json": "87fadac2afddacb8f79c2b2348e82228af084fe5732569c9aca5e4e414810a00",
+    "cases/difficulty_20261106/hard_industrial_v1/map_geometry.json": "74a987aa283155ab0ff994d0209de41a30da91787e688e22ee77a79e1d890cb8"
+  }
+}
