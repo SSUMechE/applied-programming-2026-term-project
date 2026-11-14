@@ -34,7 +34,7 @@
     "diagnostics/protocol.py": "78777e432f08f8969f210e9fac49e1665858103029e1940b1840c201887ce61a",
     "diagnostics/server.py": "6ca1afdd72a006562ea71f9b0ca33c456a0916289fe73c1e367b0d13d1a28699",
     "diagnostics/store.py": "2baeda6f669b4f23141d61e99543095943c251fbc789eb261772d5f5c5ee4634",
-    "docs/EVALUATION_AND_SUBMISSION.md": "f4e8f6750aa61b6a959be529fb0acb835feb4d1f4bc2873a2b5bb405914ad462",
+    "docs/EVALUATION_AND_SUBMISSION.md": "4aa8c22c562f37ae6076b9c72f69eb1cf17f4063015cb687fbca9bf102820797",
     "docs/LEADERBOARD_OPERATIONS.md": "3482d6ec0899e58ce675a13101ba3a3ec9288483d8221097986ea6d9726d31c8",
     "docs/MAPS_AND_DESIGN.md": "661aa23264f54af74dac19a2a34c7657c866c3f83f3dfef520f00537aa8d04fb",
     "docs/SCORING.md": "c5af9144c9fe57433e4809a218885faa0c874ddb84545f915f4e891a3f1adb30",
@@ -55,7 +55,7 @@
     "docs/outline-planner-contract.png": "ee9068cb4a9b2852bf8e1299f9ec28620162a8a9492cd38919268ebdc6d80993",
     "docs/project-map-overview.png": "db00a6c9a0d5a3a332036a134da7d736d050374e7ccb76fc201a6c50e507d88e",
     "docs/project-schedule.svg": "512b3ac5a1ca133c76055ffc44507264d00ae7a7305924ea887a746c1d841b31",
-    "docs/project_outline_with_appendix.pdf": "3259bd80688892ff0a0ef400b4b5569cfc3272ad66ed066886f335dcd42d5f1e",
+    "docs/project_outline_with_appendix.pdf": "a8331e73a707c40c3bda13e18213e2189a62d24cd6f68d28a1938566b9896e74",
     "docs/written-exam-date.svg": "9de58425e224cfee9f36f71b4351de4f627b6931fd2dbacf447df9961c2cb370",
     "environment_reference.json": "0aae029122295ed2fe0a2e29c28cc0546ad9322091991802dc99b191a1557c49",
     "environment_sdk_pins.json": "dbe25f1b031df7d1a5739dae4dcdf4986dd7712a809a5ffddf791ecdfc15d239",
@@ -199,7 +199,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v3-leaderboard-guide-20261114",
+  "release_tag": "term-v3-outline-heading-20261114",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v3": {
