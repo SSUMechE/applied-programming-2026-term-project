@@ -69,17 +69,48 @@ A(C) = -N * (C - C4) / (Cmax - C4)
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**. The title slide is excluded. Each member presents their named section. This gives 5–6, 8–9 or 11–12 content slides for teams of one, two or three.
 
-The common part explains the mission, method, constraints, route and speed choices, results and interpretation. Include the shared private repository URL, final full 40-character commit ID, case/settings and reproduction instructions. Each member identifies their role, changed files/functions, key code, effect on results and links to their pushed commits and relevant pull requests. Explain each person's contribution to joint work using the actual commit and push history.
+The common part explains the mission, method, constraints, route and speed choices, results and interpretation. Include the shared private repository URL, the full 40-character commit ID used for the presented results, case/settings and reproduction instructions. Each member identifies their role, changed files/functions, key code, effect on results and links to their pushed commits and relevant pull requests. Explain each person's contribution to joint work using the actual commit and push history.
 
 Presentation contributes −10 to +10 after the base ceiling: shared team quality from −5 to +5, plus individual presentation from −5 to +5. Both apply to solo students too.
 
-| Component | −5 | 0 | +5 |
-| --- | --- | --- | --- |
-| Team quality | Disjointed account or key claims unsupported/contradicted by results | Coherent mission, method and results with traceable code and records | Clear connection between choices, comparable evidence, tradeoffs and limitations |
-| Individual explanation | Cannot identify or explain own changes and planning logic | Accurately explains role, code and effect with attribution | Explains why work affected results, interprets limitations and distinguishes own part in joint work |
+Each of the five team criteria and five individual criteria below receives **−1, 0 or +1**. Add the five team scores for the shared **−5 to +5** adjustment. Add each member's five individual scores for that member's **−5 to +5** adjustment. The two adjustments total **−10 to +10**. Both apply to solo students.
 
-Intermediate scores may be awarded. Code contribution evaluates actual work. Presentation evaluates the explanation and evidence.
+Use these anchors for each criterion:
+
+- **−1:** The required explanation is absent, materially incorrect or unsupported by the available code and records.
+- **0:** The explanation is accurate, clear and traceable to the relevant code, settings or records.
+- **+1:** The explanation adds evidence-backed causal reasoning or a meaningful, justified tradeoff appropriate to that criterion.
+
+Use the team table to organize the common part of the presentation. It identifies what the existing team-quality adjustment evaluates.
+
+| Team criterion | What to explain |
+| --- | --- |
+| Mission and fixed constraints | The chosen task and the fixed conditions governing valid transport. |
+| Layout and handoff reasoning | Placement and relay choices, reachability, clearance and interference. |
+| Search and speed choices | The search method, connection checks, path recovery and chosen speed or edge times. |
+| Traceable results and settings | The code revision, case/settings and supplied records supporting the shown outcomes. Make the conditions of any comparison identifiable. |
+| Interpretation and limitations | What successes or failures show, the relevant tradeoffs and the limits of the conclusions. |
+
+Use the individual table for each member's existing three-slide part. It evaluates technical explanation of that person's work, including clearly attributed joint work.
+
+| Individual criterion | What to explain |
+| --- | --- |
+| Actual role and attribution | Own role, edited files/functions and relevant commit links. Identify each person's part in joint work. |
+| Core code and search logic | How the relevant core code and search logic work. |
+| Reasons for choices | Why the implementation or design choices were made. |
+| Effects, debugging and results | How changes and debugging observations connect to the observed results. |
+| Structured technical explanation | A coherent, precise account using correct terms and traceable code or result references. |
+
+Use the code and records already produced for the project. No new experiment count, test authorship, report or form is required. Accurate analysis of failed runs can earn strong presentation marks. Commit counts, line counts, slide decoration and the presence of a video earn no points by themselves. The separate code-contribution adjustment evaluates actual work. Presentation evaluates the explanation and its supporting code and records.
 
 **Submission without a full success:** every team submits its implemented code/design, the same presentation, and the repository URL plus full commit ID in the LMS. If there is no successful full run, do not run `select`. Retain the original available execution records supporting the submitted work. Implementation, design and independently verified completed carries remain assessable under the base rubric. Failed runs receive no competition adjustment. No extra report or form is required.
 
-The project culminates in the Week 15 presentation and final submission. Use **one shared private repository** for the team's work and submission. Give all members and **SSUMechE** access. Each member must commit and push their own work from their own GitHub account. Submit the repository URL and full 40-character commit ID in the LMS. **Upload one team PowerPoint file separately to the LMS.** Retain code/settings and supplied run records supporting the presentation. Select the successful representative using [the run guide](EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). The instructor announces the exact closure and freezes selections. No extra student form or verification report is required.
+Use **one shared private repository** for the team's work and submission. Give all members and **SSUMechE** access. Each member must commit and push their own work from their own GitHub account. Retain code/settings and supplied run records supporting the presentation. Select the successful representative using [the run guide](EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). The instructor freezes selections for assessment.
+
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.](project-schedule.svg)
+
+Use the LMS submission field and file-upload area. Posting results only in Comments instead of submitting them in the required field will incur a deduction.
+
+The presentation commit identifies the results shown in that presentation. The final code submission identifies the final submitted revision. No extra student form or verification report is required.
+
+![Written examination: tentative date December 11 or December 14, 2026. One date will be confirmed. Scope: course content after the midterm and project content.](written-exam-date.svg)

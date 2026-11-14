@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="110" viewBox="0 0 1200 110" role="img" aria-labelledby="title desc">
+  <title id="title">Written examination tentative date</title>
+  <desc id="desc">The written examination is tentatively on December 11 or December 14, 2026. One date will be confirmed. The scope covers course content after the midterm and project content.</desc>
+  <rect width="1200" height="110" fill="white"/>
+  <g font-family="Times New Roman, Times, serif" fill="black">
+    <text x="20" y="38" font-size="26" font-weight="bold">Written examination (tentative)</text>
+    <text x="510" y="38" font-size="26" font-weight="bold" fill="#c00000">December 11 or December 14, 2026</text>
+    <text x="20" y="78" font-size="23">One date will be confirmed. Scope: course content after the midterm and project content.</text>
+  </g>
+</svg>

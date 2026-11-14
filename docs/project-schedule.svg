@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">Project presentation and final submission dates</title>
+  <desc id="desc">Upload one team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Team presentations are Monday, December 7 and Thursday, December 10, 2026. Submit the final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.</desc>
+  <rect width="1200" height="260" fill="white"/>
+  <g font-family="Times New Roman, Times, serif" fill="black">
+    <text x="20" y="38" font-size="28" font-weight="bold">Presentation and final submission</text>
+    <text x="20" y="84" font-size="25">Team PowerPoint upload to LMS</text>
+    <text x="510" y="84" font-size="25" font-weight="bold" fill="#c00000">December 6, 2026, 11:59 PM KST</text>
+    <text x="20" y="130" font-size="25">Team presentations</text>
+    <text x="510" y="130" font-size="25" font-weight="bold" fill="#c00000">Monday, December 7, 2026</text>
+    <text x="510" y="164" font-size="25" font-weight="bold" fill="#c00000">Thursday, December 10, 2026</text>
+    <text x="20" y="210" font-size="25">Final code: LMS repository URL + commit ID</text>
+    <text x="510" y="210" font-size="25" font-weight="bold" fill="#c00000">December 11, 2026, 11:59 PM KST</text>
+    <text x="20" y="246" font-size="21">The final code submission requires the full 40-character commit ID.</text>
+  </g>
+</svg>

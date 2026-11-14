@@ -153,12 +153,17 @@ git rev-parse HEAD
 python -B project_run.py select --review-dir "%RUN%/full" --commit YOUR_FULL_40_CHARACTER_COMMIT_ID
 ```
 
-Confirm `status: selected`, the intended `run_id` and your full `commit_id` in the response. The command checks every `.py` and `.json` file under `student/`, including helper modules and unused tier designs, against the evaluated snapshot. A changed planner or design cannot be attached to an older result. The instructor freezes official selections for assessment. The schedule remains Week 15, with the exact closure announced by the instructor.
+Confirm `status: selected`, the intended `run_id` and your full `commit_id` in the response. The command checks every `.py` and `.json` file under `student/`, including helper modules and unused tier designs, against the evaluated snapshot. A changed planner or design cannot be attached to an older result. The instructor freezes official selections for assessment.
 
 **If you have no successful full run:** do not run `select`. Submit your implemented planner and design from that commit. Retain the original available execution records supporting that work. The existing rubric assesses your implementation, design and independently verified completed carries. Failed runs receive no competition adjustment. Submit the same presentation and LMS items below. No extra report or form is required.
 
-Use the **one shared private team repository** created from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Submit the repository URL and full 40-character commit ID in the LMS. **Upload one team PowerPoint file separately to the LMS.** Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository reference, settings, run instructions and relevant execution evidence. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md). Leaderboard registration does not replace these deliverables.
+Use the **one shared private team repository** created from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository URL, the full 40-character commit ID used for the presented results, settings, run instructions and relevant execution records. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md).
 
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.](project-schedule.svg)
+
+Use the LMS submission field and file-upload area. Posting results only in Comments instead of submitting them in the required field will incur a deduction.
+
+The presentation commit identifies its presented results. The final code submission identifies the final submitted revision. Leaderboard registration does not replace these deliverables.
 
 ## Keep supplied code current
 
@@ -166,10 +171,10 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 
 ### Check and apply an announced release
 
-Set `RELEASE` to the exact tag announced by the instructor. The LMS-submission clarification release is shown below:
+Set `RELEASE` to the exact tag announced by the instructor. The dates and presentation-rubric release is shown below:
 
 ```bat
-set "RELEASE=term-v3-ppt-lms-20261114"
+set "RELEASE=term-v3-deadlines-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -208,7 +213,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-ppt-lms-20261114"
+set "RELEASE=term-v3-deadlines-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
@@ -224,6 +229,8 @@ python -B project_run.py update status
 The one-time bootstrap fetch updates Git's `FETCH_HEAD`. It does not merge branches, alter your index, replace commits or change your remote URL. Normal updater fetches use their own isolated cache. Keep the bootstrap file. If rollback restores the old runner without an update command, invoke that saved file instead: `python -B "%BOOT%\update_project.py" rollback --backup BACKUP_ID`.
 
 If creating the bootstrap folder or fetching the release failed, stop and preserve the error. Do not run a previously downloaded file by assuming the failed command succeeded. No package reinstall is part of an update.
+
+![Written examination: tentative date December 11 or December 14, 2026. One date will be confirmed. Scope: course content after the midterm and project content.](written-exam-date.svg)
 
 ## Interpret time and cost
 
