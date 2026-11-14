@@ -239,9 +239,12 @@ Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity, c
 
 Choose the test that answers your current question. Empty-cup and glass-bead replays are physical simulations in Genesis, including control and contact. The CPU check does not simulate those physical effects.
 
-![Three test choices: CPU geometry without physics, Genesis empty-cup dynamics and handling, and Genesis glass-bead dynamics and retention. Inspect feedback and revise the design.](docs/figures/test-methods.png)
+| CPU geometry | Genesis: empty cup | Genesis: glass beads |
+| :---: | :---: | :---: |
+| ![Cup geometry exported by the supplied CPU motion-preview renderer](docs/figures/test-cpu-geometry.png) | ![Empty cup and gripper cropped from a recorded Genesis animation](docs/figures/test-genesis-empty.png) | ![Cup containing beads cropped from a recorded Genesis animation](docs/figures/test-genesis-beads.png) |
+| Geometric preview · no physics | Recorded Genesis motion | Recorded Genesis motion with beads |
 
-*Figure 6. Concept sketches of the three test methods. Use a virtual experiment to investigate a design decision, then choose your next revision. Empty-cup testing is optional. Separate arm passes cannot establish full-mission completion.*
+*Figure 6. An actual CPU geometric-preview export and crops from previously recorded Genesis animations. These examples illustrate the three test modes. Use the original run receipts to judge physical success. Separate arm passes cannot establish full-mission completion.*
 
 - [CPU planning and geometry checks](#35-export-your-cpu-checked-path): reject invalid configurations and connections before spending time on physics.
 - **Empty-cup Genesis:** use the command below to investigate tracking, contact and automatic handling. It cannot demonstrate bead retention.
