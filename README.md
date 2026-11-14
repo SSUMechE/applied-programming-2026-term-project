@@ -18,36 +18,6 @@ Complete the required transport tasks for the materials released for your select
 
 The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
 
-### 1.1 Your Implementation
-
-Implement `plan_path` in `student/joint_strategy.py`. Each request gives one arm's exact start and goal configurations. Return at most **10,000 seven-angle configurations** in radians with those exact endpoints, or `None` when the search fails.
-
-Only start and goal configurations are supplied. Generate intermediate configurations using RRT, bidirectional RRT, A*, or another suitable course method. Choose clearance constraints and connection sampling. Final validation resolution stays fixed.
-
-![Supplied endpoints and checks connect student planning to a path or a failed search](docs/outline-planner-contract.png)
-
-*Figure 2. The student planner constructs the route. A failed search returns None for revision.*
-
-### 1.2 Provided Support
-
-FK, IK, geometry/surface queries, full-robot collision checks, automatic grasp/release and interpolation are provided. The [API guide](docs/STUDENT_API.md) defines exact calls and returns. FK and IK do not establish collision freedom.
-
-![Inputs and outputs of the provided FK and IK helpers](docs/outline-kinematics.png)
-
-*Figure 3. Inputs and outputs of the supplied kinematics helpers. State and connection checks remain separate.*
-
-You do not implement kinematics, a gripping controller, a physics solver or a test harness. Keep the supplied code unchanged. Your work is the planner and permitted design inputs below.
-
-### 1.3 Development Process
-
-Follow the [CPU → optional empty cup → beads workflow](docs/EVALUATION_AND_SUBMISSION.md). Inspect contact, tracking, bead retention and arrival records, then revise the path or permitted settings and export a fresh plan.
-
-![Plan, check geometry, execute in Genesis, inspect records and revise](docs/outline-development-loop.png)
-
-*Figure 4. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
-
-The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. The optional 3D preview shows your own saved motion before physics.
-
 ## 2 Layout and Design Conditions
 
 ### 2.1 Layout Examples
@@ -68,7 +38,7 @@ All scenes contain three robot models. Unused arms remain parked collision geome
 | --- | --- | --- |
 | ![Lower complexity layout illustration](docs/outline-layout-lower.png) | ![Moderate complexity layout illustration](docs/outline-layout-moderate.png) | ![Higher complexity layout illustration](docs/outline-layout-higher.png) |
 
-*Figure 5. Layout illustrations from the original Project Outline. See the [current map](docs/project-map-overview.png) and [3D viewer](docs/map_viewer.html) for exact geometry and permitted placements.*
+*Figure 2. Layout illustrations from the original Project Outline. See the [current map](docs/project-map-overview.png) and [3D viewer](docs/map_viewer.html) for exact geometry and permitted placements.*
 
 Open `docs/map_viewer.html` from your cloned repository in a browser. Keep `motion_preview.js` beside it. Choose your complexity, then use **Preview your design JSON** to inspect selected bases and exact handoff points. Use **Preview your saved motion** to load an exported motion preview, then choose **Stage** and **Frame** to inspect planned joint motion. Use the [map constraints](docs/MAPS_AND_DESIGN.md) when choosing placements.
 
@@ -91,7 +61,27 @@ Use the materials marked **Open** for your current work.
 | Joint path | A sequence of seven-angle configurations in rad | `student/joint_strategy.py` → `plan_path` |
 | Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
 
-### 2.3 Fixed Conditions
+### 2.3 Your Implementation
+
+Implement `plan_path` in `student/joint_strategy.py`. Each request gives one arm's exact start and goal configurations. Return at most **10,000 seven-angle configurations** in radians with those exact endpoints, or `None` when the search fails.
+
+Only start and goal configurations are supplied. Generate intermediate configurations using RRT, bidirectional RRT, A*, or another suitable course method. Choose clearance constraints and connection sampling. Final validation resolution stays fixed.
+
+![Supplied endpoints and checks connect student planning to a path or a failed search](docs/outline-planner-contract.png)
+
+*Figure 3. The student planner constructs the route. A failed search returns None for revision.*
+
+### 2.4 Provided Support
+
+FK, IK, geometry/surface queries, full-robot collision checks, automatic grasp/release and interpolation are provided. The [API guide](docs/STUDENT_API.md) defines exact calls and returns. FK and IK do not establish collision freedom.
+
+![Inputs and outputs of the provided FK and IK helpers](docs/outline-kinematics.png)
+
+*Figure 4. Inputs and outputs of the supplied kinematics helpers. State and connection checks remain separate.*
+
+You do not implement kinematics, a gripping controller, a physics solver or a test harness. Keep the supplied code unchanged. Your work is the planner and permitted design inputs in Section 2.2.
+
+### 2.5 Fixed Conditions
 
 **Instructor-fixed constraints:** joint-angle bounds, maximum joint velocity and acceleration/deceleration, and tracking tolerance are supplied. Keep these limits unchanged. You may impose stricter constraints in your own planner.
 
@@ -109,6 +99,16 @@ These instructor-fixed limits apply to commands and actual motion. Tracking erro
 Actual bead loss, prohibited contact, control-limit violations, or failed final support/rest reject a run. There is no separate 8° spill gate or required slowdown multiplier.
 
 After a handoff, the donor follows its reverse path kinematically with **zero physics time**. Only its final pose receives a contact check. This does not certify the return's swept collision freedom. The last carrier does not return.
+
+### 2.6 Development Process
+
+Follow the [CPU → optional empty cup → beads workflow](docs/EVALUATION_AND_SUBMISSION.md). Inspect contact, tracking, bead retention and arrival records, then revise the path or permitted settings and export a fresh plan.
+
+![Plan, check geometry, execute in Genesis, inspect records and revise](docs/outline-development-loop.png)
+
+*Figure 5. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
+
+The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. The optional 3D preview shows your own saved motion before physics.
 
 ## 3 Start and Test Your Design
 
@@ -269,13 +269,15 @@ The supplied runner reports failed check, test, plan and review commands private
 
 ### 4.3 Select your final run and submit
 
-Choose one successful uploaded run. Commit and push its evaluated student files to your shared private team repository, then obtain the full commit ID:
+**Every team submits its work, even without a successful full mission.** Use the same private team repository, presentation and LMS procedure. Follow the result branch below.
+
+Commit and push the student files you are submitting to your shared private team repository, then obtain the full commit ID:
 
 ```bat
 git rev-parse HEAD
 ```
 
-Set `RUN` to that successful run's folder. Enter the exact 40-character commit ID printed above:
+**If you have a successful full run:** choose an uploaded successful run matching that commit. Set `RUN` to its folder. Enter the exact 40-character commit ID printed above:
 
 ```bat
 set /p "COMMIT_ID=Paste the full 40-character commit ID: "
@@ -283,6 +285,8 @@ python -B project_run.py select --review-dir "%RUN%/full" --commit "%COMMIT_ID%"
 ```
 
 Confirm `status: selected`, the intended `run_id` and full `commit_id`. All Python and JSON files under `student/` must match the evaluated snapshot, including helpers and unused tier designs. An older result cannot represent changed student code. See [final-selection details](docs/EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit).
+
+**If you have no successful full run:** do not run `select`. Submit your implemented planner and design from that commit. Retain the original available execution records supporting that work. The existing rubric assesses your implementation, design and independently verified completed carries. Failed runs receive no competition adjustment. Submit the same presentation and LMS items below. No extra report or form is required.
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of the shared repository.
 

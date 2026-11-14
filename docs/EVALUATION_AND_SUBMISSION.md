@@ -6,23 +6,22 @@ Design your layout, seven-joint path and speed. Supplied code performs grasping 
 
 The supplied bead workflows have been tested on an RTX 4090. Verify your own layout, path and speed with the steps below. Official bead competition and final representative selection are active. Instructor test records are separate from classroom standings. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and silica sand remain locked.
 
-## 1. Check the environment and your implementation
+## 1. Register your team and check the environment
 
-Use **Windows Anaconda Prompt**, from your project repository root. Copy commands without prompts or printed output. The first interactive check registers or signs in to your team's account:
+First create and clone your team's private repository using [README 3.1](../README.md#31-create-and-clone-your-teams-repository). Use **Windows Anaconda Prompt** from that repository root. Copy commands without prompts or printed output. Connect your team and check the environment now. After choosing a complexity below, implement your planner before running its tests. The first interactive check registers or signs in to your team's account:
 
 ```bat
 conda activate applied-programming-cuda
 python -B project_run.py check --cuda --output output/environment.json
-python -B project_run.py test
 ```
 
 Agree on one unique team name and a shared project password of at least **12 characters**. Each teammate enters the same pair once per checkout on each computer. Use a password made for this project, not a GitHub password. Type it only at the hidden prompt. Do not paste it into a command, design file or Git commit.
 
-The supplied client creates the team on first use or signs in to an existing team. Confirm `TEAM_CONNECTED: <your team name>`. The client saves a separate credential for this checkout on this computer outside Git and reuses it automatically. It does not store the password. No instructor-issued token, token-file copying, ngrok or VPN installation is needed. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
+The supplied client creates the team on first use or signs in to an existing team. On that first successful sign-in, confirm `TEAM_CONNECTED: <your team name>`. Later cached checks reuse the credential without printing that message. The client saves a separate credential for this checkout on this computer outside Git and reuses it automatically. It does not store the password. No instructor-issued token, token-file copying, ngrok or VPN installation is needed. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
 
 If sign-in fails or first use is offline, a `TEAM_SIGN_IN_*` message explains the issue and local check, test, plan and review work can continue. Keep your output. After reconnecting, run `python -B project_run.py retry` to sign in and upload queued records. Unattended commands do not invent a team or wait for interactive input.
 
-The environment check must print `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep the existing PyTorch environment. A mismatch is reported automatically when connected. Wait for instructor guidance before changing packages. Complete `student/joint_strategy.py` and the selected design JSON before planning. The unfinished starter has two path errors. After implementing it, all three supplied checks should pass.
+The environment check must print `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep the existing PyTorch environment. A mismatch is reported automatically when connected. Wait for instructor guidance before changing packages.
 
 The supplied `project_run.py` runs the original checks, planner and physical evaluator with your arguments. It preserves their exit status and does not change paths, timing or physics. Failed `check`, `test`, `plan` and `review` commands queue a short diagnostic for the instructor, separate from competition records.
 
@@ -55,6 +54,18 @@ set "RUN=output\higher_01"
 ```
 
 For another attempt, choose a fresh `RUN`, such as `output\higher_02`. Preserve earlier results.
+
+### Implement the selected design, then test
+
+Complete `student/joint_strategy.py::plan_path` and the selected `student/%LEVEL%_design.json` before planning. Choose `joint_speed_scale` or implement the optional `choose_edge_durations_s` function. The [README edit checklist](../README.md#34-implement-your-planner-and-design) and [API contract](STUDENT_API.md) identify the exact inputs and return values.
+
+After implementing these student inputs, run the supplied checks:
+
+```bat
+python -B project_run.py test
+```
+
+All three interface checks should pass. The unfinished starter intentionally fails two path checks. These tests check function contracts, not workcell feasibility or physical transport.
 
 ## 3. Save a CPU-checked path
 
@@ -128,13 +139,15 @@ The live comparison uses each team's latest successful run. A later failure stay
 
 ## 7. Select the final representative and submit
 
-Choose one successful acknowledged run under your active complexity rule. Commit and push the evaluated student files to the shared team repository using your usual Git workflow, then obtain the full ID:
+**Every team submits, even without a successful full mission.** Use the same private team repository, presentation and LMS procedure.
+
+Commit and push the student files you are submitting to the shared team repository using your usual Git workflow, then obtain the full ID:
 
 ```bat
 git rev-parse HEAD
 ```
 
-Replace the placeholder with those exact 40 characters. Set `RUN` to the selected run's folder before this command.
+**If you have a successful full run:** choose an acknowledged successful run under your active complexity rule that matches that commit. Replace the placeholder with the exact 40 characters printed above. Set `RUN` to the selected run's folder before this command.
 
 ```bat
 python -B project_run.py select --review-dir "%RUN%/full" --commit YOUR_FULL_40_CHARACTER_COMMIT_ID
@@ -142,7 +155,9 @@ python -B project_run.py select --review-dir "%RUN%/full" --commit YOUR_FULL_40_
 
 Confirm `status: selected`, the intended `run_id` and your full `commit_id` in the response. The command checks every `.py` and `.json` file under `student/`, including helper modules and unused tier designs, against the evaluated snapshot. A changed planner or design cannot be attached to an older result. The instructor freezes official selections for assessment. The schedule remains Week 15, with the exact closure announced by the instructor.
 
-Create **one shared private team repository** from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Submit the repository URL and full 40-character commit ID in the LMS. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository reference, settings, run instructions and relevant execution evidence. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md). Leaderboard registration does not replace these deliverables.
+**If you have no successful full run:** do not run `select`. Submit your implemented planner and design from that commit. Retain the original available execution records supporting that work. The existing rubric assesses your implementation, design and independently verified completed carries. Failed runs receive no competition adjustment. Submit the same presentation and LMS items below. No extra report or form is required.
+
+Use the **one shared private team repository** created from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Submit the repository URL and full 40-character commit ID in the LMS. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository reference, settings, run instructions and relevant execution evidence. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md). Leaderboard registration does not replace these deliverables.
 
 
 ## Keep supplied code current
@@ -151,10 +166,10 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 
 ### Check and apply an announced release
 
-Set `RELEASE` to the exact tag announced by the instructor. The motion-guidance release is shown below:
+Set `RELEASE` to the exact tag announced by the instructor. The student-workflow release is shown below:
 
 ```bat
-set "RELEASE=term-v3-motion-guidance-20261114"
+set "RELEASE=term-v3-student-flow-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -193,7 +208,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-motion-guidance-20261114"
+set "RELEASE=term-v3-student-flow-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
