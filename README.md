@@ -252,6 +252,12 @@ Check the two results separately:
 
 The live comparison uses each team's **latest successful run**. A later failure stays in team history without replacing that success. The official comparison uses the successful representative each team explicitly selects.
 
+![Live leaderboard before successful student uploads](docs/leaderboard-live-20261114.jpg)
+
+*Live leaderboard captured on 14 November 2026, before successful student uploads.*
+
+**Live · latest success** and **Final selections** show those separate comparisons. **D** is carried cup-centre distance displayed in millimetres. **T** is simulated task time displayed in seconds, not computer runtime. **C** combines normalized D and T with equal weights within the displayed group. Smaller C ranks higher.
+
 The public board shows result summaries only. Other teams cannot see your robot layouts, handoff coordinates, joint paths or source code. The `history` command uses your saved sign-in to show your team's attempts. Signed-in teammates share that private history.
 
 ### 4.2 Retry a pending upload
