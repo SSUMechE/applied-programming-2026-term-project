@@ -290,7 +290,7 @@ Confirm `status: selected`, the intended `run_id` and full `commit_id`. All Pyth
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of the shared repository.
 
-Submit the repository URL and full **40-character commit ID** in the LMS. The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
+Submit the repository URL and full **40-character commit ID** in the LMS. **Upload one team PowerPoint file separately to the LMS.** The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
 
 ## 5 Updates and Recovery
 
