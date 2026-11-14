@@ -1,7 +1,16 @@
 """Implement joint-space path search here. Timing design is optional below.
 
-Only this package and student/*_design.json are student edit targets. Supplied
-physics, interpolation, automatic grasp/place and evaluation remain unchanged.
+EDIT HERE: plan_path (required), choose_edge_durations_s (optional), and your
+own planner helpers in this file or other modules under student/.
+EDIT YOUR SELECTED JSON: student/easy_design.json, medium_design.json or
+hard_design.json. Set only active arms[].mount_region and base_placement
+x_m/y_m/yaw_rad, handoffs[].support_id/x_m/y_m, and joint_speed_scale.
+Keep schema_version, difficulty, arm IDs and function interfaces unchanged.
+The supplied adapter fills parked arms and the fixed finish. Do not add them.
+
+DO NOT EDIT other course-supplied code, tests, maps, limits, physics, scoring,
+registration code or generated plans/results. Unauthorized changes or fabricated
+results may receive ZERO for the project. Official instructor updates are allowed.
 No solved route or intermediate joint configuration is supplied.
 """
 import math
@@ -53,7 +62,9 @@ def plan_path(request, oracle, *, kinematics=None, context=None):
     Return geometry here. The caller validates it and then applies the same
     path and selected edge times during Genesis replay. See docs/STUDENT_API.md.
     """
+    # BEGIN REQUIRED STUDENT EDIT: implement path search, using the contract above.
     raise NotImplementedError("Implement plan_path in student/joint_strategy.py, then run the supplied CPU checks.")
+    # END REQUIRED STUDENT EDIT
 
 
 def choose_edge_durations_s(path, limits, *, context):
@@ -69,4 +80,6 @@ def choose_edge_durations_s(path, limits, *, context):
     dt or substeps to design speed. The supplied quintic interpolation gives
     zero velocity and acceleration at each path waypoint.
     """
+    # BEGIN OPTIONAL STUDENT EDIT: keep None or return valid edge durations.
     return None
+    # END OPTIONAL STUDENT EDIT

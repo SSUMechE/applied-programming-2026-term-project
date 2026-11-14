@@ -45,5 +45,38 @@
     "recorded_state_export_tested": true,
     "browser_video_download_verified": false,
     "verification_limit": "Recorded-data conversion, component rendering and recording lifecycle tested. Real browser video download remains unverified."
+  },
+  "compact_design_inputs": {
+    "schema": "student-tier-design-v1",
+    "student_active_arm_counts": [
+      1,
+      2,
+      3
+    ],
+    "student_intermediate_handoff_counts": [
+      0,
+      1,
+      2
+    ],
+    "fixed_source_finish_and_inactive_parking": "supplied",
+    "completed_legacy_designs": "unchanged and supported",
+    "student_files_overwritten": false,
+    "all_three_tier_cpu_planning": "passed",
+    "inactive_parking_native_initial_state_check": {
+      "tiers": [
+        "easy",
+        "medium"
+      ],
+      "outer_steps_each": 50,
+      "internal_checks_each": 800,
+      "failures": 0,
+      "full_transport": false
+    },
+    "new_parking_full_native_transport_matrix_repeated": false,
+    "scope": "Input adapter and visualization change. Protected physics/source and rules unchanged. New supplied parking has CPU path validation. Existing full-transport evidence does not establish a repeated full-native matrix for these new parking values."
+  },
+  "student_naming": {
+    "solo": "Own student ID for the private repository and leaderboard name",
+    "group": "All member IDs sorted ascending and joined with hyphens for one shared private repository and leaderboard name"
   }
 }

@@ -12,8 +12,38 @@
     return value;
   }
   function validateDesign(design, map) {
+    const compact = design && design.schema_version === 'student-tier-design-v1';
+    const suppliedParking = new Set();
+    const unfinished = value => value === null || value && typeof value === 'object' && Object.values(value).some(unfinished);
+    if (design?.schema_version === 'three-arm-design-v1' && design.arms?.length === 3 && design.relays?.length === 2) {
+      design = JSON.parse(JSON.stringify(design));
+      for (const arm of map.provided_design_defaults?.parked_arms || []) {
+        const i = Number(arm.id.split('_')[1]);
+        if (unfinished(design.arms[i])) { design.arms[i] = arm; suppliedParking.add(i); }
+      }
+      if (map.handoff_count === 0 && unfinished(design.relays[1])) design.relays[1] = {...map.provided_design_defaults.unused_support_point};
+    }
+    if (compact) {
+      const keys = ['arms', 'difficulty', 'handoffs', 'joint_speed_scale', 'schema_version'];
+      requireValue(JSON.stringify(Object.keys(design).sort()) === JSON.stringify(keys)
+        && design.difficulty === map.difficulty, 'Use the compact design for the selected complexity. Keep its fixed keys and difficulty.');
+      requireValue(Array.isArray(design.arms) && design.arms.length === map.active_arm_count
+        && Array.isArray(design.handoffs) && design.handoffs.length === map.handoff_count,
+        'Enter only the active arms and actual intermediate handoffs for this complexity.');
+      requireValue(finite(design.joint_speed_scale) && design.joint_speed_scale > 0 && design.joint_speed_scale <= 1,
+        'joint_speed_scale must be in (0, 1].');
+      const provided = map.provided_design_defaults;
+      requireValue(provided && provided.parked_arms.length === 3-map.active_arm_count, 'This viewer lacks the supplied parking data. Update the supplied viewer.');
+      const relays = design.handoffs.map(h => ({...h}));
+      if (map.handoff_count < 2) relays.push({support_id: map.fixed_finish.support_id,
+        x_m: map.fixed_finish.position_world_m[0], y_m: map.fixed_finish.position_world_m[1]});
+      if (map.handoff_count === 0) relays.push({...provided.unused_support_point});
+      design = {schema_version:'three-arm-design-v1', arms:[...design.arms, ...provided.parked_arms], relays,
+        joint_speed_scale:design.joint_speed_scale};
+      for (let i=map.active_arm_count; i<3; i++) suppliedParking.add(i);
+    }
     requireValue(design && design.schema_version === 'three-arm-design-v1' && Array.isArray(design.arms) && design.arms.length === 3 && Array.isArray(design.relays) && design.relays.length === 2,
-      'Use a completed design JSON with three arm entries and two support entries.');
+      'Use your completed design JSON for this complexity. Keep its supplied keys and active entry counts.');
     const bases = design.arms.map((arm, i) => {
       const mount = map.objects.find(o => o.mount && o.mount.id === arm.mount_region)?.mount;
       const point = arm.base_placement;
@@ -21,7 +51,8 @@
       for (const key of ['x_m', 'y_m', 'yaw_rad']) {
         requireValue(finite(point[key]) && point[key] >= mount[key][0] && point[key] <= mount[key][1], arm.id + ' ' + key + ' is outside its mounting region.');
       }
-      return {id: arm.id, position_world_m: [point.x_m, point.y_m, mount.base_z_m], yaw_rad: point.yaw_rad};
+      return {id: arm.id, position_world_m: [point.x_m, point.y_m, mount.base_z_m], yaw_rad: point.yaw_rad,
+        inactive: i >= map.active_arm_count, supplied_parking: suppliedParking.has(i)};
     });
     const allRelays = design.relays.map(relay => {
       const support = map.relay_regions.find(s => s.support_id === relay.support_id);

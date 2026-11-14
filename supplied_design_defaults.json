@@ -1,0 +1,53 @@
+{
+  "schema_version": "provided-tier-design-defaults-v1",
+  "purpose": "Fixed inactive parking and fixed task destinations. No active-arm solution is supplied.",
+  "difficulties": {
+    "easy": {
+      "case_id": "difficulty_20261106_easy_open_v1",
+      "parked_arms": [
+        {
+          "id": "arm_1",
+          "mount_region": "terrain_east_north",
+          "base_placement": {
+            "x_m": 2.875,
+            "y_m": 2.315,
+            "yaw_rad": 1.5707963267948966
+          }
+        },
+        {
+          "id": "arm_2",
+          "mount_region": "terrain_east_south",
+          "base_placement": {
+            "x_m": 2.875,
+            "y_m": 1.8,
+            "yaw_rad": 0.0
+          }
+        }
+      ],
+      "fixed_finish_support_id": "relay_1_support",
+      "unused_support_id": "relay_2_support"
+    },
+    "medium": {
+      "case_id": "difficulty_20261106_medium_staggered_v1",
+      "parked_arms": [
+        {
+          "id": "arm_2",
+          "mount_region": "terrain_east_south",
+          "base_placement": {
+            "x_m": 2.875,
+            "y_m": 1.8,
+            "yaw_rad": 0.0
+          }
+        }
+      ],
+      "fixed_finish_support_id": "relay_2_support",
+      "unused_support_id": null
+    },
+    "hard": {
+      "case_id": "difficulty_20261106_hard_industrial_v1",
+      "parked_arms": [],
+      "fixed_finish_support_id": "goal_support",
+      "unused_support_id": null
+    }
+  }
+}

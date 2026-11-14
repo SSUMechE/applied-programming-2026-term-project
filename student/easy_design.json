@@ -1,5 +1,6 @@
 {
-  "schema_version": "three-arm-design-v1",
+  "schema_version": "student-tier-design-v1",
+  "difficulty": "easy",
   "arms": [
     {
       "id": "arm_0",
@@ -9,37 +10,8 @@
         "y_m": null,
         "yaw_rad": null
       }
-    },
-    {
-      "id": "arm_1",
-      "mount_region": null,
-      "base_placement": {
-        "x_m": null,
-        "y_m": null,
-        "yaw_rad": null
-      }
-    },
-    {
-      "id": "arm_2",
-      "mount_region": null,
-      "base_placement": {
-        "x_m": null,
-        "y_m": null,
-        "yaw_rad": null
-      }
     }
   ],
-  "relays": [
-    {
-      "support_id": "relay_1_support",
-      "x_m": 1.02,
-      "y_m": 1.04
-    },
-    {
-      "support_id": null,
-      "x_m": null,
-      "y_m": null
-    }
-  ],
+  "handoffs": [],
   "joint_speed_scale": 0.5
 }

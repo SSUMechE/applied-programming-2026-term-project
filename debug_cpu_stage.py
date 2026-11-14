@@ -92,7 +92,16 @@ def prepare_stage(args, check=lambda: None):
     map_names = {'easy': 'easy_open_v1', 'medium': 'medium_staggered_v1', 'hard': 'hard_industrial_v1'}
     task = (args.task or ROOT / 'cases/difficulty_20261106' / map_names[args.difficulty]).resolve()
     design_path = (args.design or ROOT / 'student' / (args.difficulty + '_design.json')).resolve()
+    from student_design_input import prepare_arguments, option
+    forwarded, compact_binding = prepare_arguments('plan',
+        ['--scope', 'tier-mission', '--difficulty', args.difficulty,
+         '--task', str(task), '--design', str(design_path)], root=ROOT)
+    design_path = Path(option(forwarded, 'design')).resolve()
     require(str(design_path) in current_pins, 'Use the original pinned design file')
+    if compact_binding is not None:
+        current_pins[compact_binding['student_file']] = compact_binding['student_file_sha256']
+        for supplied_name in ('student_design_input.py', 'supplied_design_defaults.json', 'project_run.py'):
+            current_pins[str(ROOT / supplied_name)] = sha(ROOT / supplied_name)
     manifest = read(task / 'manifest.json')
     require(current_pins.get(str(task / 'manifest.json')) == sha(task / 'manifest.json'), 'Use the original pinned map')
     for relative, expected in manifest['files'].items():

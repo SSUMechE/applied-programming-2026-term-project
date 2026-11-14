@@ -20,17 +20,15 @@ For an arm, select `mount_region`, then set `base_placement.x_m`, `y_m` and `yaw
 
 ### Which entries do I fill?
 
-A **base** is a robot's mounting location. Every map contains `arm_0`, `arm_1` and `arm_2`, so fill the mounting choices for all three. The arms not carrying the cup stay parked and still count in collision checks. Lower requires only `arm_0` to transport the cup.
+A **base** is a carrying robot's mounting location. A **handoff** is a support surface and X/Y point where one arm leaves the cup for the next arm. Use this table while filling your selected design JSON. Array entries start at index 0.
 
-A **relay entry** selects a support surface and an X/Y point on it. Its role depends on your complexity. Use the table below while filling your design JSON. `relays[0]` means the first entry and `relays[1]` the second.
+| Complexity | Student `arms` entries | Student `handoffs` entries | Supplied fixed finish |
+| --- | --- | --- | --- |
+| Lower | `arm_0` only | None. Keep `handoffs` as `[]`. | `relay_1_support`, X/Y `(1.02, 1.04)` m |
+| Moderate | `arm_0`, `arm_1` | `handoffs[0]`: choose the support and X/Y point between these arms. | `relay_2_support`, X/Y `(2.35, 1.02)` m |
+| Higher | `arm_0`, `arm_1`, `arm_2` | `handoffs[0]` for the first transfer, then `handoffs[1]` for the second. Choose both supports and X/Y points. | `goal_support` |
 
-| Complexity | Arms that carry | Arms that stay parked | `relays[0]` | `relays[1]` |
-| --- | --- | --- | --- | --- |
-| Lower | `arm_0` | `arm_1`, `arm_2` | **Fixed finish.** Keep the supplied `relay_1_support` and X/Y `(1.02, 1.04)` m. | Not used for transport. Choose another valid support and X/Y point. |
-| Moderate | `arm_0`, `arm_1` | `arm_2` | **Your handoff** from `arm_0` to `arm_1`. Choose its support and X/Y point. | **Fixed finish.** Keep the supplied `relay_2_support` and X/Y `(2.35, 1.02)` m. |
-| Higher | `arm_0`, `arm_1`, `arm_2` | None | **Your first handoff** from `arm_0` to `arm_1`. | **Your second handoff** from `arm_1` to `arm_2`. |
-
-Higher ends at the separate fixed `goal_support`, after both handoffs. Every tier starts at the fixed `source_support`. Do not delete any arm or relay entry, and do not leave editable values as `null`. The current loader requires both relay entries to use valid, distinct support IDs, even though Lower's second entry is not visited. Filling that unused entry does not add a handoff or require another arm to carry.
+Every tier starts at the supplied `source_support`. Do not enter the fixed start or finish in `handoffs`. Do not add unused-arm or unused-handoff entries. The supplied code parks any unused scene arms and retains their collision geometry. Their positions are not student inputs. Keep `schema_version: "student-tier-design-v1"`, the selected `difficulty`, arm IDs and entry counts unchanged. Replace the editable `null` values before planning.
 
 Select distinct allowed handoff supports. Candidates include the relay and quality support surfaces, except the fixed destination for your tier. A catalogue entry is permission to try it, not a guarantee that adjacent arms can reach it. The published XY bounds account for the complete cup footprint. CPU contact planning also requires the bottom corners to remain at least `context.query_tracking_clearance_m` inside the support edges (currently 0.004 m). Choosing an exact catalogue boundary can therefore fail the endpoint check. Allow this extra margin, then check the selected endpoint with the oracle. No required intermediate joint posture is supplied.
 

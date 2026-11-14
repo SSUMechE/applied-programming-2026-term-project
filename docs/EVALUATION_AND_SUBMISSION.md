@@ -15,7 +15,11 @@ conda activate applied-programming-cuda
 python -B project_run.py check --cuda --output output/environment.json
 ```
 
-Agree on one unique team name and a shared project password of at least **12 characters**. Each teammate enters the same pair once per checkout on each computer. Use a password made for this project, not a GitHub password. Type it only at the hidden prompt. Do not paste it into a command, design file or Git commit.
+Use the same student-ID name for your private GitHub project repository and the **Team name** prompt. Working alone, enter your own student ID only. For two or three members, join all members' IDs in ascending order with `-`. For example, `20260001-20260002` identifies a two-person group. Do not use an arbitrary nickname. The examples are not IDs to copy. See [README 3.1](../README.md#31-create-and-clone-your-teams-repository).
+
+Choose a project password of at least **12 characters**. Each group member enters the same name and password once per checkout on each computer. Use a password made for this project, not a GitHub password. Type it only at the hidden prompt. Do not paste it into a command, design file or Git commit. A solo student follows the same sign-in process.
+
+An existing registered account is not renamed automatically. If its name is wrong, keep its results and contact the instructor. Do not create a duplicate account or delete saved credentials to change the name. Weekly-assignment repository names remain unchanged.
 
 The supplied client creates the team on first use or signs in to an existing team. On that first successful sign-in, confirm `TEAM_CONNECTED: <your team name>`. Later cached checks reuse the credential without printing that message. The client saves a separate credential for this checkout on this computer outside Git and reuses it automatically. It does not store the password. No instructor-issued token, token-file copying, ngrok or VPN installation is needed. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
 
@@ -59,7 +63,7 @@ For another attempt, choose a fresh `RUN`, such as `output\higher_02`. Preserve 
 
 Complete `student/joint_strategy.py::plan_path` and the selected `student/%LEVEL%_design.json` before planning. Choose `joint_speed_scale` or implement the optional `choose_edge_durations_s` function. The [README edit checklist](../README.md#34-implement-your-planner-and-design) and [API contract](STUDENT_API.md) identify the exact inputs and return values.
 
-Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) to distinguish carrying arms, parked arms, handoffs and the prefilled fixed finish. Keep all three arm entries and both relay entries. A parked arm or unused relay does not add a transport leg.
+Fill only the carrying-arm entries and true intermediate handoffs in your selected design: **Lower 1 arm / 0 handoffs, Moderate 2 / 1, Higher 3 / 2**. Keep Lower's `handoffs` as `[]`. The source, finish and unused-arm parking are supplied automatically. Do not add unused entries or edit the generated internal design. See the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill).
 
 **Edit only the [listed student targets](STUDENT_API.md). Do not manually modify other supplied code or fixed data. Unauthorized changes or fabricated results may receive ZERO for the project.** Keep generated plans, logs and receipts unedited. Use the official updater for instructor-announced fixes.
 
@@ -198,12 +202,14 @@ The presentation commit identifies its presented results. The final code submiss
 
 Use these maintenance commands from your repository root in **Windows Anaconda Prompt**. Stop **all** project commands first, including direct CPU debugging, preview export and leaderboard commands. Use the existing `applied-programming-cuda` environment. The updater preserves `student/`, saved results, pending uploads, credentials, unknown files and Git history. It changes only verified supplied files. It does not install dependencies, commit changes, plan a path or launch Genesis.
 
+**Existing design files:** an older `three-arm-design-v1` file remains supported. Complete only the carrying arms and actual handoffs in its existing `arms` and `relays` arrays, and keep its prefilled fixed finish unchanged. Unused fields may remain `null` in their supplied entries. The runner fills them internally without rewriting your file. An already completed older design is used unchanged. Use the `project_run.py plan` and `project_run.py review` commands in this guide. No manual conversion or replacement of your answers is required.
+
 ### Check and apply an announced release
 
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v3-animation-20261114"
+set "RELEASE=term-v3-compact-inputs-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -242,7 +248,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-animation-20261114"
+set "RELEASE=term-v3-compact-inputs-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

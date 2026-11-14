@@ -1,5 +1,6 @@
 {
-  "schema_version": "three-arm-design-v1",
+  "schema_version": "student-tier-design-v1",
+  "difficulty": "hard",
   "arms": [
     {
       "id": "arm_0",
@@ -29,7 +30,7 @@
       }
     }
   ],
-  "relays": [
+  "handoffs": [
     {
       "support_id": null,
       "x_m": null,

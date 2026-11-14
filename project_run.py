@@ -17,8 +17,12 @@ if __name__ == "__main__":
                 raise UpdateError("PROJECT_UPDATE_RECOVERY_REQUIRED",
                                   "An interrupted update must be recovered before running the project. "
                                   "Run python -B project_run.py update status, or use your retained bootstrap copy.")
-            from diagnostics.client import main, exit_status
-            raise SystemExit(exit_status(main()))
+            from diagnostics import client
+            # Keep original student arguments in diagnostics. Only the supplied
+            # child adapter fills unused internal scene inputs before execution.
+            client.COMMANDS['plan'] = ['student_design_input.py', 'plan']
+            client.COMMANDS['review'] = ['student_design_input.py', 'review']
+            raise SystemExit(client.exit_status(client.main()))
     except UpdateError as exc:
         print(json.dumps({"status": "PROJECT_RUN_REFUSED", "code": exc.code,
                           "message": str(exc)}), file=sys.stderr)

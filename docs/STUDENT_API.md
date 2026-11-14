@@ -5,11 +5,11 @@
 **Edit only the student targets below.** Process liquid and sand are locked.
 
 - `student/joint_strategy.py::plan_path`: implement path search. `choose_edge_durations_s` is optional. You may add your own helper functions in this file or helper modules inside `student/`.
-- Your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`: choose `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `relays[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Do not change the schema, arm IDs, fixed start or fixed finish.
+- Your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`: choose `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `handoffs[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep `schema_version`, `difficulty`, arm IDs and entry counts unchanged. Lower's `handoffs` stays `[]`.
 
 **Do not manually edit other supplied files. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** Keep supplied planners, models, maps, limits, physics, interpolation, checkers, tests, scoring rules and registration/recording code unchanged. Do not edit generated plans, logs or result receipts. Instructor-announced updates through the official updater are allowed.
 
-Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a robot's mounting location. Place all three scene robots, including parked arms. A relay entry selects a support surface and X/Y point. In Lower, the first relay entry is the prefilled fixed finish and the second is unused but must be valid. In Moderate, the first is your handoff and the second is the prefilled fixed finish. In Higher, both are your handoffs before the separate fixed goal. Do not delete entries or change the fixed source and finish.
+Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a carrying robot's mounting location. A handoff selects a support surface and X/Y point between two arms. Lower has one arm entry and no handoffs. Moderate has two arm entries and one handoff. Higher has three arm entries and two handoffs. The supplied adapter fixes the source, finish and unused-arm parking. Do not add those entries or edit the generated internal design.
 
 ## Implement the search
 

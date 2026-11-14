@@ -32,7 +32,7 @@ Compare team size, required handoffs and the **simulated** deadline before choos
 
 Lower has wide passages and alternative routes. Moderate adds staggered barriers and a low roof. Higher adds separated mounting regions, overhead obstacles and two handoffs.
 
-All scenes contain three robot models. Unused arms remain parked collision geometry, so every base needs a valid placement.
+The supplied scene parks unused robot models automatically. You choose placements only for the arms that carry the cup.
 
 | Lower complexity | Moderate complexity | Higher complexity |
 | --- | --- | --- |
@@ -52,19 +52,19 @@ Use the materials marked **Open** for your current work.
 
 ### 2.2 Design Inputs
 
-**Student-designed inputs:** choose robot placement, handoff locations and the seven-joint path. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. A **base** is a robot's mounting location. Select locations for all three scene robots. Only the required one, two or three arms carry the cup, and the others stay parked. The two **relay entries** select support points. Their roles differ by tier, as shown in [which entries to fill](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill). Keep the fixed source and finish unchanged.
+**Student-designed inputs:** choose the carrying robots' placements, intermediate handoff locations and seven-joint paths. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. A **base** is a robot's mounting location. A **handoff** is where one arm places the cup for the next arm. Lower needs **1 base and no handoff**, Moderate **2 bases and 1 handoff**, and Higher **3 bases and 2 handoffs**. The supplied code fixes the source, finish and unused-arm parking. See [which entries to fill](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill).
 
 | Decision | Input and units | Edit location |
 | --- | --- | --- |
 | Robot placement | Mounting surface, X/Y in m, yaw in rad. Surface choice fixes height. | `student/<tier>_design.json` → `arms` |
-| Handoffs | Allowed support ID and landing X/Y in m | Same JSON → `relays` |
+| Handoffs | Allowed support ID and landing X/Y in m | Same JSON → `handoffs` |
 | Joint path | A sequence of seven-angle configurations in rad | `student/joint_strategy.py` → `plan_path` |
 | Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
 
 **Edit only these student targets:**
 
 - `student/joint_strategy.py`: implement `plan_path`. Optionally implement `choose_edge_durations_s`. Put your own planner helper functions here or in helper modules under `student/`.
-- Your selected `student/<tier>_design.json`: set `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `relays[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep the schema, arm IDs, fixed start and fixed finish unchanged.
+- Your selected `student/<tier>_design.json`: set `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `handoffs[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep `schema_version`, `difficulty`, arm IDs and the supplied entry counts unchanged. Lower's `handoffs` stays `[]`. Do not add the fixed source, finish or unused-arm entries.
 
 **Do not manually modify anything else supplied by the course. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** This includes planners outside `student/`, checkers, tests, physics, maps, limits, scoring rules and registration/recording code. Do not edit generated paths, logs or result receipts. Use the official updater for instructor-announced fixes. An authorized update is not a prohibited edit.
 
@@ -123,7 +123,12 @@ Use **Windows Anaconda Prompt**. Copy only the commands inside the code blocks, 
 
 ### 3.1 Create and clone your team's repository
 
-On GitHub, choose **Use this template → Create a new repository**. Create **one private repository per team**, then add every teammate and **SSUMechE** as collaborators. Clone that private repository, not the public course template:
+On GitHub, choose **Use this template → Create a new repository**. Create **one private repository for your individual or team project**. Use the same name for this GitHub repository and your leaderboard account:
+
+- **One student:** use your student ID only, such as `20260001`. This applies to a solo Lower or Moderate project.
+- **Two or three students:** put all members' student IDs in ascending order, joined with `-`, such as `20260001-20260002`. Everyone uses this one shared repository and leaderboard name. Do not invent a separate nickname.
+
+These are naming examples, not IDs to copy. Add **SSUMechE** and, for a group, every teammate as collaborators. Your usual weekly-assignment repository names do not change. Clone your private project repository, not the public course template:
 
 ```bat
 cd /d "%USERPROFILE%"
@@ -133,19 +138,21 @@ cd ap2026-team
 conda activate applied-programming-cuda
 ```
 
-Continue only after cloning and environment activation succeed. If you already have this team checkout, open its folder and activate the environment instead of cloning again. Use a different folder for another team.
+Continue only after cloning and environment activation succeed. `ap2026-team` is only the local folder name used by these commands. It is not your GitHub repository or leaderboard name. If you already have this project checkout, open its folder and activate the environment instead of cloning again. Use a different local folder for another project.
 
 Each member must commit and push their own work using their own GitHub account. Keep design files, saved paths and motion previews in the private team workspace.
 
 ### 3.2 Register your team and check the environment
 
-Agree on one unique team name and a shared project password of at least **12 characters**. Then run:
+Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a project password of at least **12 characters**. Group members share that password. Then run:
 
 ```bat
 python -B project_run.py check --cuda --output output/environment.json
 ```
 
-At first use, enter the agreed team name and password when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
+At first use, enter that student-ID name and password when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
+
+If this checkout already has a registered name, this instruction does not rename it. Keep its existing results and contact the instructor if the name is wrong. Do not create a second account or delete credentials to rename it.
 
 On your first successful sign-in, confirm these results:
 
@@ -191,10 +198,12 @@ For each revised attempt, choose a fresh `RUN`, such as `output\higher_02`. Keep
 Before planning, complete these student files:
 
 - `student/joint_strategy.py` → implement `plan_path` using the [provided API](docs/STUDENT_API.md).
-- `student/%LEVEL%_design.json` → replace the editable `null` values with your choices. For example, `LEVEL=easy` selects `student/easy_design.json`. Follow the [per-tier entry table](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill) for carrying arms, parked arms, handoffs and the prefilled fixed finish. Do not delete entries.
+- `student/%LEVEL%_design.json` → replace the editable `null` values for your carrying arms and handoffs. For example, `LEVEL=easy` selects `student/easy_design.json`, with one arm and `handoffs: []`. Follow the [per-tier entry table](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill). Keep the supplied entry counts unchanged.
 - Choose `joint_speed_scale` in that JSON, or implement the optional `choose_edge_durations_s` function for individual edge times.
 
 Follow the [edit boundary and zero-credit warning](#22-design-inputs). All other supplied code and fixed data must remain unchanged.
+
+In `student/joint_strategy.py`, the comments **BEGIN REQUIRED STUDENT EDIT** and **BEGIN OPTIONAL STUDENT EDIT** mark the two function bodies. Keep their function signatures unchanged. The design JSON lists only your tier's required inputs. Edit its permitted values, not the schema or IDs.
 
 The starter contains no completed path or reference layout. After implementation, run the supplied checks:
 
