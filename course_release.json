@@ -3,7 +3,7 @@
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
     "PACKAGE_STATUS.json": "95c8596cbd915a252d0f045683570d8b88d5d62dbac9ce95b062f1a693544710",
-    "README.md": "34c5961908a081b17f6f648917f43d278d66c5056d6b72bad854f4e7bc9c6390",
+    "README.md": "2fa85fb8387e99f6599409b7c2bc393217296ccfd7e650000dacd848f2e7df69",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "def07aafdc3f65a992587e93c9ddee8ffcf98cb66b8ff0b43d22522c64dca97e",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "9fa2c9c4790d3cdb6bd0550c9e454f55ad0d2ca3d69ae614f154e21e75b3926c",
@@ -34,7 +34,7 @@
     "diagnostics/protocol.py": "78777e432f08f8969f210e9fac49e1665858103029e1940b1840c201887ce61a",
     "diagnostics/server.py": "6ca1afdd72a006562ea71f9b0ca33c456a0916289fe73c1e367b0d13d1a28699",
     "diagnostics/store.py": "2baeda6f669b4f23141d61e99543095943c251fbc789eb261772d5f5c5ee4634",
-    "docs/EVALUATION_AND_SUBMISSION.md": "d6e847b1863315c895017a49b15b5651431aec7d3e4a56b2a96db30e6a8c2bcf",
+    "docs/EVALUATION_AND_SUBMISSION.md": "3b072a7d640cbaf66e9c155c9f9f6691075325800a9728fdc7f9db816b520e38",
     "docs/LEADERBOARD_OPERATIONS.md": "3482d6ec0899e58ce675a13101ba3a3ec9288483d8221097986ea6d9726d31c8",
     "docs/MAPS_AND_DESIGN.md": "661aa23264f54af74dac19a2a34c7657c866c3f83f3dfef520f00537aa8d04fb",
     "docs/SCORING.md": "6ad1c66fbf0ae5c29030c1fee3442fedb77021666393efaffd342048c8b1eeb9",
@@ -53,7 +53,7 @@
     "docs/outline-materials.png": "4f0cc6454bec01c59ebdbd1bcf40ef26e8e834a952cc8c477472e95943ed9547",
     "docs/outline-planner-contract.png": "ee9068cb4a9b2852bf8e1299f9ec28620162a8a9492cd38919268ebdc6d80993",
     "docs/project-map-overview.png": "db00a6c9a0d5a3a332036a134da7d736d050374e7ccb76fc201a6c50e507d88e",
-    "docs/project_outline_with_appendix.pdf": "eb254fbe341ca48008293fda68aaea1f07216337ae86bb92d6dff7f8fce9c47c",
+    "docs/project_outline_with_appendix.pdf": "043abce58e4abf2ea9cfc363f694ab616cd80456d718b23f870adbc8388243ce",
     "environment_reference.json": "0aae029122295ed2fe0a2e29c28cc0546ad9322091991802dc99b191a1557c49",
     "environment_sdk_pins.json": "dbe25f1b031df7d1a5739dae4dcdf4986dd7712a809a5ffddf791ecdfc15d239",
     "export_student_view.py": "e9cece0e4caab7e501aac3ff4d8f3813856d29dfe9342fbad2be9455d5c72e78",
@@ -196,7 +196,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v3-readme-workflow-20261114",
+  "release_tag": "term-v3-motion-guidance-20261114",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v3": {

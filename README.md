@@ -82,7 +82,7 @@ Use the materials marked **Open** for your current work.
 
 ### 2.2 Design Inputs
 
-Edit these inputs. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. Complete all three base entries and both relay entries, including unused scene entries, while preserving the fixed source and finish.
+**Student-designed inputs:** choose robot placement, handoff locations and the seven-joint path. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. Complete all three base entries and both relay entries, including unused scene entries, while preserving the fixed source and finish.
 
 | Decision | Input and units | Edit location |
 | --- | --- | --- |
@@ -93,16 +93,18 @@ Edit these inputs. In filenames, `<tier>` means `easy`, `medium` or `hard`. Repl
 
 ### 2.3 Fixed Conditions
 
+**Instructor-fixed constraints:** joint-angle bounds, maximum joint velocity and acceleration/deceleration, and tracking tolerance are supplied. Keep these limits unchanged. You may impose stricter constraints in your own planner.
+
 Keep the map, source/finish, robot, cup, material and original four beads unchanged. Handoffs never reset or replace beads. Angles must stay within `request.bounds`. Collision checks include the robot, cup, obstacles and other arms.
 
-The supplied interpolator **accelerates and decelerates to rest at every waypoint**. Choose paths and edge durations. You do not implement a braking controller.
+**Provided motion control:** the supplied interpolator **accelerates and decelerates to rest at every waypoint**. Your path and edge durations change the commanded motion. They do not change the permitted limits. You do not implement a braking controller.
 
 | Joints | Maximum absolute velocity | Maximum absolute acceleration/deceleration |
 | --- | ---: | ---: |
 | 1–4 | 1.0 rad/s | 2.0 rad/s² |
 | 5–7 | 1.4 rad/s | 2.8 rad/s² |
 
-These limits apply to commands and actual motion. Tracking error must stay within **0.03 rad**. Physics uses **0.0025 s** intervals and **16 internal substeps**. A legal command can still fail physical replay.
+These instructor-fixed limits apply to commands and actual motion. Tracking error must stay within **0.03 rad**. Physics uses **0.0025 s** intervals and **16 internal substeps**. A legal command can still fail physical replay.
 
 Actual bead loss, prohibited contact, control-limit violations, or failed final support/rest reject a run. There is no separate 8° spill gate or required slowdown multiplier.
 
