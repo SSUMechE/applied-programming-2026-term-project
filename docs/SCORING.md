@@ -107,7 +107,7 @@ Use the code and records already produced for the project. No new experiment cou
 
 Use **one shared private repository** for the team's work and submission. Give all members and **SSUMechE** access. Each member must commit and push their own work from their own GitHub account. Retain code/settings and supplied run records supporting the presentation. Select the successful representative using [the run guide](EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). The instructor freezes selections for assessment.
 
-![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.](project-schedule.svg)
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM.](project-schedule.svg)
 
 Use the LMS submission field and file-upload area. Posting results only in Comments instead of submitting them in the required field will incur a deduction.
 

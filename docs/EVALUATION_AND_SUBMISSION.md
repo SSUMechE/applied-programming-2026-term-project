@@ -218,7 +218,7 @@ Confirm `status: selected`, the intended `run_id` and your full `commit_id` in t
 
 Use the **one shared private team repository** created from the public course template for work and final submission. Give every teammate and **SSUMechE** access. Each member must commit and push their own changes using their own GitHub account. Keep design files, saved paths and motion previews private. Prepare one team PowerPoint with **2–3 common slides plus 3 slides per member**, excluding the title slide. Include the repository URL, the full 40-character commit ID used for the presented results, settings, run instructions and relevant execution records. Each member explains their own named contribution using the actual commit and push history, with links to their pushed commits and relevant pull requests. See [assessment details](SCORING.md).
 
-![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.](project-schedule.svg)
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM.](project-schedule.svg)
 
 Use the LMS submission field and file-upload area. Posting results only in Comments instead of submitting them in the required field will incur a deduction.
 
@@ -235,7 +235,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v3-test-captures-20261115"
+set "RELEASE=term-v3-date-labels-20261115"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -274,7 +274,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-test-captures-20261115"
+set "RELEASE=term-v3-date-labels-20261115"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

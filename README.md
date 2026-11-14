@@ -355,7 +355,7 @@ Confirm `status: selected`, the intended `run_id` and full `commit_id`. All Pyth
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of the shared repository.
 
-![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM KST. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM KST.](docs/project-schedule.svg)
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM.](docs/project-schedule.svg)
 
 Use the LMS submission field and file-upload area. Posting results only in Comments instead of submitting them in the required field will incur a deduction.
 
