@@ -4,6 +4,8 @@
 
 Design your layout, seven-joint path and speed. Supplied code performs grasping and placement. The exact saved CPU path is reused by empty-cup and bead replay. [Inputs and API](STUDENT_API.md) · [Maps](MAPS_AND_DESIGN.md) · [Scoring](SCORING.md)
 
+Use the [three test choices in the README](../README.md#36-optionally-check-with-an-empty-cup) to plan your experiments. CPU geometry is a fast check without physical simulation. Empty-cup Genesis tests tracking, contact and handling. Glass-bead Genesis also tests bead motion, spill and retention. Predict a design change, choose the evidence you need, inspect the result and revise. Empty-cup testing is optional. You do not need three full runs after each change. Per-arm practice helps investigate a local question, while the full bead mission is required for ranking. After any student-input edit, export a fresh CPU plan before another Genesis test.
+
 The supplied bead workflows have been tested on an RTX 4090. Verify your own layout, path and speed with the steps below. Official bead competition and final representative selection are active. Instructor test records are separate from classroom standings. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and silica sand remain locked.
 
 ## 1. Register your team and check the environment
@@ -233,7 +235,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v3-arm-practice-20261114"
+set "RELEASE=term-v3-test-options-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -272,7 +274,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-arm-practice-20261114"
+set "RELEASE=term-v3-test-options-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

@@ -3,7 +3,7 @@
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
     "PACKAGE_STATUS.json": "a6e4659d7b9fd75c23e806e276ab910c86f02a8987c7dcbede287c07852d135c",
-    "README.md": "f5c257518626f16df86b1ba46c08f82a4a21e76017ecc4048787983cf20bf114",
+    "README.md": "8f4c401d2b8b16b38d02358e3b3f642b66a0e895569747324f70b37562ada3af",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "def07aafdc3f65a992587e93c9ddee8ffcf98cb66b8ff0b43d22522c64dca97e",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "9fa2c9c4790d3cdb6bd0550c9e454f55ad0d2ca3d69ae614f154e21e75b3926c",
@@ -34,11 +34,13 @@
     "diagnostics/protocol.py": "78777e432f08f8969f210e9fac49e1665858103029e1940b1840c201887ce61a",
     "diagnostics/server.py": "6ca1afdd72a006562ea71f9b0ca33c456a0916289fe73c1e367b0d13d1a28699",
     "diagnostics/store.py": "2baeda6f669b4f23141d61e99543095943c251fbc789eb261772d5f5c5ee4634",
-    "docs/EVALUATION_AND_SUBMISSION.md": "db9ea79f42b7e7fecf59077cef6ce34aba95802c93432755090de0d4ce7e70e3",
+    "docs/EVALUATION_AND_SUBMISSION.md": "2f0666646ac18c4d1814f2e41171b11d27e0fcae5aee8bbf353a7f482d66e310",
     "docs/LEADERBOARD_OPERATIONS.md": "3482d6ec0899e58ce675a13101ba3a3ec9288483d8221097986ea6d9726d31c8",
     "docs/MAPS_AND_DESIGN.md": "24ca2a81b5c43a9533ac8fd325a5aa0e3b033fca403c5f65f08b9b8cc16b94fb",
     "docs/SCORING.md": "c5af9144c9fe57433e4809a218885faa0c874ddb84545f915f4e891a3f1adb30",
     "docs/STUDENT_API.md": "13e372046bdd9285c980683bc8cf709e5654c351ae65959274e1e344e03684b9",
+    "docs/figures/test-methods.png": "0577cc31eebc422ab14e02731254f21e8ea8eff58af6e576a20f389a0959b661",
+    "docs/figures/test-methods.svg": "045a50f4a79fbbf7b930a5d2157d0b7c6ffc0003aa149b7d4a186d16e9c698ed",
     "docs/leaderboard-live-20261114.jpg": "5d10442116c6530f73e5cf6b2c9f784c1fb8952e59150754d448991f657b7c97",
     "docs/map_viewer.html": "9496d3bc050a84eb7b2f3ef5a83dba55829a7305b6ec5cd15db2a536350e36fe",
     "docs/material-aqueous-solution.png": "cf2d0cd05abcb0272f15ec7cb22a6e956d5863b72d72ebd34b347d3f24a5e360",
@@ -205,7 +207,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v3-arm-practice-20261114",
+  "release_tag": "term-v3-test-options-20261114",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v3": {

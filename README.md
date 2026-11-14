@@ -109,13 +109,13 @@ After a handoff, the donor follows its reverse path kinematically with **zero ph
 
 ### 2.6 Development Process
 
-Follow the [CPU → optional empty cup → beads workflow](docs/EVALUATION_AND_SUBMISSION.md). Inspect contact, tracking, bead retention and arrival records, then revise the path or permitted settings and export a fresh plan.
+Treat a Genesis replay as a **virtual experiment**. Predict how a change in placement, path or timing will affect the motion, choose a suitable test, inspect its results, and revise your design. The [run guide](docs/EVALUATION_AND_SUBMISSION.md) gives the exact commands.
 
 ![Plan, check geometry, execute in Genesis, inspect records and revise](docs/outline-development-loop.png)
 
 *Figure 5. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
 
-The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. Preview your planned motion before physics, then inspect the recorded robot, cup and beads after Genesis.
+Use CPU geometry checks for frequent, inexpensive iterations. Empty-cup and glass-bead Genesis tests answer different physical questions. Both reuse the saved CPU path and timing unchanged. After editing your planner or design, export a fresh plan. You do **not** need three full runs after every change. Choose the next check from the evidence you still need.
 
 Team members can also [practice one arm in Genesis](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) using an empty cup or glass beads. These separate runs help diagnose each arm. Only the full bead mission can enter the leaderboard.
 
@@ -236,6 +236,18 @@ python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json
 Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity, choose **Preview your saved motion**, and load the exported JSON. Use **Stage**, **Frame** and **Play** to see your planned path and handoff coordinates. This CPU preview has no simulated beads and does not run physics.
 
 ### 3.6 Optionally check with an empty cup
+
+Choose the test that answers your current question. Empty-cup and glass-bead replays are physical simulations in Genesis, including control and contact. The CPU check does not simulate those physical effects.
+
+![Three test choices: CPU geometry without physics, Genesis empty-cup dynamics and handling, and Genesis glass-bead dynamics and retention. Inspect feedback and revise the design.](docs/figures/test-methods.png)
+
+*Figure 6. Concept sketches of the three test methods. Use a virtual experiment to investigate a design decision, then choose your next revision. Empty-cup testing is optional. Separate arm passes cannot establish full-mission completion.*
+
+- [CPU planning and geometry checks](#35-export-your-cpu-checked-path): reject invalid configurations and connections before spending time on physics.
+- **Empty-cup Genesis:** use the command below to investigate tracking, contact and automatic handling. It cannot demonstrate bead retention.
+- [Glass-bead Genesis](#37-verify-the-full-glass-bead-mission): test physical bead motion, spill and retention as well as robot and cup behavior. Only a successful full bead mission can enter the ranking.
+
+After a successful CPU export, you may proceed directly to beads or first use an empty cup. For focused experiments, use the per-arm commands below instead of replaying the full route. Keep the other arms, layout and saved motion unchanged when comparing empty and bead runs.
 
 ```bat
 python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents empty --output "%RUN%/empty"
