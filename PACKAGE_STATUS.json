@@ -78,5 +78,35 @@
   "student_naming": {
     "solo": "Own student ID for the private repository and leaderboard name",
     "group": "All member IDs sorted ascending and joined with hyphens for one shared private repository and leaderboard name"
+  },
+  "per_arm_practice": {
+    "command": "python -B project_run.py practice",
+    "contents": [
+      "empty",
+      "beads"
+    ],
+    "scope": "Selected saved approach, automatic pick, carry, automatic release and rest from a fresh nominal support boundary.",
+    "all_three_native_robots_retained": true,
+    "saved_placements_handoffs_paths_times_and_peer_commands_retained": true,
+    "previous_physical_handoff_continuity_claimed": false,
+    "full_mission_and_ranking_eligible": false,
+    "competition_rules_and_protected_evaluation_sources_changed": false,
+    "current_pc_native_validation": {
+      "hardware": "RTX 4090",
+      "map": "Higher",
+      "selected_arms": [
+        "arm_0",
+        "arm_1",
+        "arm_2"
+      ],
+      "contents_per_arm": [
+        "empty",
+        "beads"
+      ],
+      "passed_runs": 6,
+      "same_final_practice_source": true
+    },
+    "validation_timing_scope": "Independent workspaces ran concurrently with separate caches. Recorded times are not standalone performance benchmarks.",
+    "GTX1660_SUPER_measured": false
   }
 }

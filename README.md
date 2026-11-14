@@ -117,6 +117,8 @@ Follow the [CPU → optional empty cup → beads workflow](docs/EVALUATION_AND_S
 
 The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. Preview your planned motion before physics, then inspect the recorded robot, cup and beads after Genesis.
 
+Team members can also [practice one arm in Genesis](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) using an empty cup or glass beads. These separate runs help diagnose each arm. Only the full bead mission can enter the leaderboard.
+
 ## 3 Start and Test Your Design
 
 Use **Windows Anaconda Prompt**. Copy only the commands inside the code blocks, without terminal prompts or printed output. Run them from your team repository root, in the order below.
@@ -240,6 +242,18 @@ python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json"
 ```
 
 This replays the saved motion in Genesis to check tracking, contact and automatic handling. In `%RUN%/empty/REVIEW_SUPERVISOR.json`, an empty-cup pass has `review_accepted` and `empty_mission_passed` both `true`. Its `full_mission_passed` remains `false`, as expected. It does not test bead retention or produce a competition record. If you revise your inputs after a failure, return to CPU export with a fresh `RUN`.
+
+**Optional: test one arm at a time.** After the complete CPU export in 3.5, select `arm_0` for Lower, `arm_0` or `arm_1` for Moderate, or any of `arm_0`, `arm_1`, `arm_2` for Higher. For example:
+
+```bat
+set "ARM=arm_0"
+python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --arm %ARM% --contents empty --output "%RUN%/practice_%ARM%_empty"
+python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --arm %ARM% --contents beads --output "%RUN%/practice_%ARM%_beads"
+```
+
+Each command runs that arm's saved approach, automatic pick, carry, automatic release and rest. The layout, handoff target, path and times stay unchanged. Other robots remain in the scene at the saved boundary commands and participate in collision checks. For a later arm, the cup and samples start fresh on its saved source support. This does not reproduce the preceding arm's physical handoff. See the [practice scope and result fields](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional).
+
+Read `PRACTICE_RESULT.json` in each output folder. `ARM_PRACTICE_PASS` means that isolated practice passed. Results remain local and **never count as a full mission or leaderboard entry**, even if every arm passes separately. Use a fresh output folder when repeating a command. Continue with 3.7 for the scored full run.
 
 ### 3.7 Verify the full glass-bead mission
 

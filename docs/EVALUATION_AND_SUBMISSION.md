@@ -111,6 +111,30 @@ python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json"
 
 This uses the same layout, initial robot/cup poses, paths, times and rigid16 settings, with only the beads removed. It checks physical following, contact, handling and completion. It cannot check bead retention and never uploads a competition record. A passing supervisor reports `review_accepted: true` and `empty_mission_passed: true`. Its `full_mission_passed` remains false.
 
+### Practice one arm in Genesis (optional)
+
+Team members may test their assigned arms separately before the full replay. First produce a **complete successful CPU export** with Section 3. Use the same unchanged planner, design and saved mission. No additional student code is required.
+
+Choose a participating arm: Lower uses `arm_0`, Moderate uses `arm_0` and `arm_1`, and Higher uses `arm_0`, `arm_1` and `arm_2`. Set `ARM` to the one you want to test, then run either or both commands:
+
+```bat
+set "ARM=arm_0"
+python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --arm %ARM% --contents empty --output "%RUN%/practice_%ARM%_empty"
+python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --arm %ARM% --contents beads --output "%RUN%/practice_%ARM%_beads"
+```
+
+`--contents` is required. `empty` checks the selected arm without samples. `beads` also checks conservation of the four bead IDs. Each command runs the saved approach, automatic pick, carry, automatic release and required rest. It does not run the other arms' transports or the donor return. The saved path and edge times are used without replanning or retiming.
+
+All three robot models, obstacles, selected base placements and handoff targets remain in the scene. Peer arms use the commands saved at the selected arm's starting boundary. Their physical motion and contacts are still checked. The fixed physics interval, 16 internal substeps and acceptance limits do not change.
+
+The cup starts on the selected arm's saved source support. For bead practice, the four samples are initialized there for this separate run. This is a **fresh practice state**, not a checkpoint carrying over the preceding arm's bead velocities or residual cup motion. No beads are reset during the selected transport. To verify actual consecutive handoffs with the same physical cup and samples, run the full mission in Section 5.
+
+Read `PRACTICE_RESULT.json` in the selected output folder. `ARM_PRACTICE_PASS` reports a successful isolated run. For `ARM_PRACTICE_FAILED`, read the top-level `failure` and `failed_checks` before revising your inputs. The nested `worker.scene_exit` marker `ArmPracticeComplete` only marks the end of local practice. The result scope is `arm_practice`, and `full_mission_passed` remains false. Logs stay local. Practice creates no leaderboard attempt, score evidence or pending leaderboard upload. Separate arm passes cannot be combined into a scored result.
+
+Use a new output folder for a repeated practice, such as `%RUN%/practice_arm_0_beads_02`. After changing the planner, layout, handoff or timing, choose a fresh `RUN` and repeat the full CPU export before practice. Keep each teammate's original local records. This optional check adds no submission item.
+
+Practice has a default computer wall-time guard of 1,800 seconds. On a slower computer, `--wall-limit-s 5400` allows up to 5,400 seconds. This changes only how long the computer may calculate. Saved motion times, physical limits and the full-mission simulation-time rules remain unchanged.
+
 ## 5. Replay the full path with beads
 
 ```bat
@@ -209,7 +233,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v3-compact-inputs-20261114"
+set "RELEASE=term-v3-arm-practice-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -248,7 +272,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-compact-inputs-20261114"
+set "RELEASE=term-v3-arm-practice-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

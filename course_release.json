@@ -2,8 +2,8 @@
   "managed_files": {
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
-    "PACKAGE_STATUS.json": "1277fa58becf34443421cdec5114ddfd83b03a9722a35ff7863bd2c2cd0eded8",
-    "README.md": "691420e7e4c08d66394bb5afb7e84dea3eed137f9fd12bddb67eacfea04d457d",
+    "PACKAGE_STATUS.json": "a6e4659d7b9fd75c23e806e276ab910c86f02a8987c7dcbede287c07852d135c",
+    "README.md": "f5c257518626f16df86b1ba46c08f82a4a21e76017ecc4048787983cf20bf114",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "def07aafdc3f65a992587e93c9ddee8ffcf98cb66b8ff0b43d22522c64dca97e",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "9fa2c9c4790d3cdb6bd0550c9e454f55ad0d2ca3d69ae614f154e21e75b3926c",
@@ -34,7 +34,7 @@
     "diagnostics/protocol.py": "78777e432f08f8969f210e9fac49e1665858103029e1940b1840c201887ce61a",
     "diagnostics/server.py": "6ca1afdd72a006562ea71f9b0ca33c456a0916289fe73c1e367b0d13d1a28699",
     "diagnostics/store.py": "2baeda6f669b4f23141d61e99543095943c251fbc789eb261772d5f5c5ee4634",
-    "docs/EVALUATION_AND_SUBMISSION.md": "2b8fb47ab879ee1c768c3af8e740ef818ea47e00fd118ed409e8e34674a534ed",
+    "docs/EVALUATION_AND_SUBMISSION.md": "db9ea79f42b7e7fecf59077cef6ce34aba95802c93432755090de0d4ce7e70e3",
     "docs/LEADERBOARD_OPERATIONS.md": "3482d6ec0899e58ce675a13101ba3a3ec9288483d8221097986ea6d9726d31c8",
     "docs/MAPS_AND_DESIGN.md": "24ca2a81b5c43a9533ac8fd325a5aa0e3b033fca403c5f65f08b9b8cc16b94fb",
     "docs/SCORING.md": "c5af9144c9fe57433e4809a218885faa0c874ddb84545f915f4e891a3f1adb30",
@@ -89,6 +89,7 @@
     "physics/deferred_gpu_handling.py": "0a10febdef424ca454e70b15a80b9d08361b46e7e002e9a1f4204582a733ea3b",
     "physics/deferred_gpu_tail.py": "fc02ce2a6961d08fa273c314a21a89f215ebb313268c782d5d4f6f1cdf1d1d02",
     "physics/delivery_inputs.py": "618863346695909bb372f0b7e93bc7dcb6b204a87b04a1ed32745d230b432c11",
+    "physics/device_arm_practice.py": "e0459591ef0cb2d0a39687418fea62ed22e11ad388a5bcec66d79c4ffd7546e8",
     "physics/device_one_carry.py": "5e240b085cd6492bc9cfd7a6283bbec570c6999da6be07919bbd908b05b6d11d",
     "physics/device_tier_mission.py": "b3abf63013e108e0a155d7495e606ef4197893cd1be48d3e908520521f293dd0",
     "physics/empty_motion.py": "788d92940f939f2b0c67332f03ba5367d8751e358d0bf3dbd15b96a108ebd4e4",
@@ -137,6 +138,7 @@
     "physics/provided_query_clearance.py": "57ceeee052647c815887f63e4cca7d9b8f4bcf8eabdf62166fb8cf7e659022ff",
     "physics/provided_robot_reset.py": "2e5cde459c4b475aef5930cd68840d6eee9e48f012e7bbbd2996f138b4a04d9d",
     "physics/provided_robot_return.py": "2035956d0ae383d96fbf8f8c1145680b0147d8fd9c2ed9b06b670fba65cd86cc",
+    "physics/review_arm_practice.py": "60ed68ed094eb6067eed9b9307552be64060896532e76f10595218095aa7618f",
     "physics/review_process_memory.py": "d1cc27fba0bd2303a2b4084fd9ba43010e73b6e8aca922d22cb6da94c39e443d",
     "physics/review_student_transport.py": "2b7d2fc33873957ec3da816b7857f1cefd5c8b9b0ca076d02f75c0b09dec0b1c",
     "physics/review_tier_transport.py": "508256c18980701cf1c36d6a6465448761b2e6ddfc7f571a57f38df5e89d62a0",
@@ -157,7 +159,7 @@
     "physics/substep_observer.py": "38bd3f42c93c395b047b34d4b92d5fb741bd274d7597b4b423048b83198da321",
     "physics/tier_mission_plan.py": "78e1c940909a9233411e18aadca3b332a89e4a2d1517cd820afc50eb78b78991",
     "physics/transport_outcomes.py": "324b176185365027fb28d953aba040663f3ea1191947ea016e3bb77dd7d6da42",
-    "project_run.py": "458b814a809434a20ecb39ecc3ac91a6ee9430b5ad5fd79ce456c4971f8fae16",
+    "project_run.py": "1bb835ebd1cd22ba0591507bbac1a98e1e72f8eaf546603bfccbb99ded7f0a1b",
     "requirements.txt": "52369772b37c3eb24608b499e8023032d1d0cb3ee12dcd1bb1496d60f74f7f2d",
     "student_design_input.py": "36b5edf318a789df0bc44cd24f29323488148416ef8d5554eda20c6b7a88a76c",
     "supplied_design_defaults.json": "b441748af38ff38958f5a2a9674bea7b18b8d3854723845a7423299feae19e71",
@@ -203,7 +205,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v3-compact-inputs-20261114",
+  "release_tag": "term-v3-arm-practice-20261114",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v3": {
