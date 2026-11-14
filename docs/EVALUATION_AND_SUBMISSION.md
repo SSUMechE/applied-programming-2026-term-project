@@ -59,6 +59,10 @@ For another attempt, choose a fresh `RUN`, such as `output\higher_02`. Preserve 
 
 Complete `student/joint_strategy.py::plan_path` and the selected `student/%LEVEL%_design.json` before planning. Choose `joint_speed_scale` or implement the optional `choose_edge_durations_s` function. The [README edit checklist](../README.md#34-implement-your-planner-and-design) and [API contract](STUDENT_API.md) identify the exact inputs and return values.
 
+Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) to distinguish carrying arms, parked arms, handoffs and the prefilled fixed finish. Keep all three arm entries and both relay entries. A parked arm or unused relay does not add a transport leg.
+
+**Edit only the [listed student targets](STUDENT_API.md). Do not manually modify other supplied code or fixed data. Unauthorized changes or fabricated results may receive ZERO for the project.** Keep generated plans, logs and receipts unedited. Use the official updater for instructor-announced fixes.
+
 After implementing these student inputs, run the supplied checks:
 
 ```bat
@@ -83,7 +87,7 @@ Do not edit planner, design or supplied files between export and replay. After a
 python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --output "%RUN%/motion_preview.json"
 ```
 
-Open `docs/map_viewer.html` from your cloned repository in a browser. Keep `motion_preview.js` beside it. Select the same complexity as your plan and choose **Preview your saved motion**, then load `motion_preview.json`. Use **Stage**, **Frame** or **Play** to inspect the arm, cup, seven joint angles, planned path and chosen handoff coordinates. Use **Preview your design JSON** to inspect base and handoff choices before planning. The preview reads your saved plan without replanning, retiming or starting Genesis. Its stage command time is not the competition completion time. It shows planned collision geometry, not measured physical tracking, bead motion or a new collision certificate. Continue with empty-cup or bead replay for physical verification.
+Open `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep its supplied JavaScript files beside it. Select the same complexity as your plan and choose **Preview your saved motion**, then load `motion_preview.json`. Use **Stage**, **Frame**, **Play** and **Planned cup path (current stage)** to inspect the arm, cup, seven joint angles, planned path and chosen handoff coordinates. Use **Preview your design JSON** to inspect base and handoff choices before planning. The preview reads your saved plan without replanning, retiming or starting Genesis. Its stage command time is not the competition completion time. It shows planned collision geometry without simulated beads. Continue with empty-cup or bead replay for physical verification.
 
 **Optional: diagnose one CPU stage.** If a CPU attempt failed after saving its input records, you may edit `student/joint_strategy.py` and retry just its next stage with the supplied diagnostic tool:
 
@@ -114,6 +118,31 @@ Genesis replays the saved path without new RRT or online IK. Lower completes one
 Inspect `%RUN%/full/REVIEW_SUPERVISOR.json`. Successful full transport requires `review_accepted`, `physical_transport_accepted` and `full_mission_passed` all true. Inspect `%RUN%/full/LEADERBOARD_STATUS.json` separately for upload state.
 
 Every completed full bead review automatically records success or failure. `status: uploaded` means the server acknowledged that attempt. It is not by itself a physics pass. `status: pending` means the local record is queued. `scoring_enabled: false` identifies staging rather than an active competition rule. CPU, empty-cup and short practice runs never enter competition history. Failures from the supplied runner are shared as private diagnostics.
+
+### Inspect and save animations (optional)
+
+After the bead review finishes, create an animation from its recorded robot, cup and individual bead positions:
+
+```bat
+python -B export_physics_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --review-dir "%RUN%/full" --fps 30 --output "%RUN%/physics_preview.json"
+```
+
+Keep the saved CPU directory and the original review logs together with their source files. The exporter reads those records and checks their identities. It does not plan another route, modify the motion, reset beads or run Genesis again. Missing or inconsistent records produce an error instead of a fabricated animation. A failed review can show only the recorded portion before it stopped.
+
+The output must be a new file under your repository's `output` folder. For another sample rate, choose a new filename, such as `physics_preview_60fps.json`.
+
+Open `docs/map_viewer.html` locally in Chrome or Edge. Choose the matching complexity and load `physics_preview.json` through **Preview your saved motion**. The viewer labels recorded Genesis states separately from planned CPU geometry.
+
+- Use **Stage**, **Frame** and **Play** to inspect movement and the seven joint angles. **Playback / video** chooses the selected stage or all stages. Play resumes from the selected frame. Enable **Recorded cup path (current stage)** to see that phase's route. CPU previews label this **Planned cup path (current stage)**.
+- Choose **Camera → Follow cup** to follow the moving container. Choose **Cup interior only** to hide the robots and map. Enable **Transparent cup** to inspect the original recorded beads inside. These controls change visibility only. Hidden objects remain in the evaluator's checks.
+- Choose **Visual quality**: Light is 720p at 15 fps, Standard is 1080p at 30 fps, and High is 1440p at 30 fps. Higher quality produces larger files and needs more rendering work.
+- Use **Save PNG** for the current view. For a video, select **Selected stage** or **All stages**, then **Save WebM**. Recording starts at the beginning of that selection and runs in real time with your chosen view. Keep the tab visible until it finishes. Hiding the tab or choosing **Cancel recording** discards the unfinished video. If video recording is unsupported, the viewer explains this and PNG export remains available. The video format is WebM, not MP4.
+
+`--fps 15`, `30` or `60` selects samples from the existing physical log. Recorded kinematic donor returns retain their original 15 fps samples. These returns have **zero physics time** and are labelled separately from dynamically simulated phases. Their visible playback duration is not added to the competition clock.
+
+Video quality selects output resolution and frame rate separately. Neither sampling nor quality changes the fixed physics interval, substeps or grading. More output frames cannot create missing physical detail. The animation uses recorded samples and is not a new continuous collision or bead-retention certificate. Read the original review result for pass/fail.
+
+Exports are optional local files. Keep previews and videos in your private team workspace. They are not published on the public leaderboard and add no required submission item.
 
 ## 6. Retry an upload without repeating Genesis
 
@@ -174,7 +203,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v3-outline-heading-20261114"
+set "RELEASE=term-v3-animation-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -213,7 +242,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-outline-heading-20261114"
+set "RELEASE=term-v3-animation-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

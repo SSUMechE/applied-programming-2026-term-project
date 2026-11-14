@@ -24,11 +24,26 @@
   "instructor_team_token_distribution_required": false,
   "team_registration": "Automatic first-use team name and shared-password sign-in. The supplied client stores a separate device credential outside Git and reuses it for results and diagnostics.",
   "team_identity_scope": "Self-registered team access. Possession of the agreed shared password is not verification of GitHub membership or university identity.",
-  "preview_scope": "Optional CPU geometry preview of the student's own saved plan. No Genesis execution or physical certification.",
+  "preview_scope": "Optional own-plan CPU geometry and actual recorded Genesis robot/cup/bead playback. Read-only export does not rerun physics or create a validation certificate.",
   "scope": "Student workspace and English guidance for the activated term_v3 bead competition. Protected physics, source and rule hashes match retained current-PC native evidence. GTX1660 SUPER performance remains unmeasured. No reference solution is included.",
   "release_authorization_scope": "Instructor explicitly requested student distribution and official activation on 2026-11-14. Current-PC native evidence retained. GTX1660 SUPER qualification is still pending.",
   "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
   "student_repository_visibility": "one private shared repository per team",
   "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
-  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics."
+  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics.",
+  "optional_visual_export": {
+    "formats": [
+      "PNG",
+      "WebM"
+    ],
+    "presets": [
+      "720p / 15 fps",
+      "1080p / 30 fps",
+      "1440p / 30 fps"
+    ],
+    "inside_view": "Transparent cup, follow camera and cup-only interior view",
+    "recorded_state_export_tested": true,
+    "browser_video_download_verified": false,
+    "verification_limit": "Recorded-data conversion, component rendering and recording lifecycle tested. Real browser video download remains unverified."
+  }
 }

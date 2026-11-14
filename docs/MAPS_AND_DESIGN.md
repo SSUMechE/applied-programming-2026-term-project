@@ -1,6 +1,6 @@
 # Design the layout
 
-Open [the 3D viewer](map_viewer.html) at `docs/map_viewer.html` from your cloned repository in a browser. Keep `motion_preview.js` beside it. Choose your complexity and inspect the grey mounting rectangles, equipment surfaces, blue start and green finish. All geometry uses world XYZ in metres. The viewer displays map geometry and can load your design or saved motion preview. A placement inside a rectangle still needs reachability and collision checks.
+Open [the 3D viewer](map_viewer.html) at `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep the supplied `motion_preview.js` and `viewer_capture.js` beside it. Choose your complexity and inspect the grey mounting rectangles, equipment surfaces, blue start and green finish. All geometry uses world XYZ in metres. The viewer displays map geometry and can load your design or saved motion preview. A placement inside a rectangle still needs reachability and collision checks.
 
 Use this mapping to select the case directory and identify the fixed destination.
 
@@ -18,9 +18,19 @@ Edit `student/easy_design.json`, `student/medium_design.json` or `student/hard_d
 
 For an arm, select `mount_region`, then set `base_placement.x_m`, `y_m` and `yaw_rad`. The surface fixes base height, including the supplied 1 mm mounting clearance. You can choose a higher mounting surface but cannot enter an arbitrary Z coordinate. Use radians for yaw.
 
-The current scene contains three robot entities at every complexity. Complete all three `arms` entries. Only the required first one, two or three carry the cup. Other arms remain parked collision geometry. Their placement must also be valid.
+### Which entries do I fill?
 
-The two `relays` entries define selected support points in the common scene schema. In Lower, the first entry is the fixed finish and must stay unchanged. In Moderate, the first entry is your handoff and the second is the fixed finish. In Higher, select both internal handoffs and preserve the separate `goal_support` target. Complete any unused entry with a valid support point, as the scene binder checks both entries. This does not add a transport leg.
+A **base** is a robot's mounting location. Every map contains `arm_0`, `arm_1` and `arm_2`, so fill the mounting choices for all three. The arms not carrying the cup stay parked and still count in collision checks. Lower requires only `arm_0` to transport the cup.
+
+A **relay entry** selects a support surface and an X/Y point on it. Its role depends on your complexity. Use the table below while filling your design JSON. `relays[0]` means the first entry and `relays[1]` the second.
+
+| Complexity | Arms that carry | Arms that stay parked | `relays[0]` | `relays[1]` |
+| --- | --- | --- | --- | --- |
+| Lower | `arm_0` | `arm_1`, `arm_2` | **Fixed finish.** Keep the supplied `relay_1_support` and X/Y `(1.02, 1.04)` m. | Not used for transport. Choose another valid support and X/Y point. |
+| Moderate | `arm_0`, `arm_1` | `arm_2` | **Your handoff** from `arm_0` to `arm_1`. Choose its support and X/Y point. | **Fixed finish.** Keep the supplied `relay_2_support` and X/Y `(2.35, 1.02)` m. |
+| Higher | `arm_0`, `arm_1`, `arm_2` | None | **Your first handoff** from `arm_0` to `arm_1`. | **Your second handoff** from `arm_1` to `arm_2`. |
+
+Higher ends at the separate fixed `goal_support`, after both handoffs. Every tier starts at the fixed `source_support`. Do not delete any arm or relay entry, and do not leave editable values as `null`. The current loader requires both relay entries to use valid, distinct support IDs, even though Lower's second entry is not visited. Filling that unused entry does not add a handoff or require another arm to carry.
 
 Select distinct allowed handoff supports. Candidates include the relay and quality support surfaces, except the fixed destination for your tier. A catalogue entry is permission to try it, not a guarantee that adjacent arms can reach it. The published XY bounds account for the complete cup footprint. CPU contact planning also requires the bottom corners to remain at least `context.query_tracking_clearance_m` inside the support edges (currently 0.004 m). Choosing an exact catalogue boundary can therefore fail the endpoint check. Allow this extra margin, then check the selected endpoint with the oracle. No required intermediate joint posture is supplied.
 

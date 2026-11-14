@@ -47,7 +47,14 @@
       position[2] + vz + w * tz + x * ty - y * tx];
   }
   function validatePreview(data, map) {
-    requireValue(data && data.schema_version === 'ap-student-motion-preview-v1', 'Use a JSON produced by the supplied motion-preview exporter.');
+    requireValue(data && ['ap-student-motion-preview-v1', 'ap-student-physical-preview-v1'].includes(data.schema_version), 'Use a JSON produced by a supplied preview exporter.');
+    const physical = data.schema_version === 'ap-student-physical-preview-v1';
+    if (physical) {
+      requireValue(Array.isArray(data.bead_ids) && data.bead_ids.length <= 100 && new Set(data.bead_ids).size === data.bead_ids.length
+        && data.bead_ids.every(id => typeof id === 'string' && id.length > 0 && id.length <= 128), 'Invalid recorded bead IDs.');
+      requireValue(finite(data.bead_radius_m) && data.bead_radius_m > 0 && data.bead_radius_m < 1, 'Invalid recorded bead radius.');
+      requireValue(typeof data.result_sha256 === 'string' && /^[0-9a-f]{64}$/.test(data.result_sha256), 'Missing physical result hash.');
+    }
     requireValue(data.difficulty === map.difficulty && data.map_id === map.map_id, 'This preview belongs to a different map. Select its complexity first.');
     const expectedKeys = Object.keys(map.source_files_sha256).sort();
     requireValue(data.source_files_sha256 && JSON.stringify(Object.keys(data.source_files_sha256).sort()) === JSON.stringify(expectedKeys)
@@ -75,26 +82,40 @@
       for (const vertex of mesh.vertices_local_m) radius = Math.max(radius, Math.hypot(...vertex));
       radii.set(mesh.geometry_id, radius);
     }
-    requireValue(Array.isArray(data.stages) && data.stages.length > 0 && data.stages.length <= 30, 'Invalid preview stage count.');
+    requireValue(Array.isArray(data.stages) && data.stages.length > 0 && data.stages.length <= (physical ? 100 : 30), 'Invalid preview stage count.');
     const stageIDs = new Set(); let frameCount = 0;
     const boundsLower = [Infinity, Infinity, Infinity], boundsUpper = [-Infinity, -Infinity, -Infinity];
     for (const stage of data.stages) {
       requireValue(typeof stage.stage_id === 'string' && stage.stage_id.length <= 256 && !stageIDs.has(stage.stage_id), 'Invalid or repeated stage ID.');
       stageIDs.add(stage.stage_id);
-      requireValue(['approach', 'carry', 'kinematic_return'].includes(stage.kind) && /^arm_[012]$/.test(stage.active_arm_id), 'Invalid stage arm or motion kind.');
+      requireValue((physical ? stage.kind === 'physical' : ['approach', 'carry', 'kinematic_return'].includes(stage.kind)) && /^arm_[012]$/.test(stage.active_arm_id), 'Invalid stage arm or motion kind.');
       requireValue(finite(stage.duration_s) && stage.duration_s >= 0 && stage.duration_s <= 100000, 'Invalid stage duration.');
       const source = stage.source_trajectory;
+      if (!physical) {
       requireValue(source && Array.isArray(source.waypoints) && source.waypoints.length > 0 && source.waypoints.length <= 10000
         && Array.isArray(source.edge_durations_s) && source.edge_durations_s.length === source.waypoints.length - 1, 'Invalid source trajectory.');
       source.waypoints.forEach(q => vector(q, 7, 'Source joint angles'));
       requireValue(source.edge_durations_s.every(x => finite(x) && x > 0), 'Invalid source edge time.');
       requireValue(Math.abs(source.edge_durations_s.reduce((a, b) => a + b, 0) - stage.duration_s) <= 1e-6, 'Stage duration differs from the source trajectory.');
+      }
       requireValue(Array.isArray(stage.frames) && stage.frames.length > 0 && stage.frames.length <= 20000, 'Invalid preview frame count.');
       frameCount += stage.frames.length; requireValue(frameCount <= 30000, 'Preview exceeds the frame limit.');
       let previous = -1;
       for (const frame of stage.frames) {
         requireValue(finite(frame.time_s) && frame.time_s >= 0 && frame.time_s <= stage.duration_s + 1e-7 && frame.time_s > previous, 'Frame times must increase within the source stage.');
         previous = frame.time_s; vector(frame.q_rad, 7, 'Frame joint angles'); vector(frame.cup_position_m, 3, 'Cup position');
+        if (physical) {
+          requireValue(finite(frame.global_sim_time_s) && frame.global_sim_time_s >= 0, 'Invalid recorded simulation time.');
+          requireValue(Array.isArray(frame.bead_positions_m) && frame.bead_positions_m.length === data.bead_ids.length, 'Every recorded bead must remain present in every frame.');
+          frame.bead_positions_m.forEach(p => {
+            vector(p, 3, 'Recorded bead position');
+            requireValue(p.every(v => Math.abs(v) < 10000), 'Recorded bead is outside the viewer range.');
+            for (let i = 0; i < 3; i++) {
+              boundsLower[i] = Math.min(boundsLower[i], p[i] - data.bead_radius_m);
+              boundsUpper[i] = Math.max(boundsUpper[i], p[i] + data.bead_radius_m);
+            }
+          });
+        }
         requireValue(Array.isArray(frame.poses) && frame.poses.length === meshes.size, 'Each frame must locate every collision geometry.');
         const ids = new Set();
         for (const pose of frame.poses) {
@@ -108,8 +129,9 @@
           }
         }
       }
-      requireValue(Math.abs(stage.frames[0].time_s) <= 1e-8 && Math.abs(stage.frames.at(-1).time_s - stage.duration_s) <= 1e-6
-        && closeVector(stage.frames[0].q_rad, source.waypoints[0]) && closeVector(stage.frames.at(-1).q_rad, source.waypoints.at(-1)), 'Preview stage endpoints differ from the saved trajectory.');
+      requireValue(Math.abs(stage.frames[0].time_s) <= 1e-8 && Math.abs(stage.frames.at(-1).time_s - stage.duration_s) <= 1e-6, 'Preview stage time endpoints differ.');
+      if (!physical) requireValue(closeVector(stage.frames[0].q_rad, source.waypoints[0])
+        && closeVector(stage.frames.at(-1).q_rad, source.waypoints.at(-1)), 'Preview stage endpoints differ from the saved trajectory.');
     }
     // One cached envelope covers every imported pose. Scrubbing never changes Fit.
     return {data, layout, meshes, frameCount, bounds_m: [boundsLower, boundsUpper]};

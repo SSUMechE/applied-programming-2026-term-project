@@ -2,9 +2,14 @@
 
 **2026-02 · Four glass beads · term_v3**
 
-Edit `student/joint_strategy.py` and the selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`. You may add helper modules inside `student/`. Keep supplied models, maps, physics, interpolation, tests and recording code unchanged. Process liquid and sand are locked.
+**Edit only the student targets below.** Process liquid and sand are locked.
 
-Read [the map and layout guide](MAPS_AND_DESIGN.md), then fill the JSON's `null` choices. The common scene contains three robot entities, including inactive collision geometry. Lower and Moderate still need valid placements for all three bases. Unused relay entries are part of the common scene recipe, not extra transport legs. Preserve the fixed source and final target.
+- `student/joint_strategy.py::plan_path`: implement path search. `choose_edge_durations_s` is optional. You may add your own helper functions in this file or helper modules inside `student/`.
+- Your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`: choose `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `relays[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Do not change the schema, arm IDs, fixed start or fixed finish.
+
+**Do not manually edit other supplied files. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** Keep supplied planners, models, maps, limits, physics, interpolation, checkers, tests, scoring rules and registration/recording code unchanged. Do not edit generated plans, logs or result receipts. Instructor-announced updates through the official updater are allowed.
+
+Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a robot's mounting location. Place all three scene robots, including parked arms. A relay entry selects a support surface and X/Y point. In Lower, the first relay entry is the prefilled fixed finish and the second is unused but must be valid. In Moderate, the first is your handoff and the second is the prefilled fixed finish. In Higher, both are your handoffs before the separate fixed goal. Do not delete entries or change the fixed source and finish.
 
 ## Implement the search
 
@@ -86,6 +91,8 @@ Follow [CPU plan, optional empty cup and full beads](EVALUATION_AND_SUBMISSION.m
 CPU search defaults to no wall timeout (`--wall-limit-s 0`) and 50,000 validity queries per stage. `--seed`, `--max-queries` and `--endpoint-attempts` control local search, not the simulated deadline. `--max-stages 1` produces a first-approach diagnostic with `CPU_PLAN_PREFIX_ONLY`. A prefix is not a complete replayable mission and never enters competition history. Failed supplied-runner commands are reported privately to the instructor.
 
 Use the failed phase to revise a mounting location, relay, clearance strategy or edge time. Compare under stated conditions and interpret the supplied records in your required presentation. No separate student verification report is required.
+
+For visual inspection, the supplied [animation exporters and viewer](EVALUATION_AND_SUBMISSION.md#inspect-and-save-animations-optional) show either your saved CPU plan or actual recorded Genesis motion. CPU previews contain no simulated beads. Recorded previews retain individual bead IDs and positions, with cup-follow and transparent-cup views. Visual quality and export frame rate affect display only. They never change your path, timing, physics settings or evaluator result.
 
 ## Optional planning review
 

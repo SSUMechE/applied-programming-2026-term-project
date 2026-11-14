@@ -40,7 +40,7 @@ All scenes contain three robot models. Unused arms remain parked collision geome
 
 *Figure 2. Layout illustrations from the original Project Outline. See the [current map](docs/project-map-overview.png) and [3D viewer](docs/map_viewer.html) for exact geometry and permitted placements.*
 
-Open `docs/map_viewer.html` from your cloned repository in a browser. Keep `motion_preview.js` beside it. Choose your complexity, then use **Preview your design JSON** to inspect selected bases and exact handoff points. Use **Preview your saved motion** to load an exported motion preview, then choose **Stage** and **Frame** to inspect planned joint motion. Use the [map constraints](docs/MAPS_AND_DESIGN.md) when choosing placements.
+Open `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep its supplied JavaScript files beside it. Choose your complexity, then use **Preview your design JSON** to inspect selected bases and exact handoff points. Use **Preview your saved motion** to load your exported animation. **Stage**, **Frame** and **Play** show your motion. The **Planned cup path** or **Recorded cup path** checkbox shows the current stage's route. See [animation export](#38-inspect-or-save-your-animation-optional) for recorded bead motion and video output. Use the [map constraints](docs/MAPS_AND_DESIGN.md) when choosing placements.
 
 Use the materials marked **Open** for your current work.
 
@@ -52,7 +52,7 @@ Use the materials marked **Open** for your current work.
 
 ### 2.2 Design Inputs
 
-**Student-designed inputs:** choose robot placement, handoff locations and the seven-joint path. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. Complete all three base entries and both relay entries, including unused scene entries, while preserving the fixed source and finish.
+**Student-designed inputs:** choose robot placement, handoff locations and the seven-joint path. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. A **base** is a robot's mounting location. Select locations for all three scene robots. Only the required one, two or three arms carry the cup, and the others stay parked. The two **relay entries** select support points. Their roles differ by tier, as shown in [which entries to fill](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill). Keep the fixed source and finish unchanged.
 
 | Decision | Input and units | Edit location |
 | --- | --- | --- |
@@ -60,6 +60,13 @@ Use the materials marked **Open** for your current work.
 | Handoffs | Allowed support ID and landing X/Y in m | Same JSON → `relays` |
 | Joint path | A sequence of seven-angle configurations in rad | `student/joint_strategy.py` → `plan_path` |
 | Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
+
+**Edit only these student targets:**
+
+- `student/joint_strategy.py`: implement `plan_path`. Optionally implement `choose_edge_durations_s`. Put your own planner helper functions here or in helper modules under `student/`.
+- Your selected `student/<tier>_design.json`: set `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `relays[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep the schema, arm IDs, fixed start and fixed finish unchanged.
+
+**Do not manually modify anything else supplied by the course. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** This includes planners outside `student/`, checkers, tests, physics, maps, limits, scoring rules and registration/recording code. Do not edit generated paths, logs or result receipts. Use the official updater for instructor-announced fixes. An authorized update is not a prohibited edit.
 
 ### 2.3 Your Implementation
 
@@ -108,7 +115,7 @@ Follow the [CPU → optional empty cup → beads workflow](docs/EVALUATION_AND_S
 
 *Figure 5. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
 
-The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. The optional 3D preview shows your own saved motion before physics.
+The same saved CPU path and timing are reused for both physical checks. After editing your planner or design, export a fresh plan. Preview your planned motion before physics, then inspect the recorded robot, cup and beads after Genesis.
 
 ## 3 Start and Test Your Design
 
@@ -184,8 +191,10 @@ For each revised attempt, choose a fresh `RUN`, such as `output\higher_02`. Keep
 Before planning, complete these student files:
 
 - `student/joint_strategy.py` → implement `plan_path` using the [provided API](docs/STUDENT_API.md).
-- `student/%LEVEL%_design.json` → replace the editable `null` values with your placement and handoff choices. For example, `LEVEL=easy` selects `student/easy_design.json`. Complete all three base entries and both relay entries, including unused scene entries. Preserve the fixed source and finish.
+- `student/%LEVEL%_design.json` → replace the editable `null` values with your choices. For example, `LEVEL=easy` selects `student/easy_design.json`. Follow the [per-tier entry table](docs/MAPS_AND_DESIGN.md#which-entries-do-i-fill) for carrying arms, parked arms, handoffs and the prefilled fixed finish. Do not delete entries.
 - Choose `joint_speed_scale` in that JSON, or implement the optional `choose_edge_durations_s` function for individual edge times.
+
+Follow the [edit boundary and zero-credit warning](#22-design-inputs). All other supplied code and fixed data must remain unchanged.
 
 The starter contains no completed path or reference layout. After implementation, run the supplied checks:
 
@@ -213,7 +222,7 @@ If you implemented explicit edge times, set `joint_speed_scale` to `1.0` and app
 python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --output "%RUN%/motion_preview.json"
 ```
 
-Open `docs/map_viewer.html` locally in a browser. Select your complexity, choose **Preview your saved motion**, and load the exported JSON. Inspect **Stage** and **Frame** to see your path and handoff coordinates. This preview does not run physics.
+Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity, choose **Preview your saved motion**, and load the exported JSON. Use **Stage**, **Frame** and **Play** to see your planned path and handoff coordinates. This CPU preview has no simulated beads and does not run physics.
 
 ### 3.6 Optionally check with an empty cup
 
@@ -232,6 +241,18 @@ python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json"
 Genesis uses the same saved path and times with all **four original beads**. Grasping, placement and required handoffs are automatic. Every completed full bead review automatically records success or failure. No separate result packaging or manual upload is needed.
 
 Wait for the review to finish, then inspect the results below. For expected computational cost and detailed failure recovery, see the [run guide](docs/EVALUATION_AND_SUBMISSION.md#interpret-time-and-cost).
+
+### 3.8 Inspect or save your animation (optional)
+
+After the bead review, export its recorded motion without running Genesis again:
+
+```bat
+python -B export_physics_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --review-dir "%RUN%/full" --fps 30 --output "%RUN%/physics_preview.json"
+```
+
+Load `physics_preview.json` using **Preview your saved motion** in the same local viewer. **Follow cup** keeps the moving container in view. **Cup interior only** hides surrounding equipment, and **Transparent cup** reveals the recorded beads. **Recorded cup path (current stage)** displays that phase's route. CPU previews label this **Planned cup path (current stage)**.
+
+Choose **Visual quality**, then **Save PNG** or **Save WebM**. Video can include the selected stage or all stages. Higher quality changes image resolution and video frame rate, not physics or grading. Keep the browser tab visible during recording. See the [animation controls and limits](docs/EVALUATION_AND_SUBMISSION.md#inspect-and-save-animations-optional). Animations stay local and are not uploaded to the public leaderboard. No animation submission is required.
 
 ## 4 Results, Leaderboard and Submission
 
