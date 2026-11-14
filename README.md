@@ -110,52 +110,181 @@ After a handoff, the donor follows its reverse path kinematically with **zero ph
 
 ## 3 Start and Test Your Design
 
-On GitHub, choose **Use this template → Create a new repository**. The course template is public. Create **one private repository per team** for all shared work and final submission. Add every teammate and the instructor account **SSUMechE** as collaborators. Each member must commit and push their own work using their own GitHub account. Keep the team repository private so other teams cannot inspect your designs or paths. Do not post design files, saved paths or motion previews publicly.
+Use **Windows Anaconda Prompt**. Copy only the commands inside the code blocks, without terminal prompts or printed output. Run them from your team repository root, in the order below.
 
-Use **Windows Anaconda Prompt** and the existing `applied-programming-cuda` environment. Replace the two placeholders with your repository URL and folder name:
+### 3.1 Create and clone your team's repository
+
+On GitHub, choose **Use this template → Create a new repository**. Create **one private repository per team**, then add every teammate and **SSUMechE** as collaborators. Clone that private repository, not the public course template:
 
 ```bat
-git clone YOUR_PROJECT_REPOSITORY_URL
-cd YOUR_PROJECT_REPOSITORY_NAME
+cd /d "%USERPROFILE%"
+set /p "TEAM_REPO_URL=Paste your private team repository URL: "
+git -c core.longpaths=true clone "%TEAM_REPO_URL%" ap2026-team
+cd ap2026-team
 conda activate applied-programming-cuda
+```
+
+Continue only after cloning and environment activation succeed. If you already have this team checkout, open its folder and activate the environment instead of cloning again. Use a different folder for another team.
+
+Each member must commit and push their own work using their own GitHub account. Keep design files, saved paths and motion previews in the private team workspace.
+
+### 3.2 Register your team and check the environment
+
+Agree on one unique team name and a shared project password of at least **12 characters**. Then run:
+
+```bat
 python -B project_run.py check --cuda --output output/environment.json
 ```
 
-On the first interactive check, enter your team's agreed unique name and shared password when prompted. Every teammate uses the same pair once per checkout on each computer. Use a project-specific password of at least **12 characters**, not your GitHub password. Enter it at the hidden prompt, never in a command or repository file. The supplied client registers or signs in to your team and stores this computer's credential outside Git. Confirm `TEAM_CONNECTED: <your team name>`. Later commands reuse that sign-in automatically. No instructor-issued token is required.
+At first use, enter the agreed team name and password when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
 
-If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
+On your first successful sign-in, confirm these results:
 
-The environment check must print `ENVIRONMENT_CUDA_SMOKE_PASS`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for guidance before changing packages. If first use is offline, keep your local work and run `python -B project_run.py retry` after reconnecting.
+- `TEAM_CONNECTED: <your team name>`: this checkout is connected to your team.
+- `ENVIRONMENT_CUDA_SMOKE_PASS`: the environment and short CUDA checks passed.
 
-Complete your planner and selected design JSON, then run:
+The client stores this computer's credential outside Git and reuses it automatically. Later checks do not repeat the sign-in prompt or TEAM_CONNECTED message. Each environment check must still report ENVIRONMENT_CUDA_SMOKE_PASS. No instructor-issued token, ngrok or VPN installation is required. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
+
+Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for instructor guidance before changing packages. If sign-in is unavailable, local work can continue. Use [upload recovery](#42-retry-a-pending-upload) after reconnecting.
+
+### 3.3 Choose your complexity and output folder
+
+Copy **one** block. These variables last only in the current prompt window. The CLI names `easy`, `medium` and `hard` correspond to Lower, Moderate and Higher complexity.
+
+**Lower complexity**
+
+```bat
+set "LEVEL=easy"
+set "MAP=easy_open_v1"
+set "RUN=output\lower_01"
+```
+
+**Moderate complexity**
+
+```bat
+set "LEVEL=medium"
+set "MAP=medium_staggered_v1"
+set "RUN=output\moderate_01"
+```
+
+**Higher complexity**
+
+```bat
+set "LEVEL=hard"
+set "MAP=hard_industrial_v1"
+set "RUN=output\higher_01"
+```
+
+For each revised attempt, choose a fresh `RUN`, such as `output\higher_02`. Keep earlier results. When reopening the prompt, return to your team repository folder, activate the environment and set these variables again.
+
+### 3.4 Implement your planner and design
+
+Before planning, complete these student files:
+
+- `student/joint_strategy.py` → implement `plan_path` using the [provided API](docs/STUDENT_API.md).
+- `student/%LEVEL%_design.json` → replace the editable `null` values with your placement and handoff choices. For example, `LEVEL=easy` selects `student/easy_design.json`. Complete all three base entries and both relay entries, including unused scene entries. Preserve the fixed source and finish.
+- Choose `joint_speed_scale` in that JSON, or implement the optional `choose_edge_durations_s` function for individual edge times.
+
+The starter contains no completed path or reference layout. After implementation, run the supplied checks:
 
 ```bat
 python -B project_run.py test
 ```
 
-All three supplied interface checks should pass. They do not establish map feasibility or physical success. Follow the **[exact run commands](docs/EVALUATION_AND_SUBMISSION.md)** in this order:
+All **three** interface checks should pass. The unfinished starter intentionally fails two path checks. These checks test your function contracts, not map feasibility or physical transport. Keep the supplied code unchanged.
 
-1. Export a full CPU plan to a fresh output folder.
-2. Optionally inspect your saved motion in the 3D viewer and replay with an empty cup.
-3. Replay that same plan with all four beads.
-4. Read the physical result and upload status separately. Revise and re-export after failure.
+### 3.5 Export your CPU-checked path
 
-The run guide gives success markers, failure recovery, optional single-stage CPU debugging and [measured cost guidance](docs/EVALUATION_AND_SUBMISSION.md#interpret-time-and-cost). Previewing does not perform physics or replace collision, contact or bead checks.
+```bat
+python -B project_run.py plan --scope tier-mission --difficulty %LEVEL% --material beads --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --strategy student.joint_strategy --output "%RUN%/cpu"
+```
+
+Continue after `CPU_GEOMETRIC_TIER_MISSION_PLANNED`. The saved plan is `%RUN%/cpu/saved_tier_mission.json`. It contains your exact joint path, edge times, layout and source identities.
+
+If you implemented explicit edge times, set `joint_speed_scale` to `1.0` and append `--edge-timing-hook` to this command. Otherwise the JSON speed scale is used.
+
+**Do not edit the planner, design or supplied files between export and replay.** After an edit, choose a fresh `RUN` and export again. CPU success does not prove bead retention or completion within the simulated deadline.
+
+**Optional preview:** export your own motion for the provided 3D viewer:
+
+```bat
+python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --output "%RUN%/motion_preview.json"
+```
+
+Open `docs/map_viewer.html` locally in a browser. Select your complexity, choose **Preview your saved motion**, and load the exported JSON. Inspect **Stage** and **Frame** to see your path and handoff coordinates. This preview does not run physics.
+
+### 3.6 Optionally check with an empty cup
+
+```bat
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents empty --output "%RUN%/empty"
+```
+
+This replays the saved motion in Genesis to check tracking, contact and automatic handling. In `%RUN%/empty/REVIEW_SUPERVISOR.json`, an empty-cup pass has `review_accepted` and `empty_mission_passed` both `true`. Its `full_mission_passed` remains `false`, as expected. It does not test bead retention or produce a competition record. If you revise your inputs after a failure, return to CPU export with a fresh `RUN`.
+
+### 3.7 Verify the full glass-bead mission
+
+```bat
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --output "%RUN%/full"
+```
+
+Genesis uses the same saved path and times with all **four original beads**. Grasping, placement and required handoffs are automatic. Every completed full bead review automatically records success or failure. No separate result packaging or manual upload is needed.
+
+Wait for the review to finish, then inspect the results below. For expected computational cost and detailed failure recovery, see the [run guide](docs/EVALUATION_AND_SUBMISSION.md#interpret-time-and-cost).
 
 ## 4 Results, Leaderboard and Submission
 
-Every completed full bead review automatically records success or failure. A full physical pass requires `review_accepted`, `physical_transport_accepted` and `full_mission_passed` all true in `REVIEW_SUPERVISOR.json`. `LEADERBOARD_STATUS.json` separately reports `uploaded` or `pending`.
+### 4.1 Check physical success and registration
 
-[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev). Select your complexity and `term_v3` rule. The live comparison uses each team's latest successful run. A later failure stays in history without replacing that success. Official ranking uses the successful representative each team explicitly selects. Instructor test runs are kept outside the classroom standings.
+```bat
+type "%RUN%\full\REVIEW_SUPERVISOR.json"
+type "%RUN%\full\LEADERBOARD_STATUS.json"
+python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v3
+```
 
-The public leaderboard shares result summaries, not robot layouts, handoff coordinates, joint paths or student source code. Your detailed attempt history is available only through your saved team sign-in.
+Check the two results separately:
 
-The supplied runner reports failed check, test, plan and review commands privately to the instructor. If a connection fails, keep your output and run `python -B project_run.py retry` after reconnecting. This uploads queued results and diagnostics without rerunning Genesis. Students need no ngrok, VPN or bug-report form.
+- **Physical pass:** `review_accepted`, `physical_transport_accepted` and `full_mission_passed` must all be `true` in `REVIEW_SUPERVISOR.json`.
+- **Upload acknowledged:** `LEADERBOARD_STATUS.json` reports `"status": "uploaded"`. This alone is not a physics pass. A failed full attempt can also upload successfully.
 
-Choose one successful run that matches all submitted student Python/JSON files and select it with the [final-selection command](docs/EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit). Confirm `status: selected` with the intended run and full commit ID.
+[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), select your complexity and its `term_v3` rule, then refresh. A successful acknowledged full run appears in the live comparison. Team registration, CPU planning and empty-cup checks do not create a ranked result.
 
-Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of that shared repository. Submit the repository URL and full **40-character commit ID** in the LMS. The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
+The live comparison uses each team's **latest successful run**. A later failure stays in team history without replacing that success. The official comparison uses the successful representative each team explicitly selects.
 
+The public board shows result summaries only. Other teams cannot see your robot layouts, handoff coordinates, joint paths or source code. The `history` command uses your saved sign-in to show your team's attempts. Signed-in teammates share that private history.
+
+### 4.2 Retry a pending upload
+
+If the upload status is `pending`, keep your output and run this after reconnecting:
+
+```bat
+python -B project_run.py retry
+python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v3
+```
+
+Inspect the retry response and updated history. Retry uploads queued results and diagnostics **without rerunning Genesis**. It also prompts for first-use sign-in if needed. Acknowledged duplicates do not create extra records.
+
+The supplied runner reports failed check, test, plan and review commands privately to the instructor. No bug-report form is required. If the automatic local result file was not created, use the [record-recovery command](docs/EVALUATION_AND_SUBMISSION.md#6-retry-an-upload-without-repeating-genesis).
+
+### 4.3 Select your final run and submit
+
+Choose one successful uploaded run. Commit and push its evaluated student files to your shared private team repository, then obtain the full commit ID:
+
+```bat
+git rev-parse HEAD
+```
+
+Set `RUN` to that successful run's folder. Enter the exact 40-character commit ID printed above:
+
+```bat
+set /p "COMMIT_ID=Paste the full 40-character commit ID: "
+python -B project_run.py select --review-dir "%RUN%/full" --commit "%COMMIT_ID%"
+```
+
+Confirm `status: selected`, the intended `run_id` and full `commit_id`. All Python and JSON files under `student/` must match the evaluated snapshot, including helpers and unused tier designs. An older result cannot represent changed student code. See [final-selection details](docs/EVALUATION_AND_SUBMISSION.md#7-select-the-final-representative-and-submit).
+
+Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Explain design choices, results and each member's contribution using the actual commit and push history of the shared repository.
+
+Submit the repository URL and full **40-character commit ID** in the LMS. The leaderboard does not replace these deliverables. See [assessment and competition](docs/SCORING.md) for the complete scoring rules.
 
 ## 5 Updates and Recovery
 

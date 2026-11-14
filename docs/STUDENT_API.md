@@ -73,7 +73,7 @@ The CPU minimum-duration check guarantees the interpolated command limits only. 
 
 ## Test and interpret results
 
-After the [one-time token setup](EVALUATION_AND_SUBMISSION.md#1-check-the-environment-and-your-implementation), run from the repository root in the existing Anaconda Prompt:
+After the [first-use team sign-in](EVALUATION_AND_SUBMISSION.md#1-check-the-environment-and-your-implementation), run from the repository root in the existing Anaconda Prompt:
 
 ```bat
 python -B project_run.py test

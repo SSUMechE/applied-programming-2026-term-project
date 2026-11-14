@@ -35,7 +35,7 @@ Lower complexity:
 ```bat
 set "LEVEL=easy"
 set "MAP=easy_open_v1"
-set "RUN=output/lower_01"
+set "RUN=output\lower_01"
 ```
 
 Moderate complexity:
@@ -43,7 +43,7 @@ Moderate complexity:
 ```bat
 set "LEVEL=medium"
 set "MAP=medium_staggered_v1"
-set "RUN=output/moderate_01"
+set "RUN=output\moderate_01"
 ```
 
 Higher complexity:
@@ -51,10 +51,10 @@ Higher complexity:
 ```bat
 set "LEVEL=hard"
 set "MAP=hard_industrial_v1"
-set "RUN=output/higher_01"
+set "RUN=output\higher_01"
 ```
 
-For another attempt, choose a fresh `RUN`, such as `output/higher_02`. Preserve earlier results.
+For another attempt, choose a fresh `RUN`, such as `output\higher_02`. Preserve earlier results.
 
 ## 3. Save a CPU-checked path
 
@@ -151,10 +151,10 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 
 ### Check and apply an announced release
 
-Set `RELEASE` to the exact tag announced by the instructor. The automatic-registration release is shown below:
+Set `RELEASE` to the exact tag announced by the instructor. The README workflow release is shown below:
 
 ```bat
-set "RELEASE=term-v3-auto-registration-20261114"
+set "RELEASE=term-v3-readme-workflow-20261114"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -193,7 +193,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v3-auto-registration-20261114"
+set "RELEASE=term-v3-readme-workflow-20261114"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
