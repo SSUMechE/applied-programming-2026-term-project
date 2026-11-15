@@ -1,120 +1,31 @@
-# Design the path, layout and speed
+# This guide is now in the README
 
-**2026-02 · Five glass beads · term_v6**
+The complete student instructions are on one page. You do not need to read separate Markdown guides.
 
-**Edit only the student targets below.** Process liquid and sand are locked.
+**[Open README: 4.2 Task 2: Implement plan_path and return your path](../README.md#42-task-2-implement-plan_path-and-return-your-path)**
 
-- `student/joint_strategy.py::plan_path`, or `plan_path` in your selected `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py`: implement path search. `choose_edge_durations_s` is optional. You may add your own helper functions in that file or helper modules inside `student/`. Separate arm work does not require completing `student/joint_strategy.py`.
-- Your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`: choose `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `handoffs[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep `schema_version`, `difficulty`, arm IDs and entry counts unchanged. Lower's `handoffs` stays `[]`.
+The links below preserve bookmarks from earlier PDFs and releases.
 
-**Do not manually edit other supplied files. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** Keep supplied planners, models, maps, limits, physics, interpolation, checkers, tests, scoring rules and registration/recording code unchanged. Do not edit generated plans, logs or result receipts. Instructor-announced updates through the official updater are allowed.
+<a id="design-the-path-layout-and-speed"></a>
 
-Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a carrying robot's mounting location. The supplied adapter fixes the source, finish and unused-arm parking. Do not add those entries or edit the generated internal design.
+[Design the path, layout and speed — open the README section](../README.md#42-task-2-implement-plan_path-and-return-your-path)
 
-In `student/<tier>_design.json`, each `handoffs[index].support_id` chooses an existing support. Its `x_m` and `y_m` set the cup **body origin's world X/Y coordinates in metres**, not offsets from the support centre. The supplied target fixes cup Z and orientation. The editable orientation field is `arms[].base_placement.yaw_rad`. Lower keeps `handoffs: []`, Moderate fills `handoffs[0]`, and Higher fills `handoffs[0]` and `handoffs[1]`. See the [coordinate illustration](figures/handoff-xy-design.png) and [footprint and clearance conditions](MAPS_AND_DESIGN.md#which-entries-do-i-fill). The illustrated point is not a validated placement solution.
+<a id="implement-the-search"></a>
 
-## Implement the search
+[Implement the search — open the README section](../README.md#42-task-2-implement-plan_path-and-return-your-path)
 
-Complete `plan_path(request, oracle, *, kinematics=None, context=None)` in your shared or selected arm strategy module listed above. Use RRT, bidirectional RRT, A*, or another suitable taught search. Each request supplies one arm's start and goal. Generate all intermediate configurations yourself. Provided endpoint IK handles grasp and placement poses, without supplying a transit route. Automatic pickup checks the hand against the saved CPU plan’s fixed pickup endpoint and separately verifies that the cup satisfies the supplied support, rest and pose limits on its named support.
+<a id="compute-clearance-and-additional-constraints"></a>
 
-For team work divided by arm, use the [independent-arm workflow](ARM_WORKFLOW.md). Create your own `student/arm_0_strategy.py`, `arm_1_strategy.py` or `arm_2_strategy.py` with the same `plan_path` and optional timing interface. `plan-arm` calls only the selected arm's approach and carry. Other arm planners may remain unfinished. Everyone uses the same design JSON and supplied release. `context.active_arm_id` identifies the arm and `context.motion_kind` is `approach` or `carry`. Read the supplied request and oracle instead of hardcoding a route. `test-arm` applies the three small supplied interface checks to your selected module and arm, using toy geometry. After local physical practice, `merge-arms` checks and assembles the exact saved paths and times. It does not combine practice results into a full pass.
+[Compute clearance and additional constraints — open the README section](../README.md#42-task-2-implement-plan_path-and-return-your-path)
 
-One shared `student/joint_strategy.py` may still branch on those context fields for a complete CPU plan. Separate modules let teammates edit unrelated arm code without invalidating one another's independent plans. A changed used module/helper, shared design or supplied source requires a fresh affected plan. Keep all producing modules in the final team repository.
+<a id="design-speed"></a>
 
-Use these interfaces to construct and check candidate connections.
+[Design speed — open the README section](../README.md#43-task-3-choose-speed-or-individual-edge-times)
 
-| Interface | Input, return and units |
-| --- | --- |
-| `request.start`, `request.goal` | Exact seven-angle tuples in `joint1` to `joint7` order, rad |
-| `request.bounds` | Seven inclusive joint intervals, rad |
-| `request.seed`, `request.max_queries` | Search seed and shared state/edge query budget |
-| `oracle.state_valid(q)` | Boolean validity against robot, cup, peers and map |
-| `oracle.edge_valid(a, b)` | Boolean sampled validity of a straight joint-space connection |
-| `oracle.queries_used`, `oracle.remaining_queries` | Public validity-call counts |
-| `kinematics.fk(q)` | `ToolPose` with world `position_m` and unit `quaternion_wxyz` |
-| `kinematics.ik(position_m, quaternion_wxyz, seed_q)` | Seven candidate angles or `None` |
-| `kinematics.geometry(q)` | Immutable world collision surfaces, described below |
-| `context` | Selected base, current arm/stage, endpoint poses, limits and nominal map geometry |
+<a id="test-and-interpret-results"></a>
 
-Return a list or tuple of seven-angle tuples. The first and last must equal the requested endpoints exactly. Use finite bounded angles without clipping or wrapping. Do not repeat consecutive states. For equal valid endpoints, return `(request.start,)`. Return `None` if search fails. Every public state/edge call consumes one query, including rejection. Exhaustion raises `PlanningBudgetExceeded`. Supplied final validation checks the returned states and edges separately. Return at most **10,000 states**. This is the supplied final-path storage/validation cap, separate from your search-tree size and query budget.
+[Test and interpret results — open the README section](../README.md#5-test-your-design)
 
-Valid endpoints do not establish a valid connection. FK and IK do not check collisions. Recheck tree joins and proposed shortcuts with the oracle. Supplied `distance(a, b)` and `steer(a, b, step)` operate in joint-space radians. Physical obstacle clearance is measured in metres.
+<a id="optional-planning-review"></a>
 
-## Compute clearance and additional constraints
-
-`context.nominal_obstacles` provides `obstacle_id`, `lower_m` and `upper_m` for world boxes. `active_arm_id`, `motion_kind`, `source_support_id` and `destination_support_id` identify this request. The context contains no intermediate joint posture.
-
-Call `surfaces = kinematics.geometry(q)` to compute your clearance estimate or additional constraint. Each frozen `WorldGeometry` record contains:
-
-| Fields | Meaning |
-| --- | --- |
-| `geometry_id`, `owner_kind`, `entity_id`, `link_id` | Geometry and owning robot link, cup, bead or map object |
-| `shape`, `center_m`, `quaternion_wxyz` | Shape and nominal world pose |
-| `vertices_m`, `triangles` | World mesh/box vertices and vertex-index triangles |
-| `half_extents_m`, `radius_m` | Box half sizes or exact sphere radius, when applicable |
-| `surface_points_m` | Surface samples. Sphere samples do not represent its entire curved surface |
-| `query_aabb_m` | Separate padded map bounds used by the oracle, when applicable |
-
-Robot records use installed collision meshes. Map boxes expose nominal surfaces. During carrying, the cup follows the provided grasp transform. Peers retain their current stage poses. A plane has infinite extent and a local +Z normal. The geometry query performs no physical step and leaves scene state unchanged.
-
-Each geometry query consumes one shared FK call. Check `kinematics.remaining_fk_calls` and `remaining_ik_calls` before optional queries. Surface samples, FK and IK are not collision certificates. Tool-only distances may miss elbow or cup contact, so retain full-robot state and edge checks.
-
-`context.query_tracking_clearance_m` and `edge_max_joint_delta_rad` describe the oracle's margin and resolution. You may use finer sampling or stricter constraints. Returning fewer waypoints cannot weaken the final check. Sampled geometry does not prove continuous collision freedom or bead retention.
-
-After rejection, `oracle.last_query_diagnostic()` returns that call's detached reason/contact record without another query. Read `reason` and `witness_status` before interpreting reported contacts. A successful query clears previous failed-contact information.
-
-## Design speed
-
-The supplied rest-to-rest quintic interpolator automatically accelerates from rest and decelerates to rest on every path edge. Commanded velocity and acceleration are zero at each waypoint. Choose paths and edge times in your shared `student/joint_strategy.py` or selected `student/arm_N_strategy.py` (`N` is 0, 1 or 2). Choose the speed scale in the selected `student/*_design.json`. You do not implement a separate braking routine or low-level controller. Actual joints follow through physics and can lag behind the command, including near a waypoint or support contact.
-
-Set `joint_speed_scale` in your JSON to a value in `(0, 1]`. The interpolator divides each edge's analytic minimum duration by this scale. A smaller scale slows the same path and reduces its commanded acceleration. Physics remains at `0.0025 s` with 16 internal substeps.
-
-For independent edge times, complete `choose_edge_durations_s(path, limits, *, context)` in your shared `student/joint_strategy.py` or selected `student/arm_N_strategy.py` (`N` is 0, 1 or 2). Its supplied `return None` retains JSON scaling. For explicit times, set the scale to `1.0` and add `--edge-timing-hook` to CPU planning. Return `len(path)-1` finite positive durations in simulated seconds. Each must be at least `minimum_edge_duration_s(a, b, limits)`. A one-state path uses `()`. Invalid durations reject instead of being stretched.
-
-Use the following fixed task limits when choosing times. They are instructor-chosen constraints shared by Lower, Moderate and Higher. Joint numbers follow the seven-angle order in your path. `limits` also provides the inclusive joint-position bounds in radians.
-
-| Arm joints | Maximum absolute velocity (rad/s) | Maximum absolute acceleration (rad/s²) |
-| --- | ---: | ---: |
-| 1-4 | 1.0 | 2.0 |
-| 5-7 | 1.4 | 2.8 |
-
-The physical review checks actual joint velocity and acceleration against these limits. Actual acceleration is `(v_after - v_before) / 0.0025` over one outer physics interval. Its absolute value is checked, so both acceleration and deceleration can reject a run. Actual joint position must also track its command within `0.03 rad`.
-
-The CPU minimum-duration check guarantees the interpolated command limits only. A legal command can still produce `control:acceleration_limit` in physical replay. On the same edge, doubling its duration halves peak commanded velocity and quarters peak commanded acceleration. This scaling does not guarantee the same change in actual motion or a physical pass. Unnecessary waypoints add stops and can increase completion time. Use the [failure records](EVALUATION_AND_SUBMISSION.md#resolve-failures) to revise the relevant edge times or path, then export again. No fixed slowdown factor is required. Forbidden contact, tracking error and bead loss during carrying also reject a run. There is no separate 8-degree spill gate.
-
-The supplied material policy enables bead dynamics and bead contacts only during an actual carry. Initial preparation, approach, automatic pick/place and released or handoff waits use five prepared bead states. The runner records instantaneous position/velocity resets with timestamps. You do not write grip physics or the reset routine. The fixed robot/cup handling holds and their physical contact/support/rest checks continue. Only extra bead-settling waits and retries are removed.
-
-A carry must retain all five original IDs before the supplied place reset. A detected carry spill stops the run immediately and remains a failure. Resetting cannot replace a missing bead or rescue that run. Resets take zero simulated time and change neither the saved path nor its edge times. The complete task clock still includes robot/cup approach, handling, carrying, waiting and final rest after the initial 0.5-second exclusion.
-
-## Test and interpret results
-
-After [first-use team sign-in](EVALUATION_AND_SUBMISSION.md#1-register-your-team-and-check-the-environment) and implementing `plan_path`, choose the test for your workflow. Run from the repository root in the existing Anaconda Prompt. You do not need both commands.
-
-For the shared `student/joint_strategy.py`:
-
-```bat
-python -B project_run.py test
-```
-
-For a separate arm module, set `ARM` to your assigned arm. This example checks `student/arm_0_strategy.py`:
-
-```bat
-set "ARM=arm_0"
-python -B project_run.py test-arm --strategy student.%ARM%_strategy --arm %ARM%
-```
-
-The unfinished starter has two path errors and one passing default timing check. After implementation, all three should pass. They check endpoint and timing contracts in simple joint space, not workcell feasibility.
-
-For initial development, follow the recommended sequence: [CPU geometry](EVALUATION_AND_SUBMISSION.md#3-save-a-cpu-checked-path), then an [empty-cup Genesis check](EVALUATION_AND_SUBMISSION.md#4-optionally-replay-with-an-empty-cup), then [bead replay](EVALUATION_AND_SUBMISSION.md#5-replay-the-full-path-with-beads). The empty-cup check tests robot/cup tracking, contact and handling before you add bead motion and retention. CPU export freezes exact paths, times and source identities. Both physical modes reuse that export without new RRT, online IK or hidden timing changes.
-
-Empty-cup checks and per-arm practice remain optional. Use [one-arm practice](EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) for a local question and full review for the complete transfer sequence. Only the full bead mission can enter ranking. You do not need three full runs after every change. After editing planner or design inputs, create a fresh CPU output before another physical check.
-
-CPU search has no automatic computation-time cutoff and uses 50,000 validity queries per stage by default. Actual elapsed time is recorded, not limited. `--seed`, `--max-queries` and `--endpoint-attempts` control local search, not the simulated deadline. `--max-stages 1` produces a first-approach diagnostic with `CPU_PLAN_PREFIX_ONLY`. A prefix is not a complete replayable mission and never enters competition history. Failed supplied-runner commands are reported privately to the instructor.
-
-Use the failed phase to revise a mounting location, relay, clearance strategy or edge time. Compare under stated conditions and interpret the supplied records in your required presentation. No separate student verification report is required.
-
-For visual inspection, the supplied [animation exporters and viewer](EVALUATION_AND_SUBMISSION.md#inspect-and-save-animations-optional) show either your saved CPU plan or actual recorded Genesis motion. CPU previews contain no simulated beads. Recorded previews retain individual bead IDs and positions, with cup-follow and transparent-cup views. Visual quality and export frame rate affect display only. They never change your path, timing, physics settings or evaluator result.
-
-## Optional planning review
-
-MIT's [RRT exercise](https://manipulation.csail.mit.edu/Fall2020/pset5/rrt_planner.html) covers single-tree RRT, bidirectional RRT and shortcut smoothing. Its [Motion Planning chapter](https://manipulation.csail.mit.edu/trajectories.html) explains configuration-space search and collision checking. These are optional explanations, not extra assignments. No MIT Docker/Drake installation is needed. Apply the ideas through this repository's API.
+[Optional planning review — open the README section](../README.md#93-written-examination-and-optional-planning-review)

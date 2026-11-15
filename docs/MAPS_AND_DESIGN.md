@@ -1,79 +1,31 @@
-# Design the layout
+# This guide is now in the README
 
-Open [the 3D viewer](map_viewer.html) at `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep the supplied `motion_preview.js` and `viewer_capture.js` beside it. Choose your complexity and inspect the grey mounting rectangles, equipment surfaces, blue start and green finish. All geometry uses world XYZ in metres. The viewer displays map geometry and can load your design or saved motion preview. A placement inside a rectangle still needs reachability and collision checks.
+The complete student instructions are on one page. You do not need to read separate Markdown guides.
 
-Use this mapping to select the case directory and identify the fixed destination.
+**[Open README: 4.1 Task 1: Fill in your layout JSON](../README.md#41-task-1-fill-in-your-layout-json)**
 
-| CLI name | Case in `cases/difficulty_20261106/` | Transporting arms / handoffs | Fixed destination |
-| --- | --- | ---: | --- |
-| `easy` | `easy_open_v1` | 1 / 0 | `relay_1_support` |
-| `medium` | `medium_staggered_v1` | 2 / 1 | `relay_2_support` |
-| `hard` | `hard_industrial_v1` | 3 / 2 | `goal_support` |
+The links below preserve bookmarks from earlier PDFs and releases.
 
-All tasks start at `source_support`. The name `relay_1_support` denotes Lower's final destination. It is not an intermediate handoff in that task.
+<a id="design-the-layout"></a>
 
-## Choose bases and handoffs
+[Design the layout — open the README section](../README.md#41-task-1-fill-in-your-layout-json)
 
-Edit `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`. Replace each editable `null` with your choice.
+<a id="choose-bases-and-handoffs"></a>
 
-For an arm, select `mount_region`, then set `base_placement.x_m`, `y_m` and `yaw_rad`. The surface fixes base height, including the supplied 1 mm mounting clearance. You can choose a higher mounting surface but cannot enter an arbitrary Z coordinate. Use radians for yaw.
+[Choose bases and handoffs — open the README section](../README.md#41-task-1-fill-in-your-layout-json)
 
-### Which entries do I fill?
+<a id="which-entries-do-i-fill"></a>
 
-A **base** is a carrying robot's mounting location. A **handoff** selects an existing support and the cup's landing point for the next arm. Use this table while filling `student/<tier>_design.json`, where `<tier>` is `easy`, `medium` or `hard`. Array entries start at index 0.
+[Which entries do I fill? — open the README section](../README.md#41-task-1-fill-in-your-layout-json)
 
-| Complexity | Student `arms` entries | Student `handoffs` entries | Supplied fixed finish |
-| --- | --- | --- | --- |
-| Lower | `arm_0` only | None. Keep `handoffs` as `[]`. | `relay_1_support`, X/Y `(1.02, 1.04)` m |
-| Moderate | `arm_0`, `arm_1` | `handoffs[0]`: choose the support and X/Y point between these arms. | `relay_2_support`, X/Y `(2.35, 1.02)` m |
-| Higher | `arm_0`, `arm_1`, `arm_2` | `handoffs[0]` for the first transfer, then `handoffs[1]` for the second. Choose both supports and X/Y points. | `goal_support` |
+<a id="inspect-your-saved-motion"></a>
 
-Every tier starts at the supplied `source_support`. Do not enter the fixed start or finish in `handoffs`. Do not add unused-arm or unused-handoff entries. The supplied code parks any unused scene arms and retains their collision geometry. Their positions are not student inputs. Keep `schema_version: "student-tier-design-v1"`, the selected `difficulty`, arm IDs and entry counts unchanged. Replace the editable `null` values before planning.
+[Inspect your saved motion — open the README section](../README.md#6-inspect-your-path-and-animation-optional)
 
-In each `handoffs[index]`, set `support_id` to an allowed existing support. Set `x_m` and `y_m` to the **world X/Y position of the cup's body origin, in metres**. The body origin is the cup reference point shown in the illustration below. These are world coordinates, not offsets from the support centre. Your choice moves the landing target, not the physical support.
+<a id="use-geometry-in-your-search"></a>
 
-The supplied target for that support fixes the cup's Z position and orientation. Do not add handoff Z or yaw fields. Only `arms[].base_placement.yaw_rad` is an editable orientation input.
+[Use geometry in your search — open the README section](../README.md#42-task-2-implement-plan_path-and-return-your-path)
 
-![Select a handoff surface and choose the cup reference point in world X/Y](figures/handoff-xy-design.png)
+<a id="what-stays-fixed"></a>
 
-*P is the illustrative cup body origin. The dashed region limits P. Obstacles are faded for visibility only.*
-
-Example syntax for `student/hard_design.json` → `handoffs[0]`:
-
-```json
-{
-  "support_id": "relay_2_support",
-  "x_m": 2.34,
-  "y_m": 1.17
-}
-```
-
-This example shows the coordinate convention, not a validated placement solution. Choose your own values and check reachability, cup footprint and clearance.
-
-Select distinct allowed handoff supports. Candidates include the relay and quality support surfaces, except the fixed destination for your tier. A catalogue entry is permission to try it, not a guarantee that adjacent arms can reach it. The published XY bounds account for the complete cup footprint. CPU contact planning also requires the bottom corners to remain at least `context.query_tracking_clearance_m` inside the support edges (currently 0.004 m). Choosing an exact catalogue boundary can therefore fail the endpoint check. Allow this extra margin, then check the selected endpoint with the oracle. No required intermediate joint posture is supplied.
-
-To inspect the exact bounds without starting Genesis, run this from the repository root after setting `MAP` as shown in the run guide:
-
-```bat
-python -B -c "import json,os; from pathlib import Path; from transport_challenge.three_arm_design import design_space; w=json.loads((Path('cases/difficulty_20261106')/os.environ['MAP']/'world.json').read_bytes()); print(json.dumps(design_space(w),indent=2))"
-```
-
-`mount_regions` lists each ID, XY/yaw bounds, surface height and base height. `relay_regions` lists support IDs, allowable XY bounds and heights. Use those values in your design JSON. Load your design JSON in the viewer to display the selected base origins and exact handoff XY coordinates. The support-surface centre is not a substitute for your chosen landing point.
-
-## Inspect your saved motion
-
-After a successful CPU export, follow the [optional motion-preview command](EVALUATION_AND_SUBMISSION.md#3-save-a-cpu-checked-path). In the viewer opened from your cloned repository, select the same complexity and choose **Preview your saved motion** to load the exported JSON. Use **Stage**, **Frame** or **Play** to inspect your seven joint angles, planned arm/cup geometry and handoff coordinates. **Top XY**, **Front XZ** and **Side YZ** provide comparison views. No completed reference path is bundled. The preview changes no path or timing and does not establish physical success. Its stage command time is not the competition completion time.
-
-For physical checks, follow the [recommended CPU → empty cup → beads sequence](STUDENT_API.md#test-and-interpret-results). Empty-cup and bead replay use the same saved path and timing. Per-arm practice can investigate one leg, while a full review checks the complete handoff sequence.
-
-## Use geometry in your search
-
-`world.json` contains the complete obstacle AABBs, support boxes and vessel geometry. `initialization.json` supplies initial joints, open fingers and original cup/bead state. Robot bases are bound from your completed design. `manifest.json` fixes the supplied inputs.
-
-Within `plan_path`, use `context.nominal_obstacles` for exact obstacle corners and `kinematics.geometry(q)` for robot, cup, peer and obstacle surfaces at your candidate angles. The [API guide](STUDENT_API.md) defines the returned shapes and their units. Calculate your own distance, clearance or additional constraints from this geometry. Keep the supplied full-robot state and edge checks: tool clearance alone can miss an elbow, cup or other arm.
-
-## What stays fixed
-
-Keep the physical map, robot/cup geometry, gravity, material properties, five original bead IDs, control limits, 0.0025-second timestep, 16 internal substeps and contact checks unchanged. The supplied ideal-handling routine resets bead positions and velocities outside actual carries. Only carrying enables bead dynamics and bead contacts. These timestamped resets take zero simulation time. They cannot replenish a bead lost during carrying or clear that failure. Robot/cup dynamics, contacts and required support/rest continue. Students do not edit this routine.
-
-After supported placement, an intermediate donor retraces its own path through the provided kinematic return. This display operation adds zero simulation ticks and leaves the cup, beads and other arms unchanged. Its final home pose receives a contact check. The return is not a physical motion or a swept collision certificate. The last carrier does not return. The task clock excludes only the initial 0.5-second preparation and includes subsequent physical approach, transport, holds and final rest. The fixed robot/cup handling holds remain. Only extra material-settling waits and retries are removed. Bead-state resets add no time. These are fixed conventions, not student timing choices.
+[What stays fixed — open the README section](../README.md#41-task-1-fill-in-your-layout-json)
