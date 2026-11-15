@@ -285,7 +285,6 @@ def _run_with_capture(args, state):
     run_started = time.monotonic()
     state.update(run_started=run_started, phase="execute_trajectory")
     trajectory_clock = 0.
-    deadline = run_started+args.wall_limit_s
     settling_s = .5
     final_hold_s = .5
     derivative_findings = []
@@ -296,8 +295,6 @@ def _run_with_capture(args, state):
     state["derivative_findings"] = derivative_findings
     steps = math.ceil((settling_s+trajectory.duration_s+final_hold_s)/dt)
     for index in range(steps):
-        if time.monotonic() > deadline:
-            raise TimeoutError("Joint physical execution exceeded its wall-time limit")
         trajectory_clock = max(0.,min(trajectory.duration_s,(index+1)*dt-settling_s))
         sample = trajectory.sample(trajectory_clock)
         pre_q = _dof_vector(arm.get_qpos(),"pre-step q")
@@ -442,9 +439,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
-    parser.add_argument("--wall-limit-s",type=float,default=600.)
+    parser.add_argument("--wall-limit-s",type=float,default=0., help="Deprecated and ignored. Physical computation has no elapsed-time cap.")
     parser.add_argument("--controller",choices=("pd","gravity_pd"),default="pd")
     args = parser.parse_args()
+    if not math.isfinite(args.wall_limit_s) or args.wall_limit_s < 0:
+        parser.error("The deprecated wall-time argument must be finite and nonnegative")
+    if args.wall_limit_s:
+        print("Ignored --wall-limit-s: computation time is recorded, never capped.", file=sys.stderr)
+    args.wall_limit_s = 0.
     args.output.mkdir(parents=True,exist_ok=False)
     # Source snapshots precede all scene construction. Runs are sequential with
     # source edits and hash equivalence is checked again on exit.

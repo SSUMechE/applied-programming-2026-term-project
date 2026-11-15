@@ -5,6 +5,7 @@ original configuration. The caller owns any temporary observer wrapper. OFF uses
 private lists excluding beads, and omits native automatic island sleep/wakeup.
 This is a provided extension, not a public Genesis activation API.
 """
+from transport_challenge.material_access import BEAD_COUNT
 import copy,dataclasses,hashlib,json,math
 from pathlib import Path
 import numpy as np
@@ -150,7 +151,7 @@ class IdealBeadHandling:
   import genesis.utils.array_class as arrays
   self.scene=scene;self.solver=scene.rigid_solver;self.cup=cup;self.beads=tuple(beads);self.ids=copy.deepcopy(identities)
   r=self.solver
-  _need(len(beads)==len(identities)==3 and scene.is_built and scene.n_envs==0,'Exactly three built unbatched native beads required')
+  _need(len(beads)==len(identities)==BEAD_COUNT and scene.is_built and scene.n_envs==0,'Exactly five built unbatched native beads required')
   _need(not r._use_hibernation and not r.rigid_config.requires_grad and not r._is_backward,'Original forward nonhibernating solver required')
   _need(all(b.solver is r and b.n_dofs==6 and b.n_qs==7 and b.n_links==1 for b in beads),'Original free rigid spheres required')
   _need(all(b.idx==i['entity_idx'] and float(_host(b.get_mass()).reshape(-1)[0])>0 for b,i in zip(beads,identities)),'Native bead identities differ')
@@ -185,9 +186,9 @@ class IdealBeadHandling:
    out=arrays.V(dtype=dtype,shape=values.shape);out.from_numpy(values);return out
   self.device_qids=device(self.qids,gs.qd_int);self.device_dids=device(self.dids,gs.qd_int)
   self.device_entities=device(self.entity_mask,gs.qd_int);self.device_geoms=device(self.geom_mask,gs.qd_int)
-  self.device_expected=device(np.zeros(21,dtype=gs.np_float),gs.qd_float)
+  self.device_expected=device(np.zeros(7*BEAD_COUNT,dtype=gs.np_float),gs.qd_float)
   self.device_flags=device(np.zeros(5,dtype=gs.np_int),gs.qd_int)
-  self.device_target=device(np.zeros(21,dtype=gs.np_float),gs.qd_float)
+  self.device_target=device(np.zeros(7*BEAD_COUNT,dtype=gs.np_float),gs.qd_float)
   from genesis.engine.solvers.base_solver import mutates,StateChange
   @mutates(StateChange.GEOMETRY,StateChange.DYNAMICS,links='links_idx')
   def apply_reset(solver,gate,links_idx=None,envs_idx=None):
@@ -216,7 +217,7 @@ class IdealBeadHandling:
   return h.hexdigest()
  def _snapshot(self):
   r=self.solver;q=r.rigid_info.qpos.to_numpy()[:,0];v=r.dyn_state.dofs.vel.to_numpy()[:,0];pairs=r.collider._collider_info.collision_pair_idx.to_numpy()
-  return {'non_bead_constraint_cache_sha256':self._constraint_cache_hash(),'scene_identity':list(self.native_identity),'native_clock':_clock(self.scene),'non_bead_qpos_sha256':_array_sha(q[self.qkeep]),'non_bead_qvel_sha256':_array_sha(v[self.dkeep]),'bead_identities':copy.deepcopy(self.ids),'bead_qpos':q[self.qids].reshape(3,7).tolist(),'bead_qvel':v[self.dids].reshape(3,6).tolist(),'mode':self.mode,'collision_pair_sha256':_array_sha(pairs),'non_bead_collision_pair_sha256':_array_sha(pairs[self.nonbead_pair_mask])}
+  return {'non_bead_constraint_cache_sha256':self._constraint_cache_hash(),'scene_identity':list(self.native_identity),'native_clock':_clock(self.scene),'non_bead_qpos_sha256':_array_sha(q[self.qkeep]),'non_bead_qvel_sha256':_array_sha(v[self.dkeep]),'bead_identities':copy.deepcopy(self.ids),'bead_qpos':q[self.qids].reshape(BEAD_COUNT,7).tolist(),'bead_qvel':v[self.dids].reshape(BEAD_COUNT,6).tolist(),'mode':self.mode,'collision_pair_sha256':_array_sha(pairs),'non_bead_collision_pair_sha256':_array_sha(pairs[self.nonbead_pair_mask])}
  def _record(self,event,before,**extra):
   after=self._snapshot()
   for key in ['native_clock','scene_identity','non_bead_qpos_sha256','non_bead_qvel_sha256','non_bead_constraint_cache_sha256','bead_identities','non_bead_collision_pair_sha256']:_need(before[key]==after[key],'Bead operation changed protected state: '+key)
@@ -234,7 +235,7 @@ class IdealBeadHandling:
   return self._record('pause',before)
  def reset(self,body_local_positions):
   self._check();_need(self.mode=='OFF','Reset is permitted only with dynamics and contacts OFF')
-  local=np.asarray(body_local_positions,dtype=float);_need(local.shape==(3,3) and np.isfinite(local).all(),'Three finite body-local positions required')
+  local=np.asarray(body_local_positions,dtype=float);_need(local.shape==(BEAD_COUNT,3) and np.isfinite(local).all(),'Five finite body-local positions required')
   if self.ready:self.assert_paused()
   before=self._snapshot()
   from physics.carried_body import WorldPose

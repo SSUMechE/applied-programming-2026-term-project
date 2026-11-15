@@ -1,10 +1,10 @@
 # Design the path, layout and speed
 
-**2026-02 · Three glass beads · term_v4**
+**2026-02 · Five glass beads · term_v6**
 
 **Edit only the student targets below.** Process liquid and sand are locked.
 
-- `student/joint_strategy.py::plan_path`: implement path search. `choose_edge_durations_s` is optional. You may add your own helper functions in this file or helper modules inside `student/`.
+- `student/joint_strategy.py::plan_path`, or `plan_path` in your selected `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py`: implement path search. `choose_edge_durations_s` is optional. You may add your own helper functions in that file or helper modules inside `student/`. Separate arm work does not require completing `student/joint_strategy.py`.
 - Your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`: choose `arms[].mount_region`, `arms[].base_placement.x_m`, `y_m`, `yaw_rad`, permitted `handoffs[].support_id`, `x_m`, `y_m`, and `joint_speed_scale`. Keep `schema_version`, `difficulty`, arm IDs and entry counts unchanged. Lower's `handoffs` stays `[]`.
 
 **Do not manually edit other supplied files. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** Keep supplied planners, models, maps, limits, physics, interpolation, checkers, tests, scoring rules and registration/recording code unchanged. Do not edit generated plans, logs or result receipts. Instructor-announced updates through the official updater are allowed.
@@ -15,9 +15,11 @@ In `student/<tier>_design.json`, each `handoffs[index].support_id` chooses an ex
 
 ## Implement the search
 
-Complete `plan_path(request, oracle, *, kinematics=None, context=None)` in `student/joint_strategy.py`. Use RRT, bidirectional RRT, A*, or another suitable taught search. Each request supplies one arm's start and goal. Generate all intermediate configurations yourself. Provided endpoint IK handles grasp and placement poses, without supplying a transit route. Automatic pickup checks the hand against the saved CPU plan’s fixed pickup endpoint and separately verifies that the cup satisfies the supplied support, rest and pose limits on its named support.
+Complete `plan_path(request, oracle, *, kinematics=None, context=None)` in your shared or selected arm strategy module listed above. Use RRT, bidirectional RRT, A*, or another suitable taught search. Each request supplies one arm's start and goal. Generate all intermediate configurations yourself. Provided endpoint IK handles grasp and placement poses, without supplying a transit route. Automatic pickup checks the hand against the saved CPU plan’s fixed pickup endpoint and separately verifies that the cup satisfies the supplied support, rest and pose limits on its named support.
 
-For team work divided by arm, branch on `context.active_arm_id` (`arm_0`, `arm_1` or `arm_2`) and `context.motion_kind` (`approach` or `carry` in the complete mission). You may call different helper functions under `student/` from the same `plan_path`. The small supplied tests also use `arm_0` and `carry`, with simple test geometry. Read the supplied request and oracle instead of hardcoding a workcell route. Merge the arm helpers and shared placement/handoff choices into one strategy and one design before the complete CPU export. The [per-arm Genesis practice commands](EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) replay the selected arm's exact saved stages. They do not create partial CPU missions or replace the final full-scene test.
+For team work divided by arm, use the [independent-arm workflow](ARM_WORKFLOW.md). Create your own `student/arm_0_strategy.py`, `arm_1_strategy.py` or `arm_2_strategy.py` with the same `plan_path` and optional timing interface. `plan-arm` calls only the selected arm's approach and carry. Other arm planners may remain unfinished. Everyone uses the same design JSON and supplied release. `context.active_arm_id` identifies the arm and `context.motion_kind` is `approach` or `carry`. Read the supplied request and oracle instead of hardcoding a route. `test-arm` applies the three small supplied interface checks to your selected module and arm, using toy geometry. After local physical practice, `merge-arms` checks and assembles the exact saved paths and times. It does not combine practice results into a full pass.
+
+One shared `student/joint_strategy.py` may still branch on those context fields for a complete CPU plan. Separate modules let teammates edit unrelated arm code without invalidating one another's independent plans. A changed used module/helper, shared design or supplied source requires a fresh affected plan. Keep all producing modules in the final team repository.
 
 Use these interfaces to construct and check candidate connections.
 
@@ -63,11 +65,11 @@ After rejection, `oracle.last_query_diagnostic()` returns that call's detached r
 
 ## Design speed
 
-The supplied rest-to-rest quintic interpolator automatically accelerates from rest and decelerates to rest on every path edge. Commanded velocity and acceleration are zero at each waypoint. Choose paths and edge times in `student/joint_strategy.py` and speed scale in the selected `student/*_design.json`. You do not implement a separate braking routine or low-level controller. Actual joints follow through physics and can lag behind the command, including near a waypoint or support contact.
+The supplied rest-to-rest quintic interpolator automatically accelerates from rest and decelerates to rest on every path edge. Commanded velocity and acceleration are zero at each waypoint. Choose paths and edge times in your shared `student/joint_strategy.py` or selected `student/arm_N_strategy.py` (`N` is 0, 1 or 2). Choose the speed scale in the selected `student/*_design.json`. You do not implement a separate braking routine or low-level controller. Actual joints follow through physics and can lag behind the command, including near a waypoint or support contact.
 
 Set `joint_speed_scale` in your JSON to a value in `(0, 1]`. The interpolator divides each edge's analytic minimum duration by this scale. A smaller scale slows the same path and reduces its commanded acceleration. Physics remains at `0.0025 s` with 16 internal substeps.
 
-For independent edge times, complete `choose_edge_durations_s(path, limits, *, context)` in `student/joint_strategy.py`. Its supplied `return None` retains JSON scaling. For explicit times, set the scale to `1.0` and add `--edge-timing-hook` to CPU planning. Return `len(path)-1` finite positive durations in simulated seconds. Each must be at least `minimum_edge_duration_s(a, b, limits)`. A one-state path uses `()`. Invalid durations reject instead of being stretched.
+For independent edge times, complete `choose_edge_durations_s(path, limits, *, context)` in your shared `student/joint_strategy.py` or selected `student/arm_N_strategy.py` (`N` is 0, 1 or 2). Its supplied `return None` retains JSON scaling. For explicit times, set the scale to `1.0` and add `--edge-timing-hook` to CPU planning. Return `len(path)-1` finite positive durations in simulated seconds. Each must be at least `minimum_edge_duration_s(a, b, limits)`. A one-state path uses `()`. Invalid durations reject instead of being stretched.
 
 Use the following fixed task limits when choosing times. They are instructor-chosen constraints shared by Lower, Moderate and Higher. Joint numbers follow the seven-angle order in your path. `limits` also provides the inclusive joint-position bounds in radians.
 
@@ -80,16 +82,25 @@ The physical review checks actual joint velocity and acceleration against these 
 
 The CPU minimum-duration check guarantees the interpolated command limits only. A legal command can still produce `control:acceleration_limit` in physical replay. On the same edge, doubling its duration halves peak commanded velocity and quarters peak commanded acceleration. This scaling does not guarantee the same change in actual motion or a physical pass. Unnecessary waypoints add stops and can increase completion time. Use the [failure records](EVALUATION_AND_SUBMISSION.md#resolve-failures) to revise the relevant edge times or path, then export again. No fixed slowdown factor is required. Forbidden contact, tracking error and bead loss during carrying also reject a run. There is no separate 8-degree spill gate.
 
-The supplied material policy enables bead dynamics and bead contacts only during an actual carry. Initial preparation, approach, automatic pick/place and released or handoff waits use three prepared bead states. The runner records instantaneous position/velocity resets with timestamps. You do not write grip physics or the reset routine. The fixed robot/cup handling holds and their physical contact/support/rest checks continue. Only extra bead-settling waits and retries are removed.
+The supplied material policy enables bead dynamics and bead contacts only during an actual carry. Initial preparation, approach, automatic pick/place and released or handoff waits use five prepared bead states. The runner records instantaneous position/velocity resets with timestamps. You do not write grip physics or the reset routine. The fixed robot/cup handling holds and their physical contact/support/rest checks continue. Only extra bead-settling waits and retries are removed.
 
-A carry must retain all three original IDs before the supplied place reset. A detected carry spill stops the run immediately and remains a failure. Resetting cannot replace a missing bead or rescue that run. Resets take zero simulated time and change neither the saved path nor its edge times. The complete task clock still includes robot/cup approach, handling, carrying, waiting and final rest after the initial 0.5-second exclusion.
+A carry must retain all five original IDs before the supplied place reset. A detected carry spill stops the run immediately and remains a failure. Resetting cannot replace a missing bead or rescue that run. Resets take zero simulated time and change neither the saved path nor its edge times. The complete task clock still includes robot/cup approach, handling, carrying, waiting and final rest after the initial 0.5-second exclusion.
 
 ## Test and interpret results
 
-After [first-use team sign-in](EVALUATION_AND_SUBMISSION.md#1-register-your-team-and-check-the-environment) and implementing `plan_path`, run from the repository root in the existing Anaconda Prompt:
+After [first-use team sign-in](EVALUATION_AND_SUBMISSION.md#1-register-your-team-and-check-the-environment) and implementing `plan_path`, choose the test for your workflow. Run from the repository root in the existing Anaconda Prompt. You do not need both commands.
+
+For the shared `student/joint_strategy.py`:
 
 ```bat
 python -B project_run.py test
+```
+
+For a separate arm module, set `ARM` to your assigned arm. This example checks `student/arm_0_strategy.py`:
+
+```bat
+set "ARM=arm_0"
+python -B project_run.py test-arm --strategy student.%ARM%_strategy --arm %ARM%
 ```
 
 The unfinished starter has two path errors and one passing default timing check. After implementation, all three should pass. They check endpoint and timing contracts in simple joint space, not workcell feasibility.
@@ -98,7 +109,7 @@ For initial development, follow the recommended sequence: [CPU geometry](EVALUAT
 
 Empty-cup checks and per-arm practice remain optional. Use [one-arm practice](EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) for a local question and full review for the complete transfer sequence. Only the full bead mission can enter ranking. You do not need three full runs after every change. After editing planner or design inputs, create a fresh CPU output before another physical check.
 
-CPU search defaults to no wall timeout (`--wall-limit-s 0`) and 50,000 validity queries per stage. `--seed`, `--max-queries` and `--endpoint-attempts` control local search, not the simulated deadline. `--max-stages 1` produces a first-approach diagnostic with `CPU_PLAN_PREFIX_ONLY`. A prefix is not a complete replayable mission and never enters competition history. Failed supplied-runner commands are reported privately to the instructor.
+CPU search has no automatic computation-time cutoff and uses 50,000 validity queries per stage by default. Actual elapsed time is recorded, not limited. `--seed`, `--max-queries` and `--endpoint-attempts` control local search, not the simulated deadline. `--max-stages 1` produces a first-approach diagnostic with `CPU_PLAN_PREFIX_ONLY`. A prefix is not a complete replayable mission and never enters competition history. Failed supplied-runner commands are reported privately to the instructor.
 
 Use the failed phase to revise a mounting location, relay, clearance strategy or edge time. Compare under stated conditions and interpret the supplied records in your required presentation. No separate student verification report is required.
 

@@ -6,6 +6,7 @@ remain authenticated by the existing full/practice review gates.
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 from functools import wraps
 import math
@@ -38,26 +39,26 @@ def _vector(value, size):
 
 
 def _identities(identities):
-    require(type(identities) is list and len(identities) == 3, 'Exactly three original bead identities required')
+    require(type(identities) is list and len(identities) == BEAD_COUNT, 'Exactly five original bead identities required')
     require(all(type(v) is dict and type(v.get('id')) is str and v['id']
                 and type(v.get('entity_idx')) is int and v['entity_idx'] >= 0
                 and type(v.get('mass_kg')) in (int, float) and math.isfinite(v['mass_kg']) and v['mass_kg'] > 0
                 and type(v.get('radius_m')) in (int, float) and math.isfinite(v['radius_m']) and v['radius_m'] > 0
                 for v in identities), 'Invalid original bead identity, mass or radius')
-    require(len({v['id'] for v in identities}) == len({v['entity_idx'] for v in identities}) == 3,
+    require(len({v['id'] for v in identities}) == len({v['entity_idx'] for v in identities}) == BEAD_COUNT,
             'Bead logical/native identities must be distinct')
 
 
 def _positions(value):
-    require(type(value) is list and len(value) == 3 and all(_vector(v, 3) for v in value),
-            'The fixed three-bead local rest table is required')
+    require(type(value) is list and len(value) == BEAD_COUNT and all(_vector(v, 3) for v in value),
+            'The fixed five-bead local rest table is required')
 
 
 def canonical_prepared_positions(world, identities):
     """Read the original ordered body-frame recipe without a new placement rule."""
     _identities(identities)
     contents = world.get('initial_contents') if type(world) is dict else None
-    require(type(contents) is list and len(contents) == 3, 'Canonical three-bead recipe missing')
+    require(type(contents) is list and len(contents) == BEAD_COUNT, 'Canonical five-bead recipe missing')
     for item, identity in zip(contents, identities):
         require(all(item.get(k) == identity[k] for k in ('id', 'mass_kg', 'radius_m'))
                 and item.get('shape') == 'sphere' and item.get('frame') == 'body'
@@ -91,9 +92,9 @@ def validate_native_transition(receipt, *, identities, expected_event=None):
         require(type(state.get('scene_identity')) is list and len(state['scene_identity']) == 5
                 and all(type(v) is int and v > 0 for v in state['scene_identity']), 'Missing persistent native scene')
         require(state.get('bead_identities') == identities, 'Transition replaced original bead identities')
-        require(type(state.get('bead_qpos')) is list and len(state['bead_qpos']) == 3
+        require(type(state.get('bead_qpos')) is list and len(state['bead_qpos']) == BEAD_COUNT
                 and all(_vector(v, 7) and abs(sum(x*x for x in v[3:]) - 1) <= 1e-5 for v in state['bead_qpos'])
-                and type(state.get('bead_qvel')) is list and len(state['bead_qvel']) == 3
+                and type(state.get('bead_qvel')) is list and len(state['bead_qvel']) == BEAD_COUNT
                 and all(_vector(v, 6) for v in state['bead_qvel']), 'Invalid actual bead q7/qd6')
         for key in ('non_bead_qpos_sha256', 'non_bead_qvel_sha256', 'non_bead_constraint_cache_sha256',
                     'collision_pair_sha256', 'non_bead_collision_pair_sha256'):
@@ -137,7 +138,7 @@ def _validate_endpoint_readbacks(readbacks, *, phase, endpoint, identities):
             and type(artifact['file']) is str and artifact['file'] and _sha(artifact['sha256'])
             and artifact == phase.get('raw_history'), 'Carry readbacks use a different raw history artifact')
     raw = readbacks['raw_post_payload']
-    require(_vector(raw, 38), 'Carry endpoint needs the complete finite native payload row')
+    require(_vector(raw, 14+8*BEAD_COUNT), 'Carry endpoint needs the complete finite native payload row')
     native = readbacks['native_snapshot']
     require(type(native) is dict and native.get('mode') == 'CARRY', 'Carry endpoint native snapshot is not active')
     _clock(native.get('native_clock'))
@@ -149,15 +150,15 @@ def _validate_endpoint_readbacks(readbacks, *, phase, endpoint, identities):
             and type(owner) is list and len(owner) == 4 and all(type(v) is int and v > 0 for v in owner)
             and scene[:3] == [owner[i] for i in (0, 2, 3)], 'Carry readbacks belong to a different native scene')
     require(native.get('bead_identities') == identities, 'Carry native snapshot replaced original bead identities')
-    require(type(native.get('bead_qpos')) is list and len(native['bead_qpos']) == 3
+    require(type(native.get('bead_qpos')) is list and len(native['bead_qpos']) == BEAD_COUNT
             and all(_vector(v, 7) and abs(sum(x*x for x in v[3:]) - 1) <= 1e-5 for v in native['bead_qpos'])
-            and type(native.get('bead_qvel')) is list and len(native['bead_qvel']) == 3
+            and type(native.get('bead_qvel')) is list and len(native['bead_qvel']) == BEAD_COUNT
             and all(_vector(v, 6) for v in native['bead_qvel']), 'Invalid carry native bead q7/qd6')
     for key in ('non_bead_qpos_sha256', 'non_bead_qvel_sha256', 'non_bead_constraint_cache_sha256',
                 'collision_pair_sha256', 'non_bead_collision_pair_sha256'):
         require(_sha(native.get(key)), 'Missing carry native state hash: ' + key)
     masses = phase['payload'].get('expected_native_masses_kg')
-    require(_vector(masses, 3) and all(v > 0 for v in masses), 'Carry native mass binding is missing')
+    require(_vector(masses, BEAD_COUNT) and all(v > 0 for v in masses), 'Carry native mass binding is missing')
     for i, (material, qpos, mass) in enumerate(zip(endpoint['materials'], native['bead_qpos'], masses)):
         sample = raw[14 + 8*i:22 + 8*i]
         require(material['position_world_m'] == sample[:3] == qpos[:3]
@@ -190,7 +191,7 @@ def seal_carry(*, arm_id, stage_id, phases, endpoint, endpoint_readbacks, identi
                 'Carry has failed control, payload, contact, support or handling checks')
         payload = phase['payload']
         require(payload.get('schema_version') == 'deferred-native-payload-post-audit-v1'
-                and payload.get('original_bead_ids') == identities and payload.get('bead_count') == 3
+                and payload.get('original_bead_ids') == identities and payload.get('bead_count') == BEAD_COUNT
                 and payload.get('actual_POST_samples') == payload.get('compact_host_polls') == count
                 and payload.get('actual_internal_POST_samples') == count * SUBSTEPS
                 and payload.get('requested_POST_samples') == count and payload.get('observed_prefix_only') is False
@@ -211,7 +212,7 @@ def seal_carry(*, arm_id, stage_id, phases, endpoint, endpoint_readbacks, identi
             and abs(endpoint.get('simulation_s', -1) - cursor * DT) <= 1e-9,
             'Carry endpoint is stale or not the final actual POST')
     materials = endpoint.get('materials')
-    require(type(materials) is list and len(materials) == 3, 'Final carry did not retain all original beads')
+    require(type(materials) is list and len(materials) == BEAD_COUNT, 'Final carry did not retain all original beads')
     for actual, expected in zip(materials, identities):
         require(all(actual.get(k) == expected[k] for k in ('id', 'entity_idx', 'mass_kg'))
                 and actual.get('inside_carrier') is True, 'Original bead identity/mass or pre-reset retention failed')
@@ -223,7 +224,7 @@ def seal_carry(*, arm_id, stage_id, phases, endpoint, endpoint_readbacks, identi
                   native_scene_identity=copy.deepcopy(identity), original_bead_ids=copy.deepcopy(identities),
                   phases_sha256=digest(phases), endpoint=copy.deepcopy(endpoint),
                   endpoint_sha256=digest(endpoint), endpoint_readbacks=copy.deepcopy(endpoint_readbacks),
-                  endpoint_readbacks_sha256=digest(endpoint_readbacks), original_three_retained_before_reset=True,
+                  endpoint_readbacks_sha256=digest(endpoint_readbacks), original_beads_retained_before_reset=True,
                   full_internal_coverage=True, failure_latch_clear=True)
     result['seal_sha256'] = digest(result)
     return result
@@ -343,7 +344,7 @@ class BeadLifecycle:
             require(initial_pause is None, 'Only INITIAL may establish the native bead gate')
         self._native(native_transition, 'reset')
         require(native_transition['requested_body_local_positions_m'] == self.positions,
-                'Reset changed the fixed local three-bead recipe')
+                'Reset changed the fixed local five-bead recipe')
         if reason == 'INITIAL':
             require(native_transition['native_clock'] == [0, 0., 0, 0], 'INITIAL reset is fresh clock-zero only')
             self.state = 'OFF'

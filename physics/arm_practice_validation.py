@@ -1,4 +1,5 @@
 """Validate local practice evidence without promoting it to mission evidence."""
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 from pathlib import Path
 
@@ -40,10 +41,10 @@ def validate_arm_practice_native(record, *, plan_record):
             and initial.get('all_three_dynamic_robots_preserved') is True
             and initial['before']['native_clock']==initial['after']['native_clock']==[0,0.,0,0]
             and set(fixed['bases'])=={'arm_0','arm_1','arm_2'}
-            and fixed['counts']['dofs']==(51 if contents=='beads' else 33)
-            and fixed['counts']['q_coordinates']==(55 if contents=='beads' else 34)
+            and fixed['counts']['dofs']==(33+6*BEAD_COUNT if contents=='beads' else 33)
+            and fixed['counts']['q_coordinates']==(34+7*BEAD_COUNT if contents=='beads' else 34)
             and fixed['dt_s']==.0025 and fixed['substeps']==16
-            and len(ids)==(3 if contents=='beads' else 0), 'Practice changed the fixed native scene or initial scope')
+            and len(ids)==(BEAD_COUNT if contents=='beads' else 0), 'Practice changed the fixed native scene or initial scope')
     for name,command in commands.items():
         actual=initial['after']['arms'][name]
         require(np.allclose(actual['qpos'],command['q_rad']+command['finger_q_m'],atol=2e-7,rtol=0.)
@@ -79,7 +80,7 @@ def validate_arm_practice_native(record, *, plan_record):
             path=Path(phase[key]['file']).resolve()
             require(path.is_relative_to(directory) and sha(path)==phase[key]['sha256'], 'Practice artifact binding changed')
         with np.load(phase['raw_history']['file'],allow_pickle=False) as raw:
-            require(raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,38 if contents=='beads' else 14)
+            require(raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,14+8*BEAD_COUNT if contents=='beads' else 14)
                 and raw['support'].shape==(count*16,6)
                 and raw['command_position'].shape==raw['command_velocity'].shape==(count,27)
                 and all(np.isfinite(raw[k]).all() for k in raw.files), 'Practice raw native history ABI differs')

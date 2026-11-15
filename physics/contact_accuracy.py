@@ -1,11 +1,12 @@
 """Explicit instructor contact-accuracy experiment. No stepping or pose changes.
 
-Only twelve named geometry time constants change. This is an uncalibrated
+Only fourteen named geometry time constants change. This is an uncalibrated
 joint change of contact response and retained-contact visibility, not proof of
 continuous safety, physical convergence or a new student grading policy.
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 import math
@@ -16,7 +17,7 @@ import numpy as np
 
 from transport_challenge.contracts import ContractError, digest
 
-TARGET_ENTITIES = ('tray_0', *(f'tray_0_ball_{i}' for i in range(3)))
+TARGET_ENTITIES = ('tray_0', *(f'tray_0_ball_{i}' for i in range(BEAD_COUNT)))
 SOURCE_PINS = {
     'engine/entities/rigid_entity/rigid_geom.py': '399e0e0ec7d63a9a965c781f6946aed67109051ac8ccd666a47092cfb6a10a14',
     'engine/solvers/rigid/rigid_solver.py': 'e076854af17262323041544ff692d366402a700357053618c8d89fed1e86b19f',
@@ -34,7 +35,7 @@ def contact_accuracy_request():
 
 def validate_request(request):
     if not isinstance(request, dict) or digest(request) != digest(contact_accuracy_request()):
-        raise ContractError('Only the explicit twelve-geometry .005s/unpruned experiment is supported')
+        raise ContractError('Only the explicit fourteen-geometry .005s/unpruned experiment is supported')
     return copy.deepcopy(request)
 
 
@@ -84,14 +85,14 @@ def prepare_geometry_parameters(entities, request, *, box_type, sphere_type):
         raise ContractError('Contact accuracy requires unbuilt geometry')
     inventory = _inventory(entities)
     if {e.name for e in entities if e.name.startswith('tray_0_ball_')} != set(TARGET_ENTITIES[1:]):
-        raise ContractError('Require exactly the three supplied sphere entities')
+        raise ContractError('Require exactly the five supplied sphere entities')
     selected = [(g, r) for g, r in inventory if r['entity'] in TARGET_ENTITIES]
     if ([r['identity']['local_index'] for _, r in selected if r['entity'] == 'tray_0'] != list(range(9))
             or any(r['identity']['link'] != 'payload' for _, r in selected if r['entity'] == 'tray_0')
             or any(g.type != box_type for g, r in selected if r['entity'] == 'tray_0')
             or any(len([r for _, r in selected if r['entity'] == name]) != 1 for name in TARGET_ENTITIES[1:])
-            or any(g.type != sphere_type for g, r in selected if r['entity'] != 'tray_0') or len(selected) != 12):
-        raise ContractError('Require exactly nine named tray boxes and three separately owned spheres')
+            or any(g.type != sphere_type for g, r in selected if r['entity'] != 'tray_0') or len(selected) != 9+BEAD_COUNT):
+        raise ContractError('Require exactly nine named tray boxes and five separately owned spheres')
     before = [(g, r, _vector(g.sol_params)) for g, r in inventory]
     rows = []
     for geom, identity, original in before:
@@ -185,7 +186,7 @@ def validate_evidence(evidence, request):
         if native.tolist() != expected_native:
             raise ContractError('Native geometry parameters differ from pinned exact dtype resolution')
         signatures.append({k: copy.deepcopy(v) for k, v in r.items() if k != 'global_id'})
-    if (len(selected) != 12
+    if (len(selected) != 9+BEAD_COUNT
             or sorted(r['identity']['local_index'] for r in selected if r['entity'] == 'tray_0') != list(range(9))
             or any(r['identity']['link'] != 'payload' for r in selected if r['entity'] == 'tray_0')
             or any(r['identity']['type'] != 5 for r in selected if r['entity'] == 'tray_0')
@@ -195,7 +196,7 @@ def validate_evidence(evidence, request):
     return sorted(signatures, key=lambda r: (r['entity'], digest(r)))
 
 
-# Separate opt-in model. The original13-geometry functions above stay unchanged.
+# Separate rigid16 model. The legacy single-substep functions above stay separate.
 RIGID16_PROFILE = 'rigid16_bead_tc2h_v1'
 RIGID16_SOURCE_PINS = {**SOURCE_PINS,
     '__init__.py': 'e70073958649ab52a99205b93cca332b1f058d1adc6881aaaab5fe0776e75441'}
@@ -241,7 +242,7 @@ def _rigid16_inventory(entities):
 def prepare_rigid16_geometry(entities, request, *, floor, tray, beads, box_type, sphere_type, plane_type, payload_mode=None):
     """Select actual bound objects amid any complete three-arm geometry count."""
     request=validate_rigid16_request(request)
-    n=0 if payload_mode=='empty' else 3
+    n=0 if payload_mode=='empty' else BEAD_COUNT
     if payload_mode not in (None,'empty'):raise ContractError('Explicit rigid16 payload required')
     if (any(e.is_built for e in entities) or len({id(e) for e in entities})!=len(entities)
             or {id(e) for e in entities if e.name.startswith('tray_0_ball_')}!={id(e) for e in beads}
@@ -249,7 +250,7 @@ def prepare_rigid16_geometry(entities, request, *, floor, tray, beads, box_type,
             or any(not any(e is selected for e in entities) for selected in [floor,tray,*beads])
             or floor.name!='floor' or tray.name!=TARGET_ENTITIES[0]
             or [e.name for e in beads]!=list(TARGET_ENTITIES[1:1+n])):
-        raise ContractError('Rigid16 requires the actual unbuilt floor/cup/original3bead objects')
+        raise ContractError('Rigid16 requires the actual unbuilt floor/cup/original five-bead objects')
     if (len(floor.geoms)!=1 or floor.geoms[0].type!=plane_type
             or len(tray.geoms)!=9 or any(g.type!=box_type or g.link.name!='payload' for g in tray.geoms)
             or any(len(e.geoms)!=1 or e.geoms[0].type!=sphere_type for e in beads)):
@@ -332,7 +333,7 @@ def validate_rigid16_evidence(evidence, request):
             or evidence.get('native_pruning_tolerance')!=0. or evidence.get('resolved_contact_pruning_tolerance','missing') is not None
             or evidence.get('native_default_timeconst_s')!=.01 or evidence.get('source_sha256')!=RIGID16_SOURCE_PINS):
         raise ContractError('Malformed rigid16 configured evidence')
-    n=0 if evidence.get('payload_mode')=='empty' else 3
+    n=0 if evidence.get('payload_mode')=='empty' else BEAD_COUNT
     rows=evidence['geometries'];count=evidence['native_geometry_count'];selection=evidence['selection']
     if (type(count) is not int or count<10+n or len(rows)!=count
             or sorted(r['global_id'] for r in rows)!=list(range(count))

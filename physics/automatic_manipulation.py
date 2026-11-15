@@ -7,6 +7,7 @@ and actual cup/robot rest remain required. Explicit bead OFF boundaries use a
 source-bound preparation receipt, never a physical bead-rest verdict.
 """
 from __future__ import annotations
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import math
 from pathlib import Path
@@ -173,7 +174,7 @@ def validate_prepared_bead_sample(observation,receipt):
     step=observation.get('native_scene_step');now=observation.get('simulation_s')
     require(type(step) is int and start<=step<=receipt['native_scene_step']
         and type(now) in (int,float) and math.isfinite(now) and abs(now-step*.0025)<=1e-9
-        and type(materials) is list and len(materials)==3 and 'particle_material' not in observation,
+        and type(materials) is list and len(materials)==BEAD_COUNT and 'particle_material' not in observation,
         'Prepared bead sample is not in its authenticated OFF interval')
     for material,identity,q,v in zip(materials,identities,reset['bead_qpos'],reset['bead_qvel']):
         require(all(material.get(k)==identity[k] for k in ('id','entity_idx','mass_kg'))
@@ -194,7 +195,7 @@ def prepared_material_receipt(driver,state):
     # Runtime inventory records may include measured initial coordinates. Keep
     # all original identity/mass fields exact while using the native radius pins.
     identities=receipt.get('original_bead_ids') if type(receipt) is dict else None
-    require(type(identities) is list and len(identities)==len(driver.initial_supply)==3
+    require(type(identities) is list and len(identities)==len(driver.initial_supply)==BEAD_COUNT
         and all(all(a.get(k)==b.get(k) for k in ('id','entity_idx','mass_kg'))
                 for a,b in zip(identities,driver.initial_supply)),
         'Prepared bead receipt replaced the original supply')

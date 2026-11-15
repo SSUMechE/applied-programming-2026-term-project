@@ -307,10 +307,10 @@ def _run_leg(mission, boundary):
     return final_handling
 
 
-def execute(context, *, output, deadline, arm_id):
+def execute(context, *, output, deadline=None, arm_id):
     """Run the selected leg and save independent success or failure evidence.
 
-    ``deadline`` is an absolute perf_counter deadline. ``output`` must be new.
+    ``deadline`` is a compatibility argument and has no effect. ``output`` must be new.
     The caller owns scene destruction, source closure and resource admission.
     """
     output = Path(output).resolve()
@@ -321,11 +321,10 @@ def execute(context, *, output, deadline, arm_id):
                   ranking_eligible=False, student_release_approved=False, physical_handoff_verified=False,
                   arm_id=arm_id, contents=context.get('contents'), boundary_scope=BOUNDARY_SCOPE,
                   failure=None, cleanup_owned_by_caller=True,
+                  wall_limit_s=None, wall_time_policy='measure_only',
                   source_hashes={str(Path(__file__).resolve()): sha(__file__)})
     mission = None
     try:
-        require(type(deadline) in (int, float) and math.isfinite(deadline) and deadline > time.perf_counter(),
-                'Finite future practice wall deadline required')
         plan = context['student_driver'].saved_plan
         boundary = selected_boundary(plan, arm_id)
         result.update(saved_bundle_sha256=plan.sha256, saved_plan_file_sha256=plan.file_sha256,
@@ -333,7 +332,7 @@ def execute(context, *, output, deadline, arm_id):
                       source_scene_initial_fingerprint=copy.deepcopy(context['initial_fingerprint']))
         # Construct the frozen phase owner against its genuine original INITIAL.
         # Its full-tier run/finalizer is never called and its tier record is never published.
-        mission = _Mission(context, output / 'native_phases', deadline)
+        mission = _Mission(context, output / 'native_phases', None)
         result['initialization'] = _initialize(mission, boundary)
         result['practice_initial_observation'] = copy.deepcopy(mission.observation)
         fingerprint = _initial_fingerprint(context, result['source_scene_initial_fingerprint'])

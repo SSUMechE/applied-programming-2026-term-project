@@ -16,7 +16,7 @@
   "current_executable_native_review_scope": "Complete selected tier with supplied automatic grasp/place and student-selected internal handoff supports. Qualification is recorded separately for the exact release.",
   "first_leg_evidence_does_not_qualify_full_map": true,
   "legacy_three_arm_mission_exists_but_is_not_qualified_fast_sequential_device_completion": true,
-  "fixed_physics_and_criteria_signature_sha256": "2ea9171ad62a65a128ad56525774759a5b9ed95f886951744214b956826c7135",
+  "fixed_physics_and_criteria_signature_sha256": "19c2ddf1313c3a41acc19e62b03e302fe327564c84337c46494aff5a83c7c55a",
   "service_groups_removed": [
     "cell_east_service",
     "cell_island",
@@ -43,7 +43,7 @@
   "native_transport_verified": false,
   "fresh_cpu_export_required_before_native": true,
   "student_solution_or_intermediate_pose_supplied": false,
-  "material_profile": "three rigid beads, F32, rigid16_bead_tc2h_v1; no per-route physics or threshold tuning",
+  "material_profile": "five rigid beads, F32, rigid16_bead_tc2h_v1; no per-route physics or threshold tuning",
   "resource_policy": {
     "maximum_observed_process_vram_GB": 5,
     "one_active_dynamic_arm_per_review": true

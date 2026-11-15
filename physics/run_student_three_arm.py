@@ -10,6 +10,8 @@ import hashlib
 import importlib
 import inspect
 import json
+import math
+import sys
 from pathlib import Path
 import time
 import traceback
@@ -195,7 +197,7 @@ def main():
     parser.add_argument('--single-active-arm',choices=('arm_0','arm_1','arm_2'),help='Explicit private one-carry dynamics with other original robots retained as qualified fixed collision geometry')
     parser.add_argument('--fixed-peer-reference',type=Path,help='Source-bound original dynamic-arm INITIAL geometry reference')
     parser.add_argument('--step-limit',type=int,default=None)
-    parser.add_argument('--wall-limit-s',type=float,default=300.)
+    parser.add_argument('--wall-limit-s',type=float,default=0.,help='Deprecated compatibility option. Actual elapsed time is measured without a limit.')
     parser.add_argument('--max-queries',type=int,default=25000)
     parser.add_argument('--endpoint-attempts',type=int,default=32)
     parser.add_argument('--seed',type=int,default=71)
@@ -222,13 +224,13 @@ def main():
     if particle_mode and args.mode!='one_carry':
         parser.error('This saved particle adapter is explicit one_carry only')
     if args.contents not in ('beads','empty') and (args.rigid16_readback!='legacy' or args.trace_mode!='full'):
-        parser.error('Consolidated CUDA readback and compact traces require the three-bead rigid16 task')
+        parser.error('Consolidated CUDA readback and compact traces require the five-bead rigid16 task')
     if args.mode=='tier_mission' and (args.contents not in ('beads','empty') or args.execution_backend!='device' or args.single_active_arm is not None):
         parser.error('Tier replay requires persistent three-native-arm beads/device, without fixed-peer mode')
     if args.saved_plan is not None and (args.mode not in ('mission','tier_mission','one_carry')
             or not (args.contents in ('beads','empty') or particle_mode and args.mode=='one_carry')
             or args.edge_timing_hook or args.strategy!='student.joint_strategy' or args.grasp_policy=='friction'):
-        parser.error('--saved-plan requires the automatic three-bead full mission, with no online strategy or timing hook')
+        parser.error('--saved-plan requires the automatic five-bead full mission, with no online strategy or timing hook')
     empty_mode=args.contents=='empty'
     if args.video and (not empty_mode or args.images):
         parser.error('--video requires --contents empty and cannot combine with --images')
@@ -247,11 +249,17 @@ def main():
         parser.error('placement_probe requires a private explicit QA task, not the released mission task')
     if args.images and args.mode not in ('mission','first_handoff','placement_probe','bead_lift_unit','empty_path'):
         parser.error('Sparse checkpoint images support mission, first_handoff, placement/lift and empty-path modes only')
-    if not 0<=args.step_limit<=500000 or not 10<=args.wall_limit_s<=14400:
-        parser.error('Invalid explicit step/wall bound')
+    if not 0<=args.step_limit<=500000:
+        parser.error('Invalid explicit step bound')
+    if not math.isfinite(args.wall_limit_s) or args.wall_limit_s<0:
+        parser.error('Legacy wall limit must be finite and nonnegative')
+    if args.wall_limit_s>0:
+        print('--wall-limit-s is deprecated and ignored. Actual elapsed time is measured without a limit.',file=sys.stderr)
+    args.wall_limit_s=0.
     grasp_policy=args.grasp_policy or ('friction' if args.mode=='short_motions' else 'automatic')
     output=args.output.resolve();output.mkdir(parents=True,exist_ok=False)
-    started=time.monotonic();gs=None;result={'status':'STUDENT_RUN_FAILED','full_mission_passed':False,'student_release_approved':False}
+    started=time.monotonic();gs=None;result={'status':'STUDENT_RUN_FAILED','full_mission_passed':False,'student_release_approved':False,
+        'wall_limit_s':None,'wall_time_policy':'measure_only'}
     paths={};snapshots={};source_errors=[];source_guard=None;setup_source_receipt=None;saved_plan=None
     owned_tier_plan_record=None
     def matches():
@@ -439,13 +447,9 @@ def main():
                 saved_plan_file_sha256=saved_plan.file_sha256,runtime_plan_path_invocations=0,runtime_ik_calls=0,runtime_rrt_calls=0)
         runtime_started=time.monotonic()
         pre_runtime_s=runtime_started-started
-        runtime_wall_limit_s=args.wall_limit_s
-        if args.mode in ('one_carry','tier_mission'):
-            runtime_wall_limit_s=args.wall_limit_s-pre_runtime_s-10.
-            if runtime_wall_limit_s<=0:raise TimeoutError('One-carry startup exhausted its whole-review deadline')
         result=run_episode(gs,world=world,scenario=scenario,approach=None,physics_reference=reference,output=output,
             source_bindings=bindings,
-            source_check=matches,wall_limit_s=runtime_wall_limit_s,render=args.images or args.video,record_video=args.video,
+            source_check=matches,wall_limit_s=None,render=args.images or args.video,record_video=args.video,
             observation_readback='batched',student_driver=driver,
             rigid16_readback=args.rigid16_readback,trace_mode=args.trace_mode,execution_backend=args.execution_backend,
             single_active_arm=args.single_active_arm,fixed_peer_reference=args.fixed_peer_reference)

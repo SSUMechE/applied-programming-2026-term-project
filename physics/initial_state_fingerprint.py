@@ -3,6 +3,7 @@
 No simulator is imported here. Missing native fields fail comparison closed.
 Solver/coupler/RNG state restoration remains explicitly unqualified.
 """
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 import inspect
@@ -158,7 +159,7 @@ def capture_initial_fingerprint(context):
         kind=('empty' if context['world'].get('payload_mode')=='empty' else 'beads') if reader is None else reader.kind
         out['material_kind']=kind
         if reader is None:
-            if len(ids)!=(0 if context['world'].get('payload_mode')=='empty' else 3):raise ValueError('Original declared bead inventory required')
+            if len(ids)!=(0 if context['world'].get('payload_mode')=='empty' else BEAD_COUNT):raise ValueError('Original declared bead inventory required')
         else:
             reader.verify_source_bindings();reader._topology()
             s=reader.solver;start,end=reader.start,reader.end;count=reader.n

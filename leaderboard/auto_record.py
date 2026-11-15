@@ -116,7 +116,7 @@ def upload_queued(path, *, server_url=None, token_file=None):
             'record_file': str(path), 'native_physics_launched': False}
     if archived_rule(record):
         result = {**base, 'status': 'superseded', 'reason': 'RULE_REPLACED',
-                  'message': 'This result belongs to a replaced rule. Update supplied files and make a fresh three-bead full run.'}
+                  'message': 'This result belongs to a replaced rule. Update supplied files and make a fresh full run for the current released bead task.'}
         _atomic(status_path, result)
         return result
     url = server_url or os.environ.get('AP_LEADERBOARD_URL') or DEFAULT_SERVER

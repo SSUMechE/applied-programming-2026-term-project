@@ -1,5 +1,6 @@
 """Owned CPU one-carry recipe and saved path. No native engine import or step."""
 from __future__ import annotations
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import json
 import math
@@ -163,11 +164,8 @@ class SavedOneCarryPlan(SavedMissionPlan):
         if value['payload']!='beads':
             supervisor=value.get('cpu_process_supervisor',{})
             if require_supervisor:
-                numeric=('timeout_s','requested_wall_limit_s','worker_elapsed_including_cleanup_s',
-                    'parent_wall_s_before_publication')
+                numeric=('worker_elapsed_including_cleanup_s','parent_wall_s_before_publication')
                 require(supervisor==summary.get('cpu_process_supervisor')
-                    and supervisor.get('schema_version')=='owned-cpu-worker-budget-v1'
-                    and supervisor.get('status')=='COMPLETE_WITHIN_BUDGET'
                     and supervisor.get('timed_out') is False and supervisor.get('worker_exit_code')==0
                     and supervisor.get('cleanup_errors')==[] and supervisor.get('source_bindings_verified') is True
                     and supervisor.get('parent_genesis_imported_modules')==[]
@@ -175,14 +173,25 @@ class SavedOneCarryPlan(SavedMissionPlan):
                     and summary.get('blocked_integration_attempts')==[]
                     and all(type(supervisor.get(k)) in (int,float) and math.isfinite(supervisor[k])
                         and supervisor[k]>=0 for k in numeric)
-                    and 10<=supervisor['requested_wall_limit_s']<=3600
-                    and 0<supervisor['timeout_s']<=supervisor['requested_wall_limit_s']
-                    and supervisor['worker_elapsed_including_cleanup_s']<=supervisor['requested_wall_limit_s']
                     and supervisor['worker_elapsed_including_cleanup_s']<=supervisor['parent_wall_s_before_publication']
-                    and supervisor['parent_wall_s_before_publication']<supervisor['requested_wall_limit_s']
                     and summary.get('process_wall_s')==value.get('cpu_planning_wall_s')
                         ==supervisor['parent_wall_s_before_publication'],
-                    'Particle plan needs a completed owned-process CPU budget receipt')
+                    'Particle plan needs a completed owned-process CPU receipt')
+                if supervisor.get('schema_version')=='owned-cpu-worker-measurement-v2':
+                    require(supervisor.get('status')=='COMPLETE_RECORDED'
+                        and supervisor.get('timeout_s') is None
+                        and supervisor.get('requested_wall_limit_s') is None,
+                        'CPU measurement receipt must have no wall-time limit')
+                else:
+                    require(supervisor.get('schema_version')=='owned-cpu-worker-budget-v1'
+                        and supervisor.get('status')=='COMPLETE_WITHIN_BUDGET'
+                        and all(type(supervisor.get(k)) in (int,float) and math.isfinite(supervisor[k])
+                            for k in ('timeout_s','requested_wall_limit_s'))
+                        and 10<=supervisor['requested_wall_limit_s']<=3600
+                        and 0<supervisor['timeout_s']<=supervisor['requested_wall_limit_s']
+                        and supervisor['worker_elapsed_including_cleanup_s']<=supervisor['requested_wall_limit_s']
+                        and supervisor['parent_wall_s_before_publication']<supervisor['requested_wall_limit_s'],
+                        'Historical CPU budget receipt is invalid')
                 identity=supervisor.get('worker_identity',{})
                 require(type(identity.get('pid')) is int and identity['pid']>0
                     and type(identity.get('windows_creation_filetime_100ns')) is int
@@ -318,10 +327,10 @@ def final_result(driver, observation):
         require(gate.get('bead_bulk_rest',{}).get('observed_rows')==201,'Full original bead rest endpoints missing')
         original={m['id']:(m['entity_idx'],m['mass_kg']) for m in driver.initial_supply}
         materials=observation['materials']
-        require(len(original)==len(materials)==len({m['id'] for m in materials})==3
+        require(len(original)==len(materials)==len({m['id'] for m in materials})==BEAD_COUNT
             and all(m['inside_carrier'] is True and original.get(m['id'])==(m['entity_idx'],m['mass_kg']) for m in materials),
             'One-carry lost an original bead identity/mass/containment')
-        material_receipt=dict(payload='beads',original_three_beads_retained=True)
+        material_receipt=dict(payload='beads',original_beads_retained=True)
     return dict(status='ONE_CARRY_TRANSPORT_SAMPLED_PASS',one_carry_transport_accepted=True,
         scope='Fresh declared supported INITIAL, one exact saved carry, actual native pickup/release/rest. No physical home approach or full three-arm mission.',
         motion_source='saved_cpu_plan',saved_bundle_sha256=driver.saved_plan.sha256,

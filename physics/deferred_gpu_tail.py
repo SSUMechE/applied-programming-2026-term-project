@@ -4,6 +4,7 @@ This module neither commits nor alters the old mission dispatcher. Mathematical
 rest projections are explicitly backed by owned device histories. They are not
 legacy raw contact rows or a legacy whole-episode coverage certificate.
 """
+from transport_challenge.material_access import BEAD_COUNT
 from contextlib import contextmanager
 import copy
 import hashlib
@@ -311,11 +312,11 @@ def project_history(control, payload, support, *, start_step, arm_order, identit
     require(payload_owner_clock == dict(start_native_step=start_step,
             end_native_step=start_step+n, actual_POST_samples=n),
             'Actual payload owner start/end/capture clock differs')
-    require(payload['original_bead_ids'] == identities and len(identities) in (0,3),
+    require(payload['original_bead_ids'] == identities and len(identities) in (0,BEAD_COUNT),
             'Original actual bead identities changed')
     prepared=payload.get('schema_version')=='provided-disabled-bead-observation-v1'
     if prepared:
-        require(len(identities)==3 and phase!='carry' and payload.get('bead_dynamics_evaluated') is False
+        require(len(identities)==BEAD_COUNT and phase!='carry' and payload.get('bead_dynamics_evaluated') is False
                 and payload.get('prepared_state_geometry_checked') is True
                 and payload.get('material_rest')==payload.get('material_retention')=='NOT_APPLICABLE_DISABLED',
                 'Disabled bead projection requires explicit prepared-state observations')
@@ -452,7 +453,7 @@ def released_numeric_gate(rows, *, settings, rest_policy, goal, arm_order,
         legacy_coverage_claimed=False)
 
 
-def run_supported_tail(runtime_context, last_command_table_row, *, output, wall_deadline):
+def run_supported_tail(runtime_context, last_command_table_row, *, output, wall_deadline=None):
     """Execute the original supplied bead tail. Failures never become completion."""
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
@@ -474,14 +475,11 @@ def run_supported_tail(runtime_context, last_command_table_row, *, output, wall_
         driver = c['student_driver']
         helper = c['automatic_grasp']
         arm = helper.holder
-        require(len(c['beads']) == len(c['ids']) == 3 and not driver.particle_mode
+        require(len(c['beads']) == len(c['ids']) == BEAD_COUNT and not driver.particle_mode
                 and helper is driver.automatic_grasp and arm in c['arms']
                 and scene.sim.substeps == SUBSTEPS and scene.sim.dt == DT,
-                'Supplied deferred tail is only the original three-bead automatic scene')
-        require(type(wall_deadline) in (int, float) and math.isfinite(wall_deadline), 'Require absolute host deadline')
+                'Supplied deferred tail is only the original five-bead automatic scene')
         def check(*, sources=True):
-            if time.perf_counter() >= wall_deadline:
-                raise TimeoutError('Supplied tail exceeded the whole-process wall deadline')
             if sources:
                 require(c['source_check']() is True, 'Source bindings changed during supplied tail')
             require(float(scene.cur_t) <= driver.simulation_deadline_s + 1e-9, 'Original simulation deadline exceeded')

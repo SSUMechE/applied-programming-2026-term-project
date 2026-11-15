@@ -435,7 +435,7 @@ def build_live_contact_coverage(scene, *, arms, owners, readback="scalar", runti
         payload.update(schema_version="live-contact-coverage-rigid16-v1", runtime_profile=runtime_profile)
     if single is not None:
         if runtime_profile!=RIGID16_PROFILE or payload_mode is not None:
-            raise ContractError('Single-active coverage is only the explicit rigid16 three-bead operation')
+            raise ContractError('Single-active coverage is only the explicit rigid16 five-bead operation')
         payload['single_active_contract']=single
     if payload_mode=='empty':
         payload.update(schema_version='live-contact-coverage-empty-v1',payload_mode='empty',material_count=0,

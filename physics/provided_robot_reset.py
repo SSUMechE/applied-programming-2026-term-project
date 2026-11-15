@@ -6,6 +6,7 @@ It is a zero-time reset, not a physical trajectory or swept collision proof.
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 import inspect
@@ -103,13 +104,13 @@ def validate_robot_reset_receipt(receipt, *, before_observation=None, after_obse
     try: digest(receipt)  # Reject every nonfinite nested native value.
     except (ValueError, TypeError, OverflowError) as exc:
         raise ContractError('Reset receipt contains nonfinite or malformed native values') from exc
-    n=0 if receipt.get('payload_mode')=='empty' else 3
+    n=0 if receipt.get('payload_mode')=='empty' else BEAD_COUNT
     for snapshot in (before, after):
         require(set(snapshot) == {'native_clock','arms','payload','provided_snapshot','control_targets'}
             and type(snapshot['payload']) is dict and set(snapshot['payload']) == {'cup','beads'}
             and type(snapshot['payload']['cup']) is dict and len(snapshot['payload'].get('beads', [])) == n
             and {r['id'] for r in snapshot['payload']['beads']} == {'tray_0:'+str(i) for i in range(n)},
-            'Reset requires complete native cup and three-bead snapshots')
+            'Reset requires complete native cup and five-bead snapshots')
     step, seconds = receipt.get('native_scene_step'), receipt.get('simulation_s')
     clock = [step, seconds, step*16, 0] if type(step) is int else None
     require(type(step) is int and step > 0 and type(seconds) in (int, float)
@@ -174,11 +175,11 @@ def perform_released_robot_reset(*, scene, arms, cup, beads, identities, helper,
         and type(released_gate) is dict and released_gate.get('passed') is True,
         'Reset requires its actual completed released-support gate')
     require(payload_mode in (None,'empty'),'Unknown reset payload mode')
-    n=0 if payload_mode=='empty' else 3
+    n=0 if payload_mode=='empty' else BEAD_COUNT
     require(len(beads) == len(identities) == n and len({r['id'] for r in identities}) == n
         and all(type(bead) is RigidEntity and bead.solver is scene.rigid_solver and bead.n_qs == 7 and bead.n_dofs == 6
             and int(bead.idx) == identity['entity_idx'] for bead, identity in zip(beads, identities)),
-        'Reset is scoped to the original three native bead identities')
+        'Reset is scoped to the original five native bead identities')
     arm = arms[arm_id]
     require(type(arm) is RigidEntity and arm.solver is scene.rigid_solver and arm.n_qs == arm.n_dofs == 9
         and arm.base_link.is_fixed is True, 'Reset donor must be the original fixed-base native nine-DOF robot')

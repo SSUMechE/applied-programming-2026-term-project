@@ -1,7 +1,8 @@
 """Supervise an unchanged CPU-planned full bead mission on the actual GPU.
 
 Only complete native evidence can pass. Partial runs, missing memory samples,
-source drift and elapsed resource failures remain explicit failures.
+source drift and sampled memory failures remain explicit failures. Actual computer
+elapsed time is measured and reported without a completion time cap.
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -17,7 +19,6 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 LIMIT_SECONDS = {"easy": 40, "medium": 85, "hard": 105}
-MEASUREMENT_WALL_LIMITS = {"easy": 1800., "medium": 3600., "hard": 5400.}
 
 
 def cpu_cost_attribution(record):
@@ -91,7 +92,7 @@ def parser():
     p.add_argument("--server-url", help="Optional leaderboard address override. Uses the released class address by default.")
     p.add_argument("--token-file", type=Path, help="Private team token file outside the repository.")
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--wall-limit-s", type=float, help="Measurement guard, default 1800/3600/5400 seconds for one/two/three arms. Not an estimated runtime.")
+    p.add_argument("--wall-limit-s", type=float, default=0., help="Deprecated compatibility option. Actual elapsed time is measured only, with no limit.")
     p.add_argument("--vram-limit-gb", type=float, default=5.)
     p.add_argument("--memory-interval-s", type=float, default=.5)
     p.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
@@ -100,8 +101,6 @@ def parser():
 
 
 def run_worker(args, p):
-    if args.gpu_wall_allowance_s is None or args.gpu_wall_allowance_s <= 10:
-        p.error("Worker requires its supervised remaining wall allowance")
     from physics import run_student_three_arm as entry
     from physics.review_student_transport import block_online_planning
     old = sys.argv
@@ -111,7 +110,7 @@ def run_worker(args, p):
         "--design", str(args.design.resolve()), "--output", str(args.output),
         "--contents", args.contents, "--grasp-policy", "automatic",
         "--query-fixture-readback", "batched", "--step-limit", "0",
-        "--wall-limit-s", str(args.gpu_wall_allowance_s),
+        "--wall-limit-s", "0",
         "--rigid16-readback", "native", "--trace-mode", "compact",
         "--execution-backend", "device"]
     with block_online_planning() as calls:
@@ -164,8 +163,8 @@ def classify_outcome(report):
         return "ACCEPTED_EMPTY_PRACTICE" if report.get("contents") == "empty" else "ACCEPTED_FULL_MISSION"
     if report.get("source_bindings_unchanged") is not True:
         return "SOURCE_BINDING_FAILED"
-    if report.get("timed_out") or report.get("observed_additive_cost_within_budget") is False:
-        return "WALL_BUDGET_EXCEEDED"
+    if report.get("timed_out"):
+        return "INTERRUPTED_WORKER"
     memory = report.get("process_memory", {})
     peak = (memory.get("sampled_peak") or {}).get("bytes")
     limit = (memory.get("requested_limit") or {}).get("bytes")
@@ -190,10 +189,14 @@ def main(argv=None):
     started = time.perf_counter()
     p = parser()
     args = p.parse_args(argv)
-    if args.wall_limit_s is None:
-        args.wall_limit_s = MEASUREMENT_WALL_LIMITS[args.difficulty]
-    if not 10 <= args.wall_limit_s <= MEASUREMENT_WALL_LIMITS[args.difficulty]:
-        p.error("Use a positive review budget within this tier's declared measurement guard")
+    for name in ("wall_limit_s", "gpu_wall_allowance_s"):
+        value = getattr(args, name)
+        if value is not None and (not math.isfinite(value) or value < 0):
+            p.error("Legacy wall limits must be finite and nonnegative")
+        if value is not None and value > 0:
+            print("--" + name.replace("_", "-") + " is deprecated and ignored. Actual elapsed time is measured without a limit.", file=sys.stderr)
+    args.wall_limit_s = 0.
+    args.gpu_wall_allowance_s = None
     if not 0 < args.vram_limit_gb <= 5 or not .1 <= args.memory_interval_s <= 3:
         p.error("Use an observed process limit at most 5 GB and sampling 0.1..3 seconds")
     from physics.tier_mission_plan import TierMissionPlan
@@ -211,8 +214,6 @@ def main(argv=None):
     except (KeyError, ValueError) as exc:
         p.error(str(exc))
     cpu_wall = cpu_cost["review_attribution_s"]
-    if type(cpu_wall) not in (int, float) or not 0 < cpu_wall < args.wall_limit_s - 30:
-        p.error("The attributed CPU validation and export have exhausted this review budget")
     memory_path = args.output.with_suffix(".memory_samples.jsonl")
     worker_log = args.output.with_suffix(".worker.log")
     if args.output.exists() or worker_log.exists() or memory_path.exists():
@@ -233,15 +234,12 @@ def main(argv=None):
             from leaderboard.v3 import capture_student_snapshot
             student_snapshot_before = capture_student_snapshot(ROOT)
     hardware = hardware_snapshot()
-    cleanup_reserve = 20.
-    worker_allowance = args.wall_limit_s - cpu_wall - cleanup_reserve
     command = [sys.executable, "-B", "-m", "physics.review_tier_transport", "--worker",
         "--saved-tier", str(args.saved_tier.resolve()), "--difficulty", args.difficulty,
         "--task", str(args.task.resolve()), "--design", str(args.design.resolve()),
         "--output", str(args.output), "--wall-limit-s", str(args.wall_limit_s),
         "--contents", args.contents,
-        "--vram-limit-gb", str(args.vram_limit_gb),
-        "--gpu-wall-allowance-s", str(worker_allowance)]
+        "--vram-limit-gb", str(args.vram_limit_gb)]
     from physics.review_process_memory import (
         ProcessMemorySampler, creation_identity, kill_owned_tree, wait_owned_worker)
     with worker_log.open("xb") as stream:
@@ -267,7 +265,7 @@ def main(argv=None):
         termination = None
         try:
             waited = wait_owned_worker(process, memory, identity,
-                deadline=started + worker_allowance)
+                deadline=None)
         finally:
             if process.poll() is None:
                 termination = kill_owned_tree(process, identity)
@@ -294,9 +292,8 @@ def main(argv=None):
         sources_current=sources_current, contents=args.contents)
     save(args.output / "REVIEW_PROCESS_MEMORY.json", memory_receipt)
     wall = time.perf_counter() - started
-    budget_ok = cpu_wall + wall <= args.wall_limit_s
     memory_ok = memory_receipt.get("observed_sampled_peak_within_limit") is True
-    accepted = (physical and budget_ok and memory_ok and not waited["memory_limit_stop"])
+    accepted = (physical and memory_ok and not waited["memory_limit_stop"])
     report = {
         "schema_version": "student-full-tier-review-supervisor-v1",
         "application_name": "Applied Programming", "scope": "full_mission",
@@ -322,12 +319,13 @@ def main(argv=None):
         "resource_cost_policy": cpu_cost["policy"],
         "total_cpu_and_gpu_wall_s_including_search": cpu_cost["total_s"] + wall,
         "additive_cpu_plus_review_wall_s": cpu_wall + wall,
-        "requested_complete_budget_s": args.wall_limit_s,
-        "observed_additive_cost_within_budget": budget_ok,
+        "wall_limit_s": None, "wall_time_policy": "measure_only",
+        "requested_complete_budget_s": None,
+        "observed_additive_cost_within_budget": None,
         "observed_sampled_process_vram_within_budget": memory_ok,
         "process_vram_hard_cap_proven": False, "process_memory": memory_receipt,
-        "hardware_before": hardware, "cleanup_reserve_s": cleanup_reserve,
-        "timing_scope": "GPU parent precheck through worker/monitor exit and receipt write. The review guard adds measured CPU validation/export. Measured student search is reported separately and remains in total CPU+GPU cost.",
+        "hardware_before": hardware, "cleanup_reserve_s": None,
+        "timing_scope": "GPU parent precheck through worker/monitor exit and receipt write. The reported cost adds measured CPU validation/export. Measured student search is reported separately and remains in total CPU+GPU cost.",
         "full_mission_passed": bool(accepted and args.contents == "beads"),
         "empty_mission_passed": bool(accepted and args.contents == "empty"),
         "student_release_approved": False,
@@ -360,17 +358,8 @@ def main(argv=None):
     final_cost = cpu_wall + final_wall
     report.update(gpu_review_process_wall_s=final_wall, additive_cpu_plus_review_wall_s=final_cost,
                   total_cpu_and_gpu_wall_s_including_search=cpu_cost["total_s"] + final_wall,
-                  observed_additive_cost_within_budget=final_cost <= args.wall_limit_s,
-                  timing_scope="GPU parent startup through native validation and score export, before final supervisor serialization. Guarded cost adds measured CPU validation/export. Actual CPU+GPU total also includes separately measured student search.")
-    if final_cost > args.wall_limit_s:
-        report["review_accepted"] = False
-        report["full_mission_passed"] = False
-        report["empty_mission_passed"] = False
-        if ((args.output / "score_evidence").exists()
-                and not (args.output / "score_evidence/EXPORT_REVOKED.json").exists()):
-            save(args.output / "score_evidence/EXPORT_REVOKED.json", {
-                "reason": "Complete review including export exceeded its measured wall guard",
-                "additive_cpu_plus_review_wall_s": final_cost, "limit_s": args.wall_limit_s})
+                  observed_additive_cost_within_budget=None,
+                  timing_scope="GPU parent startup through native validation and score export, before final supervisor serialization. Reported cost adds measured CPU validation/export. Actual CPU+GPU total also includes separately measured student search.")
     report["outcome"] = classify_outcome(report)
     report["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     save(args.output / "REVIEW_SUPERVISOR.json", report)

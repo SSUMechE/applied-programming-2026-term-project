@@ -30,7 +30,7 @@ def parser():
     p.add_argument('--endpoint-attempts', type=int, help='Original endpoint IK budget, inferred when available')
     p.add_argument('--plan', action='store_true', help='Also call your current strategy on this one request')
     p.add_argument('--edge-timing-hook', action='store_true')
-    p.add_argument('--wall-limit-s', type=float, default=120, help='Positive diagnostic process limit, default 120 seconds')
+    p.add_argument('--wall-limit-s', type=float, default=0, help='Deprecated and ignored. Diagnostics have no elapsed-time cap.')
     p.add_argument('--output', type=Path, required=True, help='Fresh diagnostic directory')
     p.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     return p
@@ -82,7 +82,7 @@ def prepare_stage(args, check=lambda: None):
         require(current.is_file() and sha(current) == expected,
                 'Stale design, map or supplied source. Run full CPU again: ' + str(current))
         current_pins[str(current.resolve())] = expected
-    rule_path = ROOT / 'leaderboard/rules/term_v4' / ('ap2026-' + args.difficulty + '-beads-term-v4.json')
+    rule_path = ROOT / 'leaderboard/rules/term_v5' / ('ap2026-' + args.difficulty + '-beads-term-v5.json')
     rule = read(rule_path)
     for relative, expected in rule['evaluation_sources'].items():
         current = ROOT / relative
@@ -255,8 +255,6 @@ def worker(args):
     guard = None
 
     def check():
-        if time.perf_counter() - started >= args.wall_limit_s:
-            raise TimeoutError('Optional diagnostic wall limit reached')
         if guard is not None and guard() is not True:
             raise RuntimeError('A diagnostic source or prior output changed during this run')
 
@@ -327,11 +325,14 @@ def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     p = parser()
     args = p.parse_args(argv)
-    if (not math.isfinite(args.wall_limit_s) or args.wall_limit_s <= 0
+    if (not math.isfinite(args.wall_limit_s) or args.wall_limit_s < 0
             or (args.max_queries is not None and args.max_queries < 1)
             or (args.endpoint_attempts is not None and not 1 <= args.endpoint_attempts <= 128)
             or (args.seed is not None and not 0 <= args.seed < 2**31 - 6)):
-        p.error('Use positive finite wall/query budgets, 1..128 endpoint attempts and a nonnegative 31-bit seed')
+        p.error('Use positive query counts, 1..128 endpoint attempts, a nonnegative 31-bit seed and a finite nonnegative legacy wall-time value')
+    if args.wall_limit_s:
+        print('Ignored --wall-limit-s: diagnostic computation time is recorded, never capped.', file=sys.stderr)
+    args.wall_limit_s = 0
     if args.worker:
         return worker(args)
     if args.output.exists():
@@ -339,7 +340,7 @@ def main(argv=None):
     args.output.mkdir(parents=True)
     from physics.plan_student_transport import supervise_cpu_worker, read, save
     command = [sys.executable, '-B', str(Path(__file__).resolve()), *argv, '--worker']
-    receipt = supervise_cpu_worker(command, output=args.output, timeout_s=args.wall_limit_s)
+    receipt = supervise_cpu_worker(command, output=args.output, timeout_s=None)
     save(args.output / 'DIAGNOSTIC_PROCESS.json', receipt)
     result_path = args.output / 'DIAGNOSTIC.json'
     if not result_path.exists():

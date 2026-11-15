@@ -140,7 +140,55 @@ def phase_display_metadata(phase, contents, resets, *, zero_physics_return=False
                     if e["native_step"] == phase["start_native_step"]])
 
 
-def build_preview(saved_path, review_dir, *, fps=15):
+def _independent_practice(saved_path, review_dir, metadata):
+    """Authenticate a local arm receipt without converting it to full evidence."""
+    from physics.arm_mission_plan import ArmMissionPlan, origin_payload
+    from physics.arm_practice_validation import validate_arm_practice_native
+    from transport_challenge.contracts import digest
+    original = ArmMissionPlan.from_file(saved_path)
+    result_path = review_dir / 'PRACTICE_RESULT.json'
+    result = read(result_path)
+    require(result.get('schema_version') == 'student-arm-practice-v1'
+            and result.get('scope') == 'arm_practice'
+            and result.get('status') == 'ARM_PRACTICE_PASS'
+            and result.get('standalone_arm_plan') is True
+            and result.get('practice_passed') is True
+            and result.get('source_bindings_unchanged') is True
+            and result.get('full_mission_passed') is False
+            and result.get('ranking_eligible') is False,
+            'This standalone preview requires a successful original local practice receipt')
+    origin = result.get('input_arm_plan') or {}
+    require(origin.get('sha256') == original.file_sha256
+            and origin.get('bundle_sha256') == original.sha256
+            and result.get('arm_id') == original.selected_arm_id,
+            'Practice and standalone CPU component differ')
+    bound_path = review_dir / 'BOUND_ARM_PLAN.json'
+    require(Path(result['bound_arm_plan']['file']).resolve() == bound_path.resolve(),
+            'Practice binding does not identify its owned local arm file')
+    bound = ArmMissionPlan.from_file(bound_path)
+    require(sha(bound_path) == result['bound_arm_plan']['sha256']
+            and bound.sha256 == result['bound_arm_plan']['bundle_sha256']
+            and bound.record()['stages'] == original.record()['stages']
+            and bound.input_identity() == original.input_identity(),
+            'Practice local source binding or saved motion changed')
+    original_producer = origin_payload(original.record()) or (original.record(), original.path.read_bytes())
+    bound_producer = origin_payload(bound.record())
+    require(bound_producer is not None and bound_producer[1] == original_producer[1],
+            'Practice local binding identifies a different original producer')
+    native_path = review_dir / 'arm_execution' / 'ARM_PRACTICE_NATIVE_RESULT.json'
+    execution = read(native_path)
+    require(digest(execution) == digest(result['worker']['native'])
+            and execution['saved_plan_file_sha256'] == bound.file_sha256,
+            'Original practice native record differs')
+    validate_arm_practice_native(execution, plan_record=bound.record())
+    require(result['difficulty'] == metadata['difficulty'], 'Practice difficulty differs')
+    native_dir = review_dir / 'arm_execution' / 'native_phases'
+    identities = execution['initialization']['fixed_scene']['bead_identities']
+    return (result_path, result, execution, identities, native_dir,
+            {str(bound_path): sha(bound_path), str(native_path): sha(native_path)})
+
+
+def build_preview(saved_path, review_dir, *, fps=15, independent_arm=False):
     import numpy as np
     from transport_challenge.contracts import digest
     from supplied_support.cpu_geometry import CpuGeometry
@@ -150,30 +198,41 @@ def build_preview(saved_path, review_dir, *, fps=15):
     review_dir = Path(review_dir).resolve(strict=True)
     # The existing exporter validates the immutable map, layout, plan, supplied
     # code, actual installed Panda assets and exact saved source bindings.
-    metadata = nominal.build_preview(saved_path, frames_per_stage=2)
-    identity = read(saved_path.parent / "input_identity.json")
-    result_path = review_dir / "result.json"
+    metadata = nominal.build_preview(saved_path, frames_per_stage=2, independent_arm=independent_arm)
+    if independent_arm:
+        from physics.arm_mission_plan import ArmMissionPlan
+        identity = ArmMissionPlan.from_file(saved_path).input_identity()
+    else:
+        identity = read(saved_path.parent / "input_identity.json")
+    extra_sources = {}
+    if independent_arm:
+        result_path, result, execution, identities, native_dir, extra_sources = _independent_practice(
+            saved_path, review_dir, metadata)
+    else:
+        result_path = review_dir / "result.json"
+        result = read(result_path)
+        execution = result.get("device_tier_execution")
+        require(type(execution) is dict
+                and execution.get("schema_version") == "provided-device-tier-mission-result-v1",
+                "This review has no recorded native tier motion")
+        require(result.get("device_tier_execution_sha256") == digest(execution),
+                "Recorded execution digest differs")
+        require(execution.get("saved_plan_file_sha256") == metadata["saved_plan_sha256"]
+                and execution.get("saved_bundle_sha256") == metadata["bundle_sha256"]
+                and result.get("saved_plan_file_sha256") == metadata["saved_plan_sha256"],
+                "Review and saved CPU plan differ")
+        require(result.get("selected_design_sha256") == metadata["design_sha256"]
+                and execution["task_contract"]["difficulty"] == metadata["difficulty"],
+                "Review layout or difficulty differs")
+        identities = execution["original_sample_ids"]
+        native_dir = review_dir / "device_tier_execution"
     result_hash = sha(result_path)
-    result = read(result_path)
-    execution = result.get("device_tier_execution")
-    require(type(execution) is dict
-            and execution.get("schema_version") == "provided-device-tier-mission-result-v1",
-            "This review has no recorded native tier motion")
-    require(result.get("device_tier_execution_sha256") == digest(execution),
-            "Recorded execution digest differs")
-    require(execution.get("saved_plan_file_sha256") == metadata["saved_plan_sha256"]
-            and execution.get("saved_bundle_sha256") == metadata["bundle_sha256"]
-            and result.get("saved_plan_file_sha256") == metadata["saved_plan_sha256"],
-            "Review and saved CPU plan differ")
-    require(result.get("selected_design_sha256") == metadata["design_sha256"]
-            and execution["task_contract"]["difficulty"] == metadata["difficulty"],
-            "Review layout or difficulty differs")
     contents = execution.get("contents", "beads")
-    identities = execution["original_sample_ids"]
     require(contents in ("beads", "empty") and len(identities) == (BEAD_COUNT if contents == "beads" else 0),
             "Only actual bead or empty-cup reviews are supported")
     from physics.tier_mission_plan import TierMissionPlan
-    source_proof = validate_recorded_source(execution, TierMissionPlan.from_file(saved_path), contents)
+    source_proof = 'independent_arm_practice_only' if independent_arm else validate_recorded_source(
+        execution, TierMissionPlan.from_file(saved_path), contents)
     bead_policy, bead_resets = bead_display_metadata(execution, contents)
     bead_ids = [item["id"] for item in identities]
     require(len(set(bead_ids)) == len(bead_ids), "Duplicate recorded bead IDs")
@@ -182,8 +241,7 @@ def build_preview(saved_path, review_dir, *, fps=15):
     engine = CpuGeometry(identity["world"], identity["scenario"])
     geometry, indices = nominal._catalog(engine)
     require(geometry == metadata["geometry"], "Measured preview geometry differs")
-    native_dir = review_dir / "device_tier_execution"
-    source_hashes = {str(result_path): result_hash}
+    source_hashes = {str(result_path): result_hash, **extra_sources}
     phases = copy.deepcopy(execution.get("phases", []))
     failed = execution.get("failed_phase_prefix")
     if failed is not None:
@@ -281,6 +339,9 @@ def build_preview(saved_path, review_dir, *, fps=15):
                    collision_or_retention_certificate=False, no_state_interpolation=True,
                    note="Recorded Genesis robot/cup/bead states reconstructed with supplied collision geometry. Bead dynamics run only during carry. Prepared/OFF stages and authorized zero-time resets are explicitly labelled, without interpolating a reset. Display sampling is not physics resolution. Zero-physics donor returns have a separate display clock. This export does not rerun, rescore or upload the review."))
     metadata.pop("frames_per_stage", None)
+    if independent_arm:
+        metadata['scope'].update(independent_arm=True, selected_arm_id=result['arm_id'],
+                                 full_mission_passed=False, ranking_eligible=False)
     for path, expected in source_hashes.items():
         require(sha(path) == expected, "Recorded source changed during preview export")
     json.dumps(metadata, allow_nan=False)
@@ -289,7 +350,9 @@ def build_preview(saved_path, review_dir, *, fps=15):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--saved-tier", type=Path, required=True)
+    saved = parser.add_mutually_exclusive_group(required=True)
+    saved.add_argument("--saved-tier", type=Path, help="Complete CPU mission")
+    saved.add_argument("--saved-arm", type=Path, help="Standalone arm used by this successful local practice")
     parser.add_argument("--review-dir", type=Path, required=True)
     parser.add_argument("--fps", type=int, choices=(15, 30, 60), default=15,
                         help="Visual samples per second only. Physics settings remain unchanged.")
@@ -304,7 +367,8 @@ def main(argv=None):
     try:
         require(not any(n == "genesis" or n.startswith("genesis.") for n in sys.modules),
                 "Use a fresh CPU-only export process")
-        result = build_preview(args.saved_tier, args.review_dir, fps=args.fps)
+        result = build_preview(args.saved_arm or args.saved_tier, args.review_dir, fps=args.fps,
+                               independent_arm=args.saved_arm is not None)
         output.parent.mkdir(parents=True, exist_ok=True)
         with output.open("x", encoding="utf-8") as stream:
             json.dump(result, stream, separators=(",", ":"), allow_nan=False)

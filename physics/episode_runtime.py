@@ -12,12 +12,14 @@ Optional detail stills temporarily move only the rendering camera, then restore 
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 from collections import Counter
 import copy
 import hashlib
 import json
 import math
 from pathlib import Path
+import sys
 import time
 import traceback
 
@@ -215,8 +217,8 @@ def runtime_scene_options(world,scenario):
             validate_request(world,scenario)
         elif empty_payload_mode(world,scenario):
             pass
-        elif len(world['initial_contents'])!=3 or any(c.get('shape')!='sphere' for c in world['initial_contents']):
-            raise ContractError('Current live material palette requires the actual three-sphere supply')
+        elif len(world['initial_contents'])!=BEAD_COUNT or any(c.get('shape')!='sphere' for c in world['initial_contents']):
+            raise ContractError('Current live material palette requires the actual five-sphere supply')
     return groups,v
 
 
@@ -411,10 +413,10 @@ def validate_inputs(world, scenario, approach, reference, *, student_limits=None
         validate_request(world,scenario)
     elif empty_payload_mode(world,scenario):
         pass
-    elif (len(world['initial_contents'])!=3 or len(scenario['contents'])!=3
-            or len(world['initial_content_world_centers_m'])!=3
-            or [c['id'] for c in world['initial_contents']]!=['tray_0:'+str(i) for i in range(3)]):
-        raise ContractError('Need three fixed persistent material identities')
+    elif (len(world['initial_contents'])!=BEAD_COUNT or len(scenario['contents'])!=BEAD_COUNT
+            or len(world['initial_content_world_centers_m'])!=BEAD_COUNT
+            or [c['id'] for c in world['initial_contents']]!=['tray_0:'+str(i) for i in range(BEAD_COUNT)]):
+        raise ContractError('Need five fixed persistent material identities')
     for expected,actual,center in zip(world['initial_contents'],scenario['contents'],world['initial_content_world_centers_m']):
         if (actual!={'id':expected['id'],'radius_m':expected['radius_m'],'center_world_m':center}
                 or expected['radius_m']!=.012 or not math.isfinite(expected['mass_kg']) or expected['mass_kg']<=0):
@@ -462,7 +464,7 @@ def _validated_physics_settings(world,reference):
             or reference['contact_accuracy_configuration']['requested']!=request
             or reference['configured_grasp_physics']['simulation']!={'dt_s':DT,'substeps':16,'substeps_local':1,'finger_equality_timeconst_s':.01}
             or settings['configured_grasp_physics']!=reference['configured_grasp_physics']):
-        raise ContractError('Explicit three-bead physics configuration reference differs')
+        raise ContractError('Explicit five-bead physics configuration reference differs')
     for key in ('kp','kv','effort_limits'):
         if settings['controller'][key]!=reference['controller'][key]:raise ContractError('Controller differs from measured reference')
     if settings['execution_limits']!=reference['execution_limits']:raise ContractError('Execution limits changed')
@@ -760,7 +762,7 @@ def close_trace_stream(stream,result):
 
 
 def run_episode(gs, *, world, scenario, approach, physics_reference, output, source_bindings,
-                source_check, wall_limit_s=1200., render=True,transport_plan=None,grasp_reference=None,observation_readback='scalar',
+                source_check, wall_limit_s=None, render=True,transport_plan=None,grasp_reference=None,observation_readback='scalar',
                 continuation_phases=None,continuation_planner=None,global_deadline_s=None,record_video=True,
                 repeated_three_arm_mode=False,detail_images=False,reference_execution_body_tilt_limit_deg=None,
                 profile_max_steps=None,profile_synchronize=False,gravity_readback=None,profile_gravity_parity_every=0,
@@ -773,6 +775,12 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                   rigid16_readback='legacy',trace_mode='full',execution_backend='legacy',
                   single_active_arm=None,fixed_peer_reference=None):
     """Execute in one owned scene. Optional images-only capture uses actual boundaries."""
+    if wall_limit_s is not None:
+        if type(wall_limit_s) not in (int,float) or not math.isfinite(wall_limit_s) or wall_limit_s<0:
+            raise ContractError("Legacy wall limit must be finite and nonnegative")
+        if wall_limit_s>0:
+            print("wall_limit_s is deprecated and ignored. Actual elapsed time is measured without a limit.",file=sys.stderr)
+    wall_limit_s=None
     if rigid_constraint_solver is not None and rigid_constraint_solver is not gs.constraint_solver.CG:
         raise ContractError('Optional numerical screen accepts only explicit gs.constraint_solver.CG')
     rigid_profile=rigid_runtime_profile(world)
@@ -909,10 +917,10 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
         from physics.particle_episode_state import packet_from_reader_result,validate_particle_packet,window_rest
         from physics.particle_contact_coverage import (build_particle_contact_coverage,require_particle_contact_coverage,
             particle_contact_coverage_stamp,validate_particle_contact_coverage)
-        raise ContractError('This hardware package supports the fixed three-bead tiers only')
-        raise ContractError('This hardware package supports the fixed three-bead tiers only')
-        raise ContractError('This hardware package supports the fixed three-bead tiers only')
-        raise ContractError('This hardware package supports the fixed three-bead tiers only')
+        raise ContractError('This hardware package supports the fixed five-bead tiers only')
+        raise ContractError('This hardware package supports the fixed five-bead tiers only')
+        raise ContractError('This hardware package supports the fixed five-bead tiers only')
+        raise ContractError('This hardware package supports the fixed five-bead tiers only')
         particle_request=particle_bridge.validate_request(world,scenario)
         if student_driver is None or observation_readback!='batched':
             raise ContractError('Native particles require the explicit measured student executor')
@@ -970,6 +978,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
     scene=None;camera=None;recording=False;stream=None;compact_log=None;steps=0;pending=None;dispatcher=None;observation=None
     rigid16_observer=None;rigid16_samples=[];rigid16_transfer_reader=None
     result={'schema_version':('persistent-three-arm-approach-v1' if len(scenario['robots'])==3 else 'persistent-two-arm-approach-v1'),'status':'NOT_COMPLETED','physical_steps':0,
+        'wall_limit_s':None,'wall_time_policy':'measure_only',
         'world_sha256':digest(world),'scenario_sha256':digest(scenario),'external_trajectory_sha256':digest(trajectory.to_record()),
         'source_bindings':copy.deepcopy(source_bindings),'protocol':copy.deepcopy(PROTOCOL),
         'physics_reference_scope':'Measured ninth-run settings reused, not old native IDs or old grasp observation.',
@@ -988,7 +997,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
     if tilt_limits is not None:result['reference_body_tilt_limits']=tilt_limits
     if rigid_profile is not None:
         result['rigid_runtime_profile']=rigid_profile
-        result['payload_mode']='empty' if empty_mode else 'native_particles' if particle_request is not None else 'three_beads'
+        result['payload_mode']='empty' if empty_mode else 'native_particles' if particle_request is not None else 'five_beads'
         result['physical_profile']=rigid_profile or (EMPTY_RIGID_PROFILE if empty_mode else None)
         result['physics_reference_scope']='Configuration reference only. Native16 source, geometry, control, contact, payload and complete mission checks must establish this actual scene.'
     if gravity_readback!='scalar':result['gravity_readback']=gravity_readback
@@ -1030,7 +1039,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             relay_placement_verified=False,query_contents_model='Measured body-local sphere proxy. Actual contents remain free dynamic bodies.')
     if repeated_three_arm_mode:
         result.update(schema_version='persistent-three-arm-repeated-handoff-v1',repeated_three_arm_mode=True,
-            repeated_mode_scope='Instructor reference: one persistent three-bead batch, two supported handoffs and fixed-goal delivery. Not full project or student release approval.')
+            repeated_mode_scope='Instructor reference: one persistent five-bead batch, two supported handoffs and fixed-goal delivery. Not full project or student release approval.')
     def save(name,value):
         formatting=({'separators':(',',':')} if compact_setup_logs and name in ('built_geometry.json','live_contact_coverage.json') else {'indent':2})
         (output/name).write_text(json.dumps(_json_safe(value),ensure_ascii=False,allow_nan=False,**formatting)+'\n',encoding='utf-8')
@@ -1084,7 +1093,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
         if profile_native_timing is not None:
             if private_contact_fixture:
                 import inspect
-                raise ContractError('This hardware package supports the fixed three-bead tiers only')
+                raise ContractError('This hardware package supports the fixed five-bead tiers only')
                 expected=Path(__file__).resolve().parents[1]/'qa/all_material_physics_20261031/cache_runtime_branch/closed_grip_fixture_hook_v1/contact_profile_observer.py'
                 if (type(profile_native_timing) is not private_observer.ContactProfileObserver
                         or Path(private_observer.__file__).resolve()!=expected
@@ -1206,7 +1215,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 raise ContractError('Rigid16 actual constructed native clock differs')
             configuration['rigid_runtime_profile']={'name':rigid_profile,'outer_dt_s':DT,'substeps':16,
                 'substeps_local':1,'native_substep_dt_s':float(scene.rigid_solver.substep_dt),
-                'floor_and_three_bead_TC_s':.0003125,'cup_nine_TC_s':.005,
+                'floor_and_bead_TC_s':.0003125,'cup_nine_TC_s':.005,
                 'configuration_reference_scope':'Declared controller/rest settings only. Native physics and full mission require actual validation.',
                 'native_integrated_validation':'NOT_ESTABLISHED'}
         save('solver_configuration.json',configuration);result['configuration_sha256']=digest(configuration)
@@ -1313,7 +1322,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 'nominal_geometry_only':True,'planning_clearance_applied_m':0.,'source_sha256':dict(SCENE_PRESENTATION_SOURCES),
                 'visual_contract':copy.deepcopy(visual),'camera_options':camera_options,
                 'shared_region_display':shared_display,'material_presentation':material_presentation,
-                'material_selection_scope':('Empty vessel. No content entities are constructed.' if empty_mode else 'Three actual sphere contents use balls palette. No water/sand physics selected by color.') if shared_display else None,
+                'material_selection_scope':('Empty vessel. No content entities are constructed.' if empty_mode else 'Five actual sphere contents use balls palette. No water/sand physics selected by color.') if shared_display else None,
                 'paint_patches':[{**s,'native_entity_idx':int(e.idx),'native_collision_geom_count':int(e.n_geoms)} for e,s in zip(paints,paint_specs)],
                 'scope':'Explicit nominal compound links and appearance only. Existing physical/controller/contact gates are unchanged.'}
             if embedded_supports:scene_evidence['embedded_support_components']=copy.deepcopy(embedded_supports)
@@ -1552,7 +1561,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                     or rigid_profile!='rigid16_bead_tc2h_v1' or empty_mode or particle_request is not None
                     or driver.current is not None or driver.held is not None or automatic_grasp.holder is not None
                     or digest(state['observation'])!=digest(observation) or pending_robot_reset_boundary is not None):
-                raise ContractError('Released robot operation requires the owned saved three-bead boundary')
+                raise ContractError('Released robot operation requires the owned saved five-bead boundary')
             op=completed_operation;arm_id=op['active_arm_id'];stage_id=op['stage_id']
             expected=(driver.saved_plan.kinematic_return_after(stage_id) if kinematic else driver.saved_plan.reset_after(stage_id))
             operation_events=robot_return_events if kinematic else robot_reset_events
@@ -1694,7 +1703,8 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 **({} if pending_robot_reset_boundary is None else
                     {('kinematic_return_boundary' if pending_robot_reset_boundary['event_kind']=='kinematic_return' else 'instant_reset_boundary'):copy.deepcopy(pending_robot_reset_boundary)}))
         def student_wall_check():
-            if time.monotonic()-started>wall_limit_s:raise TimeoutError('Student execution wall budget exceeded')
+            # Compatibility callback: elapsed time is measured only. Keep source admission.
+            if source_check() is not True:raise ContractError('Student execution source bindings changed')
         def release_detail(checkpoint,support_id):
             nonlocal camera
             if detail_images and not _capture_release_detail(camera,output,observation,result,
@@ -1937,7 +1947,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             save(prefix+'_request.json',request);save(prefix+'_pause_before.json',paused)
             planning_started=time.monotonic()
             try:
-                response=continuation_planner(copy.deepcopy(request),wall_limit_s-(planning_started-started))
+                response=continuation_planner(copy.deepcopy(request),None)
             except Exception:
                 failed_pause={'phase':phases[continuation_index]['phase'],'request_sha256':digest(request),
                     'planning_wall_s':time.monotonic()-planning_started,'status':'PLANNER_RAISED',
@@ -1945,12 +1955,6 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 result['continuation']['planning_pauses'].append(failed_pause);save(prefix+'_pause_failed.json',failed_pause)
                 raise
             planning_wall=time.monotonic()-planning_started
-            if time.monotonic()-started>wall_limit_s:
-                failed_pause={'phase':phases[continuation_index]['phase'],'request_sha256':digest(request),
-                    'planning_wall_s':planning_wall,'status':'ORIGINAL_WALL_DEADLINE_EXCEEDED',
-                    'parent_state_comparison_performed':False,'parent_state_invariance_on_failure_verified':False}
-                result['continuation']['planning_pauses'].append(failed_pause);save(prefix+'_pause_failed.json',failed_pause)
-                raise TimeoutError('Planning exceeded original episode wall deadline')
             after=observe();fresh_native=fixed_state()
             comparison=verify_pause(paused,after,bindings=pause_bindings(),dispatcher_record=dispatcher.record(),boundary_receipt=receipt)
             if fresh_native!=native or held_effort!={n:vector(a.get_dofs_control_force(),9).tolist() for n,a in arms.items()}:
@@ -2021,7 +2025,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             rigid16_observer.__enter__()
             from physics.student_episode_driver import StudentEpisodeDriver
             owned_rigid16_log=(rigid_profile==RIGID16_PROFILE and particle_request is None and not empty_mode
-                and len(beads)==3 and observation_readback=='batched'
+                and len(beads)==BEAD_COUNT and observation_readback=='batched'
                 and type(observation_reader) is EpisodeObservationReader
                 and type(rigid16_pose_reader) is RigidPosePack and type(student_driver) is StudentEpisodeDriver)
         if particle_request is not None:
@@ -2059,9 +2063,8 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 initial_fingerprint=fingerprint,
                 observe=observe,source_check=source_check,settings=settings,rest_policy=rest_policy,
                 rigid16_observer=None,particle_contact_copy=None,contents='empty' if empty_mode else 'beads')
-            deadline=time.perf_counter()+wall_limit_s-(time.monotonic()-started)
             try:
-                device=execute_device_tier_mission(context,output=output/'device_tier_execution',wall_deadline=deadline)
+                device=execute_device_tier_mission(context,output=output/'device_tier_execution',wall_deadline=None)
             except BaseException:
                 try:
                     from physics.device_tier_mission import load_failed_tier_proof
@@ -2084,7 +2087,6 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 legacy_dispatcher_initial_only=True,legacy_full_episode_coverage_claimed=False)
             return result
         while True:
-            if time.monotonic()-started>wall_limit_s:raise TimeoutError('Physical episode wall budget exceeded')
             if automatic_grasp_abba:
                 automatic_grasp.set_diagnostic_readback('scalar' if steps<32 or ((steps-32)//32) in (0,3) else 'packed')
             if rigid16_combined_abba:
@@ -2116,11 +2118,10 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                     world=world,observation=observation,observe=observe,source_check=source_check,
                     settings=settings,rest_policy=rest_policy,rigid16_observer=None,particle_contact_copy=None,
                     fixed_peers=fixed_peers,single_active_arm_contract=single_active_contract)
-                deadline=time.perf_counter()+wall_limit_s-(time.monotonic()-started)
                 result['execution_backend']='device'
                 result['legacy_dispatcher_prefix_only']=True
                 try:
-                    device=execute_device_one_carry(context,command,output=output/'device_execution',wall_deadline=deadline)
+                    device=execute_device_one_carry(context,command,output=output/'device_execution',wall_deadline=None)
                 finally:
                     steps=int(scene.t)
                 observation=copy.deepcopy(device['tail']['actual_final_observation'])
@@ -2547,7 +2548,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             except Exception as exc:result['cleanup_errors'].append('particle archive: '+repr(exc))
         if particle_cpic_diagnostic and particle_reader is not None and steps>0:
             try:
-                raise ContractError('This hardware package supports the fixed three-bead tiers only')
+                raise ContractError('This hardware package supports the fixed five-bead tiers only')
                 result['post_outer_cpic_diagnostic']=capture_post_outer_cpic(scene,particle_reader,output/'cpic_diagnostic')
             except Exception as exc:
                 result.setdefault('diagnostic_errors',[]).append('post-outer CPIC: '+repr(exc))
@@ -2564,7 +2565,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                         or not isinstance(locals().get('union_binding'),dict)):
                     raise ContractError('World-quality diagnostic requires one completed built particle endpoint and actual native geometry/union bindings')
                 import hashlib
-                raise ContractError('This hardware package supports the fixed three-bead tiers only')
+                raise ContractError('This hardware package supports the fixed five-bead tiers only')
                 world_helper=Path(world_quality.__file__).resolve()
                 if (world_helper!=Path(__file__).resolve().parents[1]/'qa/all_material_physics_20261031/world_quality_branch/read_other_world_particle_quality.py'
                         or hashlib.sha256(world_helper.read_bytes()).hexdigest()!='0530081c16c0bd4c205ad1439bca20b58f50f96906099052a45654f69262cecb'):

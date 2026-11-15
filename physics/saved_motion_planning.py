@@ -7,6 +7,7 @@ RRT, time rescaling, pose repair, physical step or reference-plan substitution.
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import ast
 import hashlib
@@ -69,9 +70,9 @@ def make_saved_empty_overlay(world, scenario):
     require(world.get('rigid_runtime_profile') == 'rigid16_bead_tc2h_v1'
             and 'payload_mode' not in world and 'particle_material_request' not in world
             and EMPTY_OVERLAY_KEY not in world
-            and len(world.get('initial_contents', [])) == len(scenario.get('contents', [])) == 3
-            and len(world.get('initial_content_world_centers_m', [])) == 3,
-            'Empty saved replay requires the original explicit three-bead rigid16 inputs')
+            and len(world.get('initial_contents', [])) == len(scenario.get('contents', [])) == BEAD_COUNT
+            and len(world.get('initial_content_world_centers_m', [])) == BEAD_COUNT,
+            'Empty saved replay requires the original explicit five-bead rigid16 inputs')
     marker = {'schema_version': 'saved-empty-payload-overlay-v1',
               'source_world_sha256': digest(world), 'source_scenario_sha256': digest(scenario),
               'initial_contents': copy.deepcopy(world['initial_contents']),
@@ -366,7 +367,7 @@ class SavedMissionPlan:
             world_sha256=value['world_sha256'], scenario_sha256=value['scenario_sha256'])
         require(world.get('rigid_runtime_profile') == 'rigid16_bead_tc2h_v1'
                 and world.get('payload_mode') != 'empty' and 'particle_material_request' not in world,
-                'This saved replay branch requires the explicit original three-bead rigid16 profile')
+                'This saved replay branch requires the explicit original five-bead rigid16 profile')
         route = [world['source_support']['id'], *[s['id'] for s in world['relay_supports']], world['goal_support']['id']]
         require(len(route) == 4 and len(set(route)) == 4, 'Saved replay requires two distinct supported handoffs')
         for stage in value['stages']:

@@ -1,8 +1,8 @@
 # Leaderboard records and qualification
 
-**2026-02 · Beads only · term_v4**
+**2026-02 · Beads only · term_v6**
 
-The [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev/) is active for official bead attempts and final representative selection. Instructor qualification records are kept outside classroom standings. Activation uses the verified instructor-PC evidence. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and sand are locked. The three active rules are `ap2026-easy-beads-term-v4`, `ap2026-medium-beads-term-v4` and `ap2026-hard-beads-term-v4`, shown as Lower, Moderate and Higher complexity.
+The [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev/) supports official bead attempts and final representative selection. Instructor qualification records are kept outside classroom standings. Current-rule availability is shown by the server's `scoring_enabled` field. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and sand are locked. The current five-bead rules are `ap2026-easy-beads-term-v6`, `ap2026-medium-beads-term-v6` and `ap2026-hard-beads-term-v6`, shown as Lower, Moderate and Higher complexity.
 
 Use the [run and submit guide](EVALUATION_AND_SUBMISSION.md) for exact review, retry, history and final-selection commands. Students use the existing Python environment and sign in with their team name and shared project password once per checkout on each computer. The client automatically saves and reuses the returned credential outside Git. No instructor-issued token or student Docker, ngrok or VPN installation is required.
 
@@ -10,7 +10,7 @@ Use the [run and submit guide](EVALUATION_AND_SUBMISSION.md) for exact review, r
 
 Every completed full bead review automatically records success or failure. CPU planning, empty-cup replay and short practice remain local. An acknowledged upload confirms receipt, not physical success. An unavailable connection or token leaves a local queue that can be retried without rerunning Genesis. Retrying an acknowledged attempt does not create another record.
 
-The live comparison uses each team's latest successful run under the same rule. A later failure stays in history and does not replace that success. The official comparison uses each team's explicitly selected successful run, bound to the actual student files in its full 40-character Git commit. Final selection is open for these active rules. The instructor freezes those selections for assessment.
+The live comparison uses each team's latest successful run under the same rule. A later failure stays in history and does not replace that success. The official comparison uses each team's explicitly selected successful run, bound to the actual student files in its full 40-character Git commit. Final selection is available when the current rule is active. The instructor freezes those selections for assessment.
 
 The server validates submitted records and does not execute student Python or Genesis. A failed attempt can remain in history but cannot enter the successful competition population. Keep the original native output for review. Source matching enforces the supplied-code boundary without proving execution on a student-controlled computer.
 
@@ -26,11 +26,11 @@ Tn = (T - Tmin) / (Tmax - Tmin)
 C  = 0.5 * Dn + 0.5 * Tn
 ```
 
-A metric with no variation contributes zero. The other weight remains 0.5. Lower `C` ranks higher. Exact rational arithmetic determines ties, with shared competition ranks such as 1, 1, 3. Upload order and computer runtime do not break ties. New representatives can change the population's ranges and displayed composites. See [assessment and competition](SCORING.md) for carry credit, competition adjustments and presentation assessment.
+A metric with no variation contributes zero. The other weight remains 0.5. Lower `C` ranks higher. Exact rational arithmetic determines ties, with shared competition ranks such as 1, 1, 3. Upload order and computer runtime do not break ties. Computer elapsed time is recorded without a cutoff and cannot disqualify an otherwise valid full run. An interrupted run remains incomplete and cannot rank. New representatives can change the population's ranges and displayed composites. See [assessment and competition](SCORING.md) for carry credit, competition adjustments and presentation assessment.
 
 ## Qualification and private operations
 
-An installed rule or an uploaded staging result does not activate competition. `scoring_enabled: false` identifies staging. Activation is a separate instructor operation bound to the exact rule ID, digest and reviewed evidence. The instructor authorized current-PC activation while retaining the explicit GTX 1660 SUPER measurement limitation. `scoring_enabled: true` identifies an active rule. Activation is recorded outside the immutable rule file, whose original `qualified: false` field remains unchanged.
+An installed rule or an uploaded staging result does not activate competition. `scoring_enabled: false` identifies staging. Activation is a separate instructor operation bound to the exact rule ID, digest and reviewed evidence. Current-release activation requires its own reviewed evidence. GTX 1660 SUPER measurements remain a separate qualification. `scoring_enabled: true` identifies an active rule. Activation is recorded outside the immutable rule file, whose original `qualified: false` field remains unchanged.
 
 Preserve the installed rule bytes and digest. A changed map, evaluator, acceptance condition, material, protected source or runtime contract requires a separately qualified version. Later liquid or sand work cannot rewrite bead rules or inherit bead qualification.
 

@@ -125,8 +125,8 @@ def _frame(cpu, indices, q, time_s):
     return dict(time_s=time_s, q_rad=list(q), poses=poses, cup_position_m=engine.body_pose.position_m)
 
 
-def build_preview(saved_path, *, frames_per_stage=80):
-    """Read a full CPU export and reconstruct only its saved nominal geometry."""
+def build_preview(saved_path, *, frames_per_stage=80, independent_arm=False):
+    """Read a CPU export and reconstruct only its saved nominal geometry."""
     require(type(frames_per_stage) is int and 2 <= frames_per_stage <= 200,
             "--frames-per-stage must be an integer from 2 to 200")
     from physics.tier_mission_plan import TierMissionPlan
@@ -138,12 +138,21 @@ def build_preview(saved_path, *, frames_per_stage=80):
     from supplied_support.cpu_geometry import CpuGeometry
 
     saved_path = Path(saved_path).resolve(strict=True)
-    plan = TierMissionPlan.from_file(saved_path)
+    if independent_arm:
+        from physics.arm_mission_plan import ArmMissionPlan
+        plan = ArmMissionPlan.from_file(saved_path)
+    else:
+        plan = TierMissionPlan.from_file(saved_path)
     value = plan.record()
-    identity_path = saved_path.parent / "input_identity.json"
-    identity_sha = sha(identity_path)
-    identity = read(identity_path)
+    # Arm transfers authenticate project-relative producer sources. Use their
+    # checked current locations for display without rewriting the saved file.
+    source_pins = plan.current_source_pins() if independent_arm else value["source_pins"]
+    identity_path = None if independent_arm else saved_path.parent / "input_identity.json"
+    identity_sha = sha(identity_path) if identity_path is not None else None
+    identity = plan.input_identity() if independent_arm else read(identity_path)
     require(set(identity) == {"world", "scenario", "design"}, "Malformed saved input identity")
+    if independent_arm:
+        require(identity == plan.input_identity(), "Arm preview identity differs from its sealed component")
     tier = plan.task_contract["difficulty"]
     map_id = MAPS[tier]
     task = ROOT / "cases/difficulty_20261106" / map_id
@@ -158,11 +167,11 @@ def build_preview(saved_path, *, frames_per_stage=80):
         require(sha(ROOT/relative) == expected, "Fixed map file differs: " + relative)
     # Importing this exporter in another checkout cannot silently use different
     # supplied geometry code. Student code is never imported or executed here.
-    roots = [Path(name).parent.parent for name in value["source_pins"]
+    roots = [Path(name).parent.parent for name in source_pins
              if Path(name).as_posix().endswith("/physics/plan_student_transport.py")]
     require(len(roots) == 1, "Saved source root is ambiguous")
     original_root = roots[0]
-    for name, expected in value["source_pins"].items():
+    for name, expected in source_pins.items():
         old = Path(name)
         if old.is_relative_to(original_root):
             relative = old.relative_to(original_root)
@@ -185,7 +194,7 @@ def build_preview(saved_path, *, frames_per_stage=80):
         engine.bounds = tuple(tuple(float(v) for v in row) for row in engine.model.jnt_range[ids])
     require([list(row) for row in engine.bounds] == expected_limits, "Saved native joint bounds differ")
     for name, expected in engine.source_pins.items():
-        require(value["source_pins"].get(name) == expected, "Installed robot asset differs from saved source")
+        require(source_pins.get(name) == expected, "Installed robot asset differs from saved source")
     geometry, indices = _catalog(engine)
     commands = copy.deepcopy(value["initial_commands_by_arm"])
     stages = []
@@ -247,7 +256,7 @@ def build_preview(saved_path, *, frames_per_stage=80):
     handoffs = [dict(index=i, support_id=relay["support_id"],
                      position_m=[relay["x_m"], relay["y_m"], regions[relay["support_id"]]["support_top_z_m"]],
                      body_root_z_m=regions[relay["support_id"]]["body_root_z_m"])
-                for i, relay in enumerate(design_record["relays"][:len(plan.required_arm_ids)-1])]
+                for i, relay in enumerate(design_record["relays"][:len(plan.task_contract['required_arm_ids'])-1])]
     result = dict(schema_version="ap-student-motion-preview-v1", difficulty=tier, map_id=map_id,
                   source_files_sha256=source_files, saved_plan_sha256=plan.file_sha256, bundle_sha256=plan.sha256,
                   design_sha256=design.sha256, design=design_record, bases=bases, handoffs=handoffs,
@@ -257,7 +266,11 @@ def build_preview(saved_path, *, frames_per_stage=80):
                              collision_or_retention_certificate=False, scene_completion_time_available=False,
                              note="Nominal commanded collision meshes and cup only. Stage time excludes grasp, release, holds and physical settling. Donor return is display-only with zero simulation time. Use Genesis for physical verification."))
     plan.verify_sources()
-    require(sha(identity_path) == identity_sha, "Saved input identity changed during export")
+    if independent_arm:
+        result['scope'].update(independent_arm=True, selected_arm_id=plan.selected_arm_id,
+            full_mission_passed=False, ranking_eligible=False,
+            note='Independent arm geometry at its agreed nominal source boundary. Other arms remain present. This does not prove the preceding physical handoff or full completion.')
+    require(identity_path is None or sha(identity_path) == identity_sha, "Saved input identity changed during export")
     for relative, expected in source_files.items():
         require(sha(ROOT/relative) == expected, "Map changed during preview export")
     json.dumps(result, allow_nan=False)
@@ -266,7 +279,9 @@ def build_preview(saved_path, *, frames_per_stage=80):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--saved-tier", type=Path, required=True)
+    saved = parser.add_mutually_exclusive_group(required=True)
+    saved.add_argument("--saved-tier", type=Path, help="Complete CPU mission")
+    saved.add_argument("--saved-arm", type=Path, help="Independent arm CPU component")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--frames-per-stage", type=int, default=80,
                         help="2 to 200 display samples per stage (default 80). Does not change saved timing or validation.")
@@ -293,7 +308,8 @@ def main(argv=None):
         from supplied_support.cpu_geometry import CpuOracle
         old_ik = CpuOracle.ik
         CpuOracle.ik = blocked
-        result = build_preview(args.saved_tier, frames_per_stage=args.frames_per_stage)
+        result = build_preview(args.saved_arm or args.saved_tier, frames_per_stage=args.frames_per_stage,
+                               independent_arm=args.saved_arm is not None)
         result["export_wall_s"] = time.perf_counter()-started
         output.parent.mkdir(parents=True, exist_ok=True)
         with output.open("x", encoding="utf-8", newline="\n") as stream:

@@ -1,9 +1,10 @@
-"""Supplied three-bead device execution of one unchanged CPU-saved carry.
+"""Supplied five-bead device execution of one unchanged CPU-saved carry.
 
 The original runtime owns fresh INITIAL, actual pick and native static validation.
 This module owns its distinct device histories, supported release and rest.
 It never commits synthetic legacy dispatcher rows.
 """
+from transport_challenge.material_access import BEAD_COUNT
 from contextlib import contextmanager
 import copy
 import hashlib
@@ -107,7 +108,7 @@ def device_contact_hooks(scene, audit, mode, support=None, handling=None, payloa
         if solver._func_constraint_force.__func__ is not constraint.__func__ or solver.substep.__func__ is not substep.__func__:
             raise RuntimeError('Native methods were not restored exactly')
 
-def _run_source_bound_device(local, command, args, *, wall_deadline):
+def _run_source_bound_device(local, command, args, *, wall_deadline=None):
     import quadrants as qd
     from physics.deferred_gpu_control import DeviceCarryControl
     from physics.deferred_gpu_contacts import DeviceContactAudit
@@ -150,8 +151,6 @@ def _run_source_bound_device(local, command, args, *, wall_deadline):
     all_started = time.perf_counter()
     with device_contact_hooks(scene, contact, mode, support, handling):
         for i in range(total):
-            if time.perf_counter() >= wall_deadline:
-                raise TimeoutError('Original complete review wall budget exceeded')
             if i == args.warmup:
                 qd.sync()
                 started = time.perf_counter()
@@ -216,7 +215,7 @@ def _run_source_bound_device(local, command, args, *, wall_deadline):
     tail_context.update(gravity=gravity_owners, deferred_carry_result=copy.deepcopy(record), deferred_carry_support=support)
     if handling is not None:
         tail_context['deferred_handling_audit'] = handling
-    tail = run_supported_tail(tail_context, {'position': table['position'][-1]}, output=args.output / 'provided_tail', wall_deadline=wall_deadline)
+    tail = run_supported_tail(tail_context, {'position': table['position'][-1]}, output=args.output / 'provided_tail', wall_deadline=None)
     record.update(schema_version='provided-deferred-one-carry-result-v1', tail=tail, actual_carry_final_step=record['actual_final_step'], actual_final_step=int(scene.t), complete_one_carry_physical_verified=tail.get('passed') is True, complete_original_handling_verified=tail.get('persistent_original_handling_verified') is True, actual_held_arm=helper.holder, scope='Entire saved carrying action plus actual supported release and final original rest gates. Resource admission is separately owned by supervisor.')
     return record
 
@@ -322,9 +321,9 @@ def validate_device_completion(record, *, verify_files=True):
         and control['start_native_step']==begin and control['end_native_step']==end
         and control['first_failed_step'] is None and all(v is False for v in control['flags'].values()),
         'Control predicates or exact history count failed')
-    require(payload['actual_POST_samples']==n and payload['bead_count']==3
+    require(payload['actual_POST_samples']==n and payload['bead_count']==BEAD_COUNT
         and payload['first_failed_step'] is None and all(v is False for v in payload['flags'].values()),
-        'Payload predicates or all-three inventory failed')
+        'Payload predicates or original-bead inventory failed')
     require(contacts['PRE_samples']==contacts['POST_samples']==16*n
         and contacts['sample_mode']=='bead16' and contacts['original_sampling_preserved'] is True
         and contacts['sticky_failed'] is False and contacts['first_bad_global_substep'] is None
@@ -377,7 +376,7 @@ def validate_device_completion(record, *, verify_files=True):
     _validate_original_handling(record,verify_files=verify_files)
     return True
 
-def execute_device_one_carry(context,command,*,output,wall_deadline):
+def execute_device_one_carry(context,command,*,output,wall_deadline=None):
     """Run only at the genuine saved carry boundary after the original pick."""
     from physics.one_carry_planning import SavedOneCarryPlan
     driver=context['student_driver'];scene=context['scene']
@@ -385,8 +384,8 @@ def execute_device_one_carry(context,command,*,output,wall_deadline):
         and getattr(driver,'grasp_policy',None)=='automatic'
         and type(driver.saved_plan) is SavedOneCarryPlan
         and driver.saved_plan.record()['payload']=='beads'
-        and len(context['beads'])==len(context['ids'])==3,
-        'Device execution is explicit automatic three-bead saved one-carry only')
+        and len(context['beads'])==len(context['ids'])==BEAD_COUNT,
+        'Device execution is explicit automatic five-bead saved one-carry only')
     require(context['source_check']() is True and driver.saved_plan.verify_sources() is True,
         'Saved CPU/runtime source bindings changed at actual carry boundary')
     require(command.action_role=='carry' and context['automatic_grasp'].holder==command.active_arm_id
@@ -396,11 +395,9 @@ def execute_device_one_carry(context,command,*,output,wall_deadline):
     require(len(actions)==1 and actions[0].kind=='trajectory','Require the original actual saved trajectory action')
     count=actions[0].steps
     require(type(count) is int and 0<count<=20000,'Bound one complete saved carrying path')
-    require(type(wall_deadline) in (int,float) and math.isfinite(wall_deadline)
-        and time.perf_counter()<wall_deadline,'Original supervised wall budget exhausted')
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     args=SimpleNamespace(output=output,warmup=min(8,max(0,count-1)),steps=count-min(8,max(0,count-1)))
-    record=_run_source_bound_device(context,command,args,wall_deadline=wall_deadline)
+    record=_run_source_bound_device(context,command,args,wall_deadline=None)
     validate_device_completion(record)
     require(context['source_check']() is True,'Sources changed after the actual released-rest gate')
     return record

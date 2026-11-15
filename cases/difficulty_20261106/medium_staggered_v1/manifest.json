@@ -1,9 +1,9 @@
 {
   "schema_version": "provided-three-arm-task-inputs-v1",
   "files": {
-    "cases/difficulty_20261106/medium_staggered_v1/initialization.json": "727735df9c50a6887aeaf4ad11d4b44f899cb4d247e9e77eba59c326fcf243d2",
-    "cases/difficulty_20261106/medium_staggered_v1/physics_settings_reference.json": "4c01bf649db6cba1104d89625197699a5cc6fcf64f7073b55a317ed0bf53acb0",
-    "cases/difficulty_20261106/medium_staggered_v1/world.json": "d3b783e0862fcbec5da81058440d591c8fc80ee158dd0167e4e7a1405a90a600"
+    "cases/difficulty_20261106/medium_staggered_v1/initialization.json": "68ead39ebe700790022b8c26666d66363fe7eececd0465e85e58de36780fc7f0",
+    "cases/difficulty_20261106/medium_staggered_v1/physics_settings_reference.json": "b987a816baca1fc8ff45d7b935e378ada4d605b5aa2e6f850db634a6fc7ebd08",
+    "cases/difficulty_20261106/medium_staggered_v1/world.json": "f0c20e559258233ed17fad9a3ae19096f7500fdc8272504d5e68ee81a9c6f8bc"
   },
   "source_case": {
     "cases/three_arm_cell_bead16_v2/world.json": "5685cd75be630c89d7bac2432622e79c9e66e92a3f9efb94da37a6c772f888f4",
@@ -11,11 +11,11 @@
     "cases/three_arm_cell_bead16_v2/manifest.json": "6e955acfbf36dd03f3b314307e8d3903b3a24c43ff88824efa4f5fff7876c297"
   },
   "instructor_builder_sha256": "05eb3820be2a01bdcf7277c8eef87d4c442de9dd6fc28bbf9f02098064a64c02",
-  "fixed_physics_and_criteria_signature_sha256": "2ea9171ad62a65a128ad56525774759a5b9ed95f886951744214b956826c7135",
-  "scope": "Immutable supplied three-bead physical geometry and initial joints. Student installation and internal handoff choices are supplied separately. Native qualification is external to this manifest.",
+  "fixed_physics_and_criteria_signature_sha256": "58c038326a110f8b20ca3f53467a9af77549c2deb40f6dbe0bee38c6e33e239b",
+  "scope": "Immutable supplied five-bead physical geometry and initial joints. Student installation and internal handoff choices are supplied separately. Native qualification is external to this manifest.",
   "supplemental_files": {
-    "cases/difficulty_20261106/medium_staggered_v1/difficulty_target.json": "97a7c552a8e52a00759f538730eb6d0e274211a30603ec65b9ec31d281a20b14",
+    "cases/difficulty_20261106/medium_staggered_v1/difficulty_target.json": "73ab771488f69b4a847c824dd4038c285a88f3d1c162c239b852789d3907afb7",
     "cases/difficulty_20261106/medium_staggered_v1/map_geometry.json": "9ccb87a80eabda81a427aa312825889d44b212a954241817a60ff11f35a0d785"
   },
-  "sample_count": 3
+  "sample_count": 5
 }

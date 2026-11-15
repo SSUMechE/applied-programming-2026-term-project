@@ -8,6 +8,7 @@ grasp gate. Detached hashes cannot establish those facts by themselves.
 """
 from __future__ import annotations
 
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 from dataclasses import replace
 import hashlib
@@ -207,7 +208,7 @@ def _query_scene(request, output):
         contents = ()
     else:
         materials, original = obs["materials"], world["initial_contents"]
-        if (len(materials) != len(original) or len(original) != 3
+        if (len(materials) != len(original) or len(original) != BEAD_COUNT
                 or any(m["id"] != old["id"] or m["mass_kg"] != old["mass_kg"]
                        or m["inside_carrier"] is not True for m, old in zip(materials, original))):
             raise ContractError("Current persistent material IDs, masses or retention differ")

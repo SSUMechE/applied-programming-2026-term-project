@@ -2,8 +2,9 @@
   "schema_version": "ap-term-project-package-status-v3",
   "semester": "2026-02",
   "date": "2026-11-15",
-  "status": "THREE_BEAD_CURRENT_PC_RELEASE_READY_OFFICIAL_RULES_ACTIVE",
-  "current_rule_version": "term_v4",
+  "status": "CURRENT_PC_REPRESENTATIVE_FIVE_BEAD_AND_INDEPENDENT_ARM_VALIDATED",
+  "current_rule_version": "term_v6",
+  "sample_count": 5,
   "materials": {
     "beads": "available_for_student_design_and_verification",
     "process_liquid": "locked",
@@ -11,137 +12,301 @@
   },
   "PyTorch": "2.14.0+cu126 unchanged",
   "Genesis": "1.3.2 unchanged",
-  "student_release_approved": true,
   "student_source_publication_authorized": true,
   "qualification_is_external_to_immutable_rule": true,
-  "same_protected_physics_source_full_native_matrix_completed": true,
-  "five_independent_student_role_solves_reviewed": false,
-  "student_role_scope": "Five historical agent-role implementations and designs were reviewed. The later Role 05 revision was additionally reviewed against the current API and three-bead handling contract. Current-source validation separately reuses six archived path/design sets with unchanged joint paths and edge times. These checks are not five fresh cold solves or measured human workload.",
-  "GTX1660_SUPER_final_source_measured": false,
+  "official_activation_status_source": "Read scoring_enabled for the exact current rule ID and digest from the live class server. Activation is a separate operator record, not a change to this immutable package or its rule.",
   "leaderboard_url": "https://phoniness-reenact-veggie.ngrok-free.dev",
-  "official_competition_activated": true,
   "instructor_team_token_distribution_required": false,
   "team_registration": "Automatic first-use team name and shared-password sign-in. The supplied client stores a separate device credential outside Git and reuses it for results and diagnostics.",
   "team_identity_scope": "Self-registered team access. Possession of the agreed shared password is not verification of GitHub membership or university identity.",
-  "preview_scope": "Optional own-plan CPU geometry and actual recorded Genesis robot/cup/bead playback. Read-only export does not rerun physics or create a validation certificate.",
-  "scope": "Three-bead student workspace approved for release on the validated current PC. RTX 4090 validation passed six CPU exports, seven full native reviews and six local practices with archived paths and timings. The official HTTPS endpoint has all three exact term_v4 rules active. Supplied first-use sign-in, real result upload/retry/history and owned-test cleanup passed. GTX1660 SUPER performance is unmeasured. No reference solution is included.",
-  "release_authorization_scope": "Instructor authorized the three-bead revision and publication. Current-PC student release is approved after source-bound validation, final document/media review, exact official rule activation and the supplied HTTPS account/result flow. Public Git publication and LMS delivery are separate operational actions.",
-  "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
-  "student_repository_visibility": "one private shared repository per team",
-  "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
-  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics.",
-  "optional_visual_export": {
-    "formats": [
-      "PNG",
-      "WebM"
-    ],
-    "presets": [
-      "720p / 15 fps",
-      "1080p / 30 fps",
-      "1440p / 30 fps"
-    ],
-    "inside_view": "Transparent cup, follow camera and cup-only interior view",
-    "recorded_state_export_tested": true,
-    "browser_video_download_verified": false,
-    "verification_limit": "Current empty/three-bead practice exports and a full-run carry excerpt were independently checked against actual native records. Cropped PNGs and encoded media use the supplied recorded-state renderer. They are not live Genesis viewport screenshots. Actual browser video encoding and download remain unverified."
-  },
-  "compact_design_inputs": {
-    "schema": "student-tier-design-v1",
-    "student_active_arm_counts": [
-      1,
-      2,
-      3
-    ],
-    "student_intermediate_handoff_counts": [
-      0,
-      1,
-      2
-    ],
-    "fixed_source_finish_and_inactive_parking": "supplied",
-    "completed_legacy_designs": "unchanged and supported",
-    "student_files_overwritten": false,
-    "all_three_tier_cpu_planning": "six_archived_trajectory_CPU_exports_validated_no_new_RRT",
-    "inactive_parking_native_initial_state_check": {
-      "status": "VERIFIED_WITH_CURRENT_SOURCE_FULL_TRANSPORT",
-      "tiers": [
-        "easy",
-        "medium"
-      ],
-      "successful_full_reviews_by_tier": {
-        "easy": 2,
-        "medium": 2
-      },
-      "all_three_native_robots_retained": true,
-      "supplied_inactive_base_and_command_configuration_retained": true,
-      "full_transport": true,
-      "dedicated_short_initial_state_test_run": false,
-      "scope": "Current compact parking was checked by source-bound initial fingerprints and complete collision/control/handling checks throughout four Lower/Moderate full reviews. No old 50-step count is claimed as a new-source test."
-    },
-    "new_parking_full_native_transport_matrix_repeated": true,
-    "scope": "Current compact design inputs passed six CPU geometry validations and seven full native reviews across all tiers. Exact archived joint paths and times were reused. Lower/Moderate evidence includes the supplied inactive parking configuration."
-  },
   "student_naming": {
     "solo": "Own student ID for the private repository and leaderboard name",
     "group": "All member IDs sorted ascending and joined with hyphens for one shared private repository and leaderboard name"
   },
-  "per_arm_practice": {
-    "command": "python -B project_run.py practice",
-    "contents": [
-      "empty",
+  "student_repository_visibility": "one private shared repository per team",
+  "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
+  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics.",
+  "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
+  "elapsed_time_policy": {
+    "computer_time": "measure_only",
+    "automatic_computation_time_limit_s": null,
+    "elapsed_time_affects_score": false,
+    "legacy_wall_limit_argument": "accepted but ignored with a notice",
+    "manual_Ctrl_C": "Stops the owned run and preserves available logs. Incomplete runs cannot rank.",
+    "simulated_task_deadlines_s": {
+      "easy": 40,
+      "medium": 85,
+      "hard": 105
+    },
+    "other_constraints": "Fixed geometry, joints, control, contact, spill, support, simulation deadlines and memory checks remain in force. Operational network and cleanup timeouts are not computation limits."
+  },
+  "independent_arm_workflow": {
+    "student_edit_files": [
+      "student/<level>_design.json",
+      "student/arm_0_strategy.py",
+      "student/arm_1_strategy.py",
+      "student/arm_2_strategy.py"
+    ],
+    "planner_function": "plan_path",
+    "whole_mission_strategy_option": "student/joint_strategy.py remains available",
+    "stages": [
+      "test-arm",
+      "plan-arm",
+      "practice --saved-arm --contents empty|beads",
+      "merge-arms",
+      "review --saved-tier"
+    ],
+    "moderate_components": 2,
+    "higher_components": 3,
+    "other_arm_planner_required_for_component": false,
+    "shared_boundary": "Agree on layout, support XY and peer/home commands before independent work. Regenerate affected plans after shared input changes.",
+    "merge": "Checks exact required arms, compatible inputs, provenance, geometry, edges and saved times. Does not call RRT, IK or a timing hook and does not retime trajectories.",
+    "practice_scope": "Selected approach, automatic pick, carry, automatic release and rest from a fresh nominal support boundary. All robots and geometry remain present.",
+    "previous_physical_handoff_proved_by_practice": false,
+    "component_passes_can_rank": false,
+    "competition": "A new merged whole-scene five-bead review must pass actual handoffs and completion."
+  },
+  "current_pc_validation": {
+    "status": "COMPLETE_PASS_FOR_STATED_REPRESENTATIVE_SCOPE",
+    "sample_count": 5,
+    "representative_current_pc_only": true,
+    "hardware_observed": "NVIDIA GeForce RTX 4090",
+    "full_native_reviews": 1,
+    "full_native_tiers": [
+      "hard"
+    ],
+    "native_unverified_tiers": [
+      "easy",
+      "medium"
+    ],
+    "local_arm_practices": 1,
+    "practice_arm": "arm_2",
+    "practice_contents": [
       "beads"
     ],
-    "scope": "Selected saved approach, automatic pick, carry, automatic release and rest from a fresh nominal support boundary.",
+    "fresh_RRT_components": 5,
+    "fresh_RRT_component_merges": 2,
+    "archived_motion_components": 6,
+    "archived_motion_merges": 3,
+    "actual_cpu_actions": 16,
     "all_three_native_robots_retained": true,
-    "saved_placements_handoffs_paths_times_and_peer_commands_retained": true,
-    "previous_physical_handoff_continuity_claimed": false,
-    "full_mission_and_ranking_eligible": false,
-    "competition_rules_and_protected_evaluation_sources_changed": true,
-    "current_pc_native_validation": {
-      "status": "COMPLETE_PASS",
-      "cases": 6,
-      "arm_ids": [
-        "arm_0",
-        "arm_1",
-        "arm_2"
-      ],
-      "contents": [
-        "empty",
-        "beads"
-      ],
-      "fresh_nominal_support_boundary": true,
-      "reporting_outboxes_unchanged": true,
-      "rule_version": "term_v4",
-      "gpu": "NVIDIA GeForce RTX 4090"
+    "native_motion_scope": "Exact archived joint paths and edge times, newly CPU-validated and merged under the current five-bead source. The fresh RRT solutions have CPU validation only.",
+    "fresh_RRT_paths_natively_qualified": false,
+    "final_audit_sha256": "f9d08e0c08c707c1ca02eb18593d9f1c76cdade8440c9acafeaeafecb33b6d60",
+    "rules": {
+      "ap2026-easy-beads-term-v6": "fa31809e11e55c2d660f7074b4d4fd7811d9f9cf8168fa3ad4af60306cff9363",
+      "ap2026-medium-beads-term-v6": "1aaf8b2ffb464006f062a9c3f77ef2f1f7a6fba9ed27099c90d3fd377d6288d3",
+      "ap2026-hard-beads-term-v6": "7da6e76124ec849a432891234872127feea197893303a3e03e68728476e9bffa"
     },
-    "validation_timing_scope": "Separate working copies ran sequentially on one NVIDIA GeForce RTX 4090 PC, using shared, reused Genesis and Quadrants caches. Times cover the whole command and are elapsed wall times. They are not cold-cache, isolated GPU, GTX1660 SUPER or human-workload measurements.",
-    "GTX1660_SUPER_measured": false
+    "native_measurements": [
+      {
+        "kind": "full",
+        "difficulty": "hard",
+        "contents": "beads",
+        "measured_times_s": {
+          "whole_command_wall_s": 2448.8974365999456,
+          "gpu_review_process_wall_s": 2447.665283899987,
+          "total_cpu_generation_process_wall_s": 7.338570700027049,
+          "measured_student_search_wall_s": 0.0,
+          "attributed_cpu_planning_wall_s": 7.338570700027049,
+          "additive_cpu_plus_review_wall_s": 2455.003854600014,
+          "complete_native_virtual_s_including_preparation": 62.11,
+          "scored_completion_s_excluding_initial_preparation": 61.61,
+          "saved_motion_s": 52.60278439274234
+        },
+        "arm_publication_windows": [
+          {
+            "arm_id": "arm_0",
+            "status": "OBSERVED_PUBLICATION_WINDOW",
+            "observed_window_s": 935.6646023000358,
+            "wall_interval_s": [
+              935.4604684000369,
+              935.868187300046
+            ]
+          },
+          {
+            "arm_id": "arm_1",
+            "status": "OBSERVED_PUBLICATION_WINDOW",
+            "observed_window_s": 804.9310555000557,
+            "wall_interval_s": [
+              804.7242799000815,
+              805.1350262999767
+            ]
+          },
+          {
+            "arm_id": "arm_2",
+            "status": "OBSERVED_PUBLICATION_WINDOW",
+            "observed_window_s": 562.776133300038,
+            "wall_interval_s": [
+              562.5681020000484,
+              562.9829847000074
+            ]
+          }
+        ],
+        "timing_scope": "Whole-command elapsed and external phase-publication windows are distinct. Windows include observed polling uncertainty, are not isolated solver costs and are not added to whole-command elapsed. Shared initialization is not separately measured.",
+        "shared_caches_reused": true,
+        "memory_scope": {
+          "sampled_peak": {
+            "bytes": 3657732096.0,
+            "GB": 3.657732096,
+            "GiB": 3.4065284729003906
+          },
+          "valid_sample_count": 793,
+          "unknown_or_invalid_sample_count": 1635,
+          "peak_is_sampled_not_true_peak": true,
+          "hard_cap_proven": false,
+          "maximum_valid_sample_gap_s": 3.513326699961908
+        }
+      },
+      {
+        "kind": "practice",
+        "difficulty": "hard",
+        "contents": "beads",
+        "measured_times_s": {
+          "whole_command_wall_s": 636.2712101000361,
+          "practice_supervisor_wall_s": 635.8572556999279,
+          "worker_process_wall_s": 632.2179999999935,
+          "native_wall_s": 612.0305679000448,
+          "practice_virtual_s_including_preparation": 15.2875,
+          "saved_approach_plus_carry_s": 11.78633841238032
+        },
+        "arm_publication_windows": [
+          {
+            "arm_id": "arm_2",
+            "status": "OBSERVED_PUBLICATION_WINDOW",
+            "observed_window_s": 566.3130841000238,
+            "wall_interval_s": [
+              566.1080873999745,
+              566.5174483000301
+            ]
+          }
+        ],
+        "timing_scope": "Whole-command elapsed and external phase-publication windows are distinct. Windows include observed polling uncertainty, are not isolated solver costs and are not added to whole-command elapsed. Shared initialization is not separately measured.",
+        "shared_caches_reused": true,
+        "memory_scope": {
+          "sampled_peak": {
+            "bytes": 3607400448.0,
+            "GB": 3.607400448,
+            "GiB": 3.3596534729003906
+          },
+          "valid_sample_count": 203,
+          "unknown_or_invalid_sample_count": 426,
+          "peak_is_sampled_not_true_peak": true,
+          "hard_cap_proven": false,
+          "maximum_valid_sample_gap_s": 3.511034299968742
+        }
+      }
+    ],
+    "cpu_measurements": [
+      {
+        "label": "native_easy_arm_0_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 5.385099499952048
+      },
+      {
+        "label": "native_easy_merge_v6",
+        "method": "fixed_path_merge",
+        "whole_command_wall_s": 4.135700699989684
+      },
+      {
+        "label": "native_medium_arm_0_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 5.338098099920899
+      },
+      {
+        "label": "native_medium_arm_1_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 5.015536700026132
+      },
+      {
+        "label": "native_medium_merge_v6",
+        "method": "fixed_path_merge",
+        "whole_command_wall_s": 6.1350590999936685
+      },
+      {
+        "label": "native_hard_arm_0_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 5.6746971000684425
+      },
+      {
+        "label": "native_hard_arm_1_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 5.024671900086105
+      },
+      {
+        "label": "native_hard_arm_2_v6",
+        "method": "exact_archived_motion_component",
+        "whole_command_wall_s": 4.581108899903484
+      },
+      {
+        "label": "native_hard_merge_v6",
+        "method": "fixed_path_merge",
+        "whole_command_wall_s": 8.365496200043708
+      },
+      {
+        "label": "fresh_medium_arm_0_cpu01",
+        "method": "fresh_RRT_component",
+        "whole_command_wall_s": 68.4031699000625
+      },
+      {
+        "label": "fresh_medium_arm_1_cpu01",
+        "method": "fresh_RRT_component",
+        "whole_command_wall_s": 22.972776599926874
+      },
+      {
+        "label": "fresh_hard_arm_0_cpu01",
+        "method": "fresh_RRT_component",
+        "whole_command_wall_s": 73.29796370002441
+      },
+      {
+        "label": "fresh_hard_arm_1_cpu01",
+        "method": "fresh_RRT_component",
+        "whole_command_wall_s": 33.01397160009947
+      },
+      {
+        "label": "fresh_hard_arm_2_cpu01",
+        "method": "fresh_RRT_component",
+        "whole_command_wall_s": 9.255398000008427
+      },
+      {
+        "label": "team_medium_merge01",
+        "method": "fixed_path_merge",
+        "whole_command_wall_s": 5.623146699974313
+      },
+      {
+        "label": "team_hard_merge01",
+        "method": "fixed_path_merge",
+        "whole_command_wall_s": 7.69353150005918
+      }
+    ],
+    "timing_scope": "One Genesis command at a time, reused shared caches. Actual elapsed observations only. No cold-cache, equal-speed or isolated solver benchmark claim."
   },
-  "sample_count": 3,
-  "installed_term_v4_rule_digests_match": true,
-  "current_pc_validation": {
-    "status": "COMPLETE_PASS",
-    "gpu": "NVIDIA GeForce RTX 4090",
-    "cpu_exports": 6,
-    "full_native_reviews": 7,
-    "local_arm_practices": 6,
-    "independent_cpu_and_full_audit_rows": 13,
-    "independent_practice_audit_rows": 6,
-    "verified_private_server_receipts": 7,
-    "archived_joint_paths_and_edge_times_reused": true,
-    "new_RRT_solve_claimed": false,
-    "public_activation_established_by_this_evidence": false,
-    "cross_hardware_qualification_claimed": false
+  "GTX1660_SUPER_final_source_measured": false,
+  "complete_cross_hardware_release_qualification_claimed": false,
+  "five_independent_human_cold_solves_claimed": false,
+  "optional_visual_export": {
+    "formats": [
+      "interactive recorded-state viewer",
+      "PNG",
+      "WebM"
+    ],
+    "scope": "Own saved whole or standalone arm plan. Native practice exports recorded states. CPU geometry preview does not qualify physical transport.",
+    "browser_video_download_verified": false,
+    "verification_limit": "Full video/WebM encoding and download were not tested in this scoped validation.",
+    "current_source_recorded_export_verified": true,
+    "current_source_recorded_browser_playback_verified": true,
+    "actual_png_download_verified": true,
+    "verification_scope": "Genuine current-source Higher whole and arm_2 five-bead previews matched recorded states and passed the supplied parser. Actual Edge UI load, bounded playback, cup-interior view and PNG download passed.",
+    "private_evidence_sha256": {
+      "recorded_exports": "4a9e07467837ab7cdbc098cba2eceb87781049a87ab759dc4f3b00e896447c27",
+      "browser_smoke": "5251f7781e89b3b90112c9e3e2d1c85adb8923f096c8d51b94b8b872403c496f",
+      "scoped_visual_review": "f826132728f0df8cc49dbf39967da8419b71e0ad4afd2575b494dfd85b1b3a43"
+    }
   },
-  "official_student_account_flow": {
-    "status": "VERIFIED_WITH_OWNED_QA_ACCOUNT",
-    "actual_supplied_first_use_team_password_sign_in": true,
-    "real_HTTPS_upload_retry_and_owner_history": true,
-    "unchanged_genuine_native_record_reused": true,
-    "new_native_run_for_upload": false,
-    "owned_QA_entry_removed_after_capture": true,
-    "non_QA_records_enrollment_and_key_preserved": true,
-    "legacy_instructor_token_override_used": false,
-    "scope": "Instructor-owned verification only. This is not an additional student solve or physical qualification."
-  },
-  "student_release_approval_scope": "Current-PC student release: source-bound three-bead validation, final supplied documents and recorded-state media, and the actual HTTPS student account/result flow are verified. GTX1660 SUPER performance, fresh independent student cold solves and browser video download are not claimed."
+  "delivery_scope": "English README, supplied API/run/arm guides and Outline. Existing map, submission deadlines and grading retained. No PPT or LMS update is claimed.",
+  "release_scope": "Current five-bead CPU validation on all three complexities and representative Higher full/arm_2 bead physics on the current PC. Lower and Moderate full five-bead native runs and GTX 1660 SUPER remain unverified. Live activation and HTTPS verification are separate deployment records.",
+  "historical_release": {
+    "current_previous_public_generation": "term_v4",
+    "scope": "Historical three-bead records and immutable rules remain under their original generation. The unpublished three-bead term_v5 candidate is not activated or relabelled as five-bead evidence."
+  }
 }

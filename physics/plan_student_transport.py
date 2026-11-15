@@ -161,7 +161,7 @@ def _worker_main(argv=None):
     parser.add_argument('--task', type=Path, help='Provided map directory. Defaults to the selected difficulty map.')
     parser.add_argument('--design', type=Path, help='Student layout and speed JSON. Defaults to student/<difficulty>_design.json.')
     parser.add_argument('--max-stages', type=int, default=None, help='Optional incomplete CPU debug prefix. Default is the complete policy sequence.')
-    parser.add_argument('--wall-limit-s', type=float, default=0.0, help='Optional CPU whole-process guard in wall seconds. 0 means no wall timeout. This is not the simulated transport deadline.')
+    parser.add_argument('--wall-limit-s', type=float, default=0.0, help='Deprecated compatibility option. Ignored: CPU calculation has no elapsed-time limit.')
     parser.add_argument('--max-queries', type=int, default=50000, help='Per-stage state/edge query budget. Independent of elapsed wall time.')
     parser.add_argument('--endpoint-attempts', type=int, default=32, help='Provided terminal IK attempt budget, not intermediate poses.')
     parser.add_argument('--seed', type=int, default=71)
@@ -197,7 +197,10 @@ def _worker_main(argv=None):
     if out.exists() or out == ROOT or (not 1 <= args.max_stages <= motion_count):
         parser.error('Use a fresh output and a prefix within the selected policy motion count')
     if not math.isfinite(args.wall_limit_s) or args.wall_limit_s < 0:
-        parser.error('CPU wall budget must be a finite nonnegative number. Use 0 for no timeout.')
+        parser.error('The deprecated wall-time argument must be finite and nonnegative.')
+    if args.wall_limit_s:
+        print('Ignored --wall-limit-s: computation time is recorded, never capped.', file=sys.stderr)
+    args.wall_limit_s = 0.0
     if args.material != 'beads' and args.scope != 'one-carry':
         out.mkdir(parents=True, exist_ok=False)
         summary = {'status': 'CPU_MATERIAL_SCOPE_NOT_IMPLEMENTED', 'material': args.material, 'planning_scope': args.scope, 'completed_stages': 0, 'failure': {'type': 'UnsupportedMaterialScope', 'message': 'Particle export requires the explicit one-carry scope. Full particle missions are not implemented.'}, 'genesis_initialized': False, 'native_physical_steps': 0, 'cpu_physical_steps': 0, 'replayable_path_exported': False, 'full_mission_passed': False, 'physical_transport_verified': False, 'student_release_approved': False}
@@ -279,8 +282,6 @@ def _worker_main(argv=None):
         raise ContractError('CPU source boundary failed')
 
     def check():
-        if args.wall_limit_s > 0 and time.perf_counter() - started > args.wall_limit_s:
-            raise TimeoutError('CPU complete planning wall budget exceeded')
         if guard() is not True:
             raise ContractError('CPU planning source changed')
 
@@ -476,23 +477,22 @@ def _worker_main(argv=None):
     return 0 if summary['status'] == success_status else 1
 
 def supervise_cpu_worker(argv, *, output, timeout_s):
-    """Own a student child process and apply its optional whole-process timeout."""
+    """Own a student child process and measure elapsed time without a time cap."""
     from physics.review_process_memory import creation_identity, kill_owned_tree
     started = time.perf_counter()
     output = Path(output)
     hidden = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
-    receipt = {'schema_version': 'owned-cpu-worker-budget-v1', 'timeout_s': timeout_s, 'timed_out': False, 'worker_exit_code': None, 'cleanup_errors': []}
+    receipt = {'schema_version': 'owned-cpu-worker-measurement-v2', 'timeout_s': None, 'timed_out': False, 'worker_exit_code': None, 'cleanup_errors': []}
     process = identity = None
     with (output / 'worker_stdout.log').open('xb') as stream:
         try:
             process = subprocess.Popen(argv, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, creationflags=hidden)
             identity = creation_identity(process)
             receipt['worker_identity'] = identity
-            try:
-                process.wait(timeout=None if timeout_s is None else max(0.01, timeout_s - (time.perf_counter() - started)))
-            except subprocess.TimeoutExpired:
-                receipt['timed_out'] = True
-                receipt['tree_termination'] = kill_owned_tree(process, identity)
+            process.wait()
+        except KeyboardInterrupt:
+            receipt['interrupted'] = True
+            receipt['failure'] = {'type': 'CancelledByUser', 'message': 'CPU calculation stopped by the user.'}
         except Exception as exc:
             receipt['failure'] = {'type': type(exc).__name__, 'message': str(exc)}
         finally:
@@ -529,7 +529,10 @@ def main(argv=None):
     parent_blocker = NoGenesis()
     sys.meta_path.insert(0, parent_blocker)
     if not math.isfinite(args.wall_limit_s) or args.wall_limit_s < 0:
-        admission.error('CPU whole-process budget must be finite and nonnegative. 0 means no timeout.')
+        admission.error('The deprecated wall-time argument must be finite and nonnegative.')
+    if args.wall_limit_s:
+        print('Ignored --wall-limit-s: computation time is recorded, never capped.', file=sys.stderr)
+    args.wall_limit_s = 0.0
     out = args.output.resolve()
     if out.exists() or out == ROOT:
         admission.error('Use a fresh CPU export output')
@@ -548,9 +551,8 @@ def main(argv=None):
         index += 1
     worker = out / 'worker'
     command = [sys.executable, '-B', '-m', 'physics.plan_student_transport', *worker_args, '--worker', '--output', str(worker)]
-    allowance = None if args.wall_limit_s == 0 else max(0.01, args.wall_limit_s - (time.perf_counter() - started) - 1.0)
-    receipt = supervise_cpu_worker(command, output=out, timeout_s=allowance)
-    receipt.update(requested_wall_limit_s=args.wall_limit_s, scope='Owned CPU child startup through exit. Timeout kills its owned process tree. No Genesis import in the parent.')
+    receipt = supervise_cpu_worker(command, output=out, timeout_s=None)
+    receipt.update(requested_wall_limit_s=None, scope='Owned CPU child startup through exit. Elapsed time is measured without a limit. User cancellation cleans up its owned process tree. No Genesis import in the parent.')
     summary_path = worker / 'CPU_PLANNING_RESULT.json'
     missing_summary = {'status': 'CPU_PLAN_FAILED', 'planning_scope': args.scope, 'material': args.material, 'completed_stages': 0, 'failure': {'type': 'CpuWorkerDidNotComplete', 'message': 'No completed worker receipt. Consult worker_stdout.log and CPU_PROCESS_RESULT.json.'}, 'replayable_path_exported': False, 'physical_transport_verified': False}
     try:
@@ -590,12 +592,10 @@ def main(argv=None):
                 with (out / path.name).open('xb') as stream:
                     stream.write(path.read_bytes())
             elapsed = time.perf_counter() - started
-            if args.wall_limit_s > 0 and elapsed >= args.wall_limit_s:
-                raise TimeoutError('Whole CPU process budget exhausted before publication')
             parent_imports = [name for name in sys.modules if name == 'genesis' or name.startswith('genesis.')]
             if parent_imports or parent_blocker.blocked_attempts:
                 raise RuntimeError('CPU parent attempted a forbidden Genesis import')
-            receipt.update(status='COMPLETE_WITHIN_BUDGET', parent_wall_s_before_publication=elapsed, source_bindings_verified=True, worker_result_path=str(summary_path), worker_result_sha256=sha(summary_path), parent_genesis_imported_modules=parent_imports, parent_blocked_genesis_import_attempts=list(parent_blocker.blocked_attempts))
+            receipt.update(status='COMPLETE_RECORDED', parent_wall_s_before_publication=elapsed, source_bindings_verified=True, worker_result_path=str(summary_path), worker_result_sha256=sha(summary_path), parent_genesis_imported_modules=parent_imports, parent_blocked_genesis_import_attempts=list(parent_blocker.blocked_attempts))
             summary['worker_process_wall_s'] = summary['process_wall_s']
             summary['process_wall_s'] = elapsed
             attribution = cpu_attribution(elapsed, summary['cpu_search_wall_s'])
@@ -616,8 +616,6 @@ def main(argv=None):
                 SavedOneCarryPlan(value, path=pending).verify_sources()
             else:
                 SavedMissionPlan(value, path=pending).verify_sources()
-            if args.wall_limit_s > 0 and time.perf_counter() - started >= args.wall_limit_s:
-                raise TimeoutError('Whole CPU budget exhausted during publication validation')
             pending.rename(out / candidates[0].name)
         else:
             receipt['status'] = 'CPU_WORKER_TIMEOUT' if receipt['timed_out'] else 'CPU_WORKER_FAILED'

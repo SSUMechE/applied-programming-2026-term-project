@@ -1,8 +1,9 @@
-"""Deferred device POST audit of the original three beads and vessel tilt.
+"""Deferred device POST audit of the original five beads and vessel tilt.
 
 The supplied body-only variant checks tilt for native-particle runs. This new
 audit records intermediate failures even when the final state looks valid.
 """
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 import importlib
@@ -130,7 +131,7 @@ class DeferredPayloadAudit:
                 'Bound the complete actual POST window')
         require(gs.backend==gs.cuda and gs.use_zerocopy and scene.n_envs==0
                 and scene.rigid_solver._B==1,'Deferred payload requires the original unbatched CUDA scene')
-        require(len(beads)==len(ids) and len(beads) in (0,3),'Use original three beads or explicit particle body-only scope')
+        require(len(beads)==len(ids) and len(beads) in (0,BEAD_COUNT),'Use original five beads or explicit particle body-only scope')
         require(type(tilt_limit_deg) in (int,float) and math.isfinite(tilt_limit_deg)
                 and 0<=tilt_limit_deg<=180,'Pass the actual existing driver body tilt bound')
         self.scene,self.solver,self.tray=scene,scene.rigid_solver,tray

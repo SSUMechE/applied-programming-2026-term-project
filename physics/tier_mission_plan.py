@@ -113,7 +113,7 @@ def verify_task_design(contract,world,scenario):
     source=contract['source_support_id']; n=len(contract['required_arm_ids'])
     require(world.get('rigid_runtime_profile')=='rigid16_bead_tc2h_v1'
         and world.get('payload_mode')!='empty' and 'particle_material_request' not in world,
-        'Tier replay preserves the original three-bead rigid16 profile')
+        'Tier replay preserves the original five-bead rigid16 profile')
     require('one_carry_fixture' not in scenario.get('provenance',{}),
         'Full tier begins at original INITIAL, not a grasp-ready one-carry fixture')
     require([r['id'] for r in scenario['robots']]==['arm_0','arm_1','arm_2'],
@@ -203,19 +203,24 @@ class TierMissionPlan(SavedMissionPlan):
             'Full tier requires successful CPU-only planning with every stage')
         supervisor=value.get('cpu_process_supervisor',{})
         if require_supervisor:
+            measured=supervisor.get('schema_version')=='owned-cpu-worker-measurement-v2'
             require(supervisor==summary.get('cpu_process_supervisor')
-                and supervisor.get('schema_version')=='owned-cpu-worker-budget-v1'
-                and supervisor.get('status')=='COMPLETE_WITHIN_BUDGET' and supervisor.get('timed_out') is False
+                and ((measured and supervisor.get('status')=='COMPLETE_RECORDED')
+                    or (supervisor.get('schema_version')=='owned-cpu-worker-budget-v1'
+                        and supervisor.get('status')=='COMPLETE_WITHIN_BUDGET'))
+                and supervisor.get('timed_out') is False
+                and supervisor.get('interrupted',False) is False and supervisor.get('failure') is None
                 and supervisor.get('worker_exit_code')==0 and supervisor.get('cleanup_errors')==[]
                 and supervisor.get('source_bindings_verified') is True
                 and supervisor.get('parent_genesis_imported_modules')==[]
                 and supervisor.get('parent_blocked_genesis_import_attempts')==[],
                 'Full tier needs completed owned-process CPU publication')
             cost=summary.get('process_wall_s');limit=supervisor.get('requested_wall_limit_s')
-            require(type(cost) in (int,float) and math.isfinite(cost) and type(limit) in (int,float)
-                and math.isfinite(limit) and limit>=0 and cost>0
-                and (limit==0 or cost<limit) and cost==value.get('cpu_planning_wall_s')==supervisor.get('parent_wall_s_before_publication'),
-                'Tier CPU attributed wall budget is inconsistent')
+            require(type(cost) in (int,float) and math.isfinite(cost) and cost>0
+                and ((measured and limit is None) or (not measured and type(limit) in (int,float)
+                    and math.isfinite(limit) and limit>=0 and (limit==0 or cost<limit)))
+                and cost==value.get('cpu_planning_wall_s')==supervisor.get('parent_wall_s_before_publication'),
+                'Tier CPU measured time attribution is inconsistent')
             if 'cpu_resource_attribution_policy' in value:
                 policy=value['cpu_resource_attribution_policy']
                 search=value.get('cpu_search_wall_s');attributed=value.get('cpu_review_attribution_wall_s')
@@ -234,9 +239,10 @@ class TierMissionPlan(SavedMissionPlan):
                 'Tier CPU receipt lacks its exact owned worker identity')
             elapsed=supervisor.get('worker_elapsed_including_cleanup_s');allowance=supervisor.get('timeout_s')
             require(type(elapsed) in (int,float) and math.isfinite(elapsed) and 0<=elapsed<=cost
-                and ((limit==0 and allowance is None) or (limit>0 and type(allowance) in (int,float)
-                    and math.isfinite(allowance) and 0<allowance<=limit)),
-                'Tier CPU worker elapsed/allowance differs from its parent budget')
+                and ((measured and allowance is None) or (not measured and
+                    ((limit==0 and allowance is None) or (limit>0 and type(allowance) in (int,float)
+                        and math.isfinite(allowance) and 0<allowance<=limit)))),
+                'Tier CPU worker elapsed measurement differs from its parent record')
         else:require(supervisor.get('status')=='WORKER_CANDIDATE_PENDING','Only trusted CPU parent may admit a worker tier candidate')
         self._json=json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
         self.verify_sources()

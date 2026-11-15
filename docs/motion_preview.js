@@ -81,7 +81,7 @@
     requireValue(data && ['ap-student-motion-preview-v1', 'ap-student-physical-preview-v1'].includes(data.schema_version), 'Use a JSON produced by a supplied preview exporter.');
     const physical = data.schema_version === 'ap-student-physical-preview-v1';
     if (physical) {
-      requireValue(Array.isArray(data.bead_ids) && [0, 3].includes(data.bead_ids.length) && new Set(data.bead_ids).size === data.bead_ids.length
+      requireValue(Array.isArray(data.bead_ids) && [0, 5].includes(data.bead_ids.length) && new Set(data.bead_ids).size === data.bead_ids.length
         && data.bead_ids.every(id => typeof id === 'string' && id.length > 0 && id.length <= 128), 'Invalid recorded bead IDs.');
       requireValue(finite(data.bead_radius_m) && data.bead_radius_m > 0 && data.bead_radius_m < 1, 'Invalid recorded bead radius.');
       requireValue(typeof data.result_sha256 === 'string' && /^[0-9a-f]{64}$/.test(data.result_sha256), 'Missing physical result hash.');

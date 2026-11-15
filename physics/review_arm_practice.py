@@ -34,7 +34,7 @@ def parser():
     p.add_argument('--arm', choices=('arm_0', 'arm_1', 'arm_2'), required=True)
     p.add_argument('--contents', choices=('empty', 'beads'), required=True)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--wall-limit-s', type=float, default=1800., help='Local wall-time guard, not a completion score.')
+    p.add_argument('--wall-limit-s', type=float, default=0., help='Deprecated compatibility option. Computation wall time is measured without a limit.')
     p.add_argument('--vram-limit-gb', type=float, default=5.)
     p.add_argument('--memory-interval-s', type=float, default=.5)
     p.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
@@ -75,7 +75,7 @@ def run_worker(args):
         if captured:
             raise RuntimeError('Practice scene callback invoked more than once')
         captured['native'] = execute(context, output=args.output / 'arm_execution',
-                                     deadline=wall_deadline, arm_id=args.arm)
+                                     deadline=None, arm_id=args.arm)
         if captured['native'].get('practice_passed') is True:
             from physics.arm_practice_validation import validate_arm_practice_native
             validate_arm_practice_native(captured['native'],plan_record=context['student_driver'].saved_plan.record())
@@ -89,7 +89,7 @@ def run_worker(args):
                 '--design', str(args.design.resolve()), '--output', str(scene_output),
                 '--contents', args.contents, '--grasp-policy', 'automatic',
                 '--query-fixture-readback', 'batched', '--step-limit', '0',
-                '--wall-limit-s', str(args.wall_limit_s - 20.),
+                '--wall-limit-s', '0',
                 '--rigid16-readback', 'native', '--trace-mode', 'compact',
                 '--execution-backend', 'device']
     frozen.execute_device_tier_mission = selected_leg
@@ -125,14 +125,17 @@ def main(argv=None):
     p = parser()
     raw = list(sys.argv[1:] if argv is None else argv)
     args = p.parse_args(raw)
-    if not math.isfinite(args.wall_limit_s) or not 60 <= args.wall_limit_s <= 5400:
-        p.error('Use a local wall-time guard between 60 and 5400 seconds')
+    if not math.isfinite(args.wall_limit_s) or args.wall_limit_s < 0:
+        p.error('The deprecated wall-limit value must be finite and nonnegative')
+    if args.wall_limit_s > 0:
+        print('Note: --wall-limit-s is deprecated and ignored. Computation wall time is measured without a limit.', file=sys.stderr)
     if not 0 < args.vram_limit_gb <= 5 or not .1 <= args.memory_interval_s <= 3:
         p.error('Use process VRAM at most 5 GB and memory sampling 0.1..3 seconds')
     try:
         from student_design_input import prepare_arguments
         forwarded, binding = prepare_arguments('review', raw)
         args = p.parse_args(forwarded)
+        args.wall_limit_s = 0.
         plan = load_plan(args)
         sources = practice_source_snapshot()
     except (ValueError, OSError, KeyError, TypeError) as exc:
@@ -152,7 +155,7 @@ def main(argv=None):
                '--saved-tier', str(args.saved_tier.resolve()), '--difficulty', args.difficulty,
                '--task', str(args.task.resolve()), '--design', str(args.design.resolve()),
                '--arm', args.arm, '--contents', args.contents, '--output', str(args.output),
-               '--wall-limit-s', str(args.wall_limit_s), '--vram-limit-gb', str(args.vram_limit_gb),
+               '--wall-limit-s', '0', '--vram-limit-gb', str(args.vram_limit_gb),
                '--memory-interval-s', str(args.memory_interval_s)]
     from physics.review_process_memory import ProcessMemorySampler, creation_identity, kill_owned_tree, wait_owned_worker
     with log.open('xb') as stream:
@@ -174,7 +177,7 @@ def main(argv=None):
         print(json.dumps({'event': 'Local arm practice started', 'arm': args.arm,
                           'contents': args.contents, 'output': str(args.output)}), flush=True)
         try:
-            waited = wait_owned_worker(process, memory, identity, deadline=started + args.wall_limit_s)
+            waited = wait_owned_worker(process, memory, identity, deadline=None)
         finally:
             if process.poll() is None:
                 kill_owned_tree(process, identity)
@@ -193,7 +196,7 @@ def main(argv=None):
     for name, ok in (
         ('native_practice', worker.get('practice_passed') is True),
         ('source_bindings', unchanged), ('worker_exit', waited['exit_code'] == 0),
-        ('wall_limit', not waited['timed_out']),
+        ('worker_interrupted', not waited['timed_out']),
         ('memory_limit', not waited['memory_limit_stop']),
         ('memory_measurement', memory_receipt.get('observed_sampled_peak_within_limit') is True),
     ):
@@ -213,6 +216,7 @@ def main(argv=None):
                   saved_file_sha256=plan.file_sha256, source_bindings_unchanged=unchanged,
                   practice_sources=sources, compact_design_binding=binding,
                   review_wall_s=time.perf_counter()-started, worker=worker,
+                  wall_limit_s=None, wall_time_policy='measure_only',
                   exit_code=waited['exit_code'], timed_out=waited['timed_out'],
                   memory_limit_stop=waited['memory_limit_stop'], process_memory=memory_receipt,
                   hardware_before=hardware, worker_command=command,

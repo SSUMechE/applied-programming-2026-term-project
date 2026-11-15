@@ -1,8 +1,8 @@
 # Assessment and competition
 
-**2026-02 · Beads only · term_v4**
+**2026-02 · Beads only · term_v6**
 
-The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. The three term_v4 bead rules are active. Instructor qualification records remain separate from classroom standings.
+The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. The current term_v6 rules use five beads. Instructor qualification records remain separate from classroom standings. Computer elapsed time is measured only. It does not reject an otherwise valid result or affect the score. The simulated task deadlines remain 40 / 85 / 105 seconds for Lower / Moderate / Higher.
 
 ## Base assessment
 

@@ -1,7 +1,7 @@
 """Review one exact student CPU path with real GPU physics.
 
 The default explicit scope starts from its declared supported INITIAL.
-The supervisor bounds CPU-attributed planning plus this complete GPU process.
+The supervisor measures CPU planning and this complete GPU process without a wall-time limit.
 The parent samples the owned worker PID/creation handle through its exit.
 """
 from __future__ import annotations
@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -53,7 +54,7 @@ def parser():
     p.add_argument('--design',type=Path,required=True)
     p.add_argument('--material',choices=('beads','process_liquid','sand'),default='beads')
     p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--wall-limit-s',type=float,default=1800.)
+    p.add_argument('--wall-limit-s',type=float,default=0.,help='Deprecated and ignored. Wall time is measured without a limit.')
     p.add_argument('--vram-limit-gb',type=float,default=5.,help='Maximum observed sampled process memory in decimal GB, at most5. Not a hard-cap proof.')
     p.add_argument('--memory-interval-s',type=float,default=.5)
     p.add_argument('--rigid16-readback',choices=('legacy','native','native-verify'),default=None)
@@ -73,12 +74,16 @@ def main(argv=None):
     try:require_unlocked_material(args.material)
     except ValueError as exc:p.error(str(exc))
     particles=args.material!='beads'
-    if args.execution_backend=='device' and particles:p.error('Device execution is qualified only for the three-bead recipe')
+    if args.execution_backend=='device' and particles:p.error('Device execution is qualified only for the five-bead recipe')
     if args.rigid16_readback is None:args.rigid16_readback='legacy' if particles else 'native'
     if args.trace_mode is None:args.trace_mode='full' if particles else 'compact'
     if particles and (args.rigid16_readback!='legacy' or args.trace_mode!='full'):
         p.error('Native particles retain their original100-substep profile and full particle logging, not bead16 packets')
-    if not 10<=args.wall_limit_s<=1800:p.error('The complete one-carry budget must be10..1800 seconds')
+    if not math.isfinite(args.wall_limit_s) or args.wall_limit_s<0:p.error('Deprecated wall-limit value must be finite and nonnegative')
+    if args.wall_limit_s>0 or args.gpu_wall_allowance_s is not None:
+        print('Note: wall-time limit options are deprecated and ignored. Computation wall time is measured without a limit.',file=sys.stderr)
+    args.wall_limit_s=0.
+    args.gpu_wall_allowance_s=None
     if not 0<args.vram_limit_gb<=5. or not .1<=args.memory_interval_s<=3.:
         p.error('Use a positive process-memory limit at most5GB and sampling0.1..3s')
     from physics.one_carry_planning import SavedOneCarryPlan
@@ -87,13 +92,12 @@ def main(argv=None):
     single_args=single_active_options(args,plan,p)
     args.output=args.output.resolve()
     if args.worker:
-        if args.gpu_wall_allowance_s is None or args.gpu_wall_allowance_s<=10:p.error('Worker requires its supervised remaining wall budget')
         from physics import run_student_three_arm as entry
         old=sys.argv
         sys.argv=[str(ROOT/'physics/run_student_three_arm.py'),'--mode','one_carry',
             '--saved-carry',str(args.saved_carry.resolve()),'--task',str(args.task.resolve()),
             '--design',str(args.design.resolve()),'--output',str(args.output),
-            '--contents',args.material,'--grasp-policy','automatic','--query-fixture-readback','batched','--step-limit','0','--wall-limit-s',str(args.gpu_wall_allowance_s),
+            '--contents',args.material,'--grasp-policy','automatic','--query-fixture-readback','batched','--step-limit','0','--wall-limit-s','0',
             '--rigid16-readback',args.rigid16_readback,'--trace-mode',args.trace_mode,'--execution-backend',args.execution_backend]
         sys.argv+=single_args
         with block_online_planning() as calls:
@@ -109,20 +113,18 @@ def main(argv=None):
     from physics.review_tier_transport import cpu_cost_attribution
     cpu_cost=cpu_cost_attribution(plan.record())
     cpu_wall=cpu_cost['review_attribution_s']
-    if type(cpu_wall) not in (int,float) or not 0<cpu_wall<args.wall_limit_s-30:
-        p.error('Attributed CPU validation and export already exhausted the requested practice-review budget')
+    if type(cpu_wall) not in (int,float) or not math.isfinite(cpu_wall) or cpu_wall<=0:
+        p.error('CPU validation and export cost must be a finite positive measurement')
     if os.name!='nt':p.error('This resource-checked review requires exact Windows Popen-handle process-memory monitoring')
     memory_path=args.output.with_suffix('.memory_samples.jsonl')
     if args.output.exists() or args.output.with_suffix('.worker.log').exists() or memory_path.exists():
         p.error('Use a fresh output directory, worker log and memory-sample file')
     args.output.parent.mkdir(parents=True,exist_ok=True)
-    allowance=args.wall_limit_s-cpu_wall
-    cleanup_reserve_s=20.
-    worker_allowance=allowance-cleanup_reserve_s
+    cleanup_reserve_s=None
     command=[sys.executable,'-B','-m','physics.review_student_transport','--worker',
         '--saved-carry',str(args.saved_carry.resolve()),'--task',str(args.task.resolve()),
         '--design',str(args.design.resolve()),'--material',args.material,'--output',str(args.output),
-        '--wall-limit-s',str(args.wall_limit_s),'--gpu-wall-allowance-s',str(worker_allowance),
+        '--wall-limit-s','0',
         '--rigid16-readback',args.rigid16_readback,'--trace-mode',args.trace_mode,'--execution-backend',args.execution_backend]
     command+=single_args
     worker_log=args.output.with_suffix('.worker.log')
@@ -146,7 +148,7 @@ def main(argv=None):
             process_creation_unix_s=creation_s,owned_worker=identity,output=str(args.output))),flush=True)
         timed_out=False;termination=None;memory_limit_stop=False
         try:
-            waited=wait_owned_worker(process,memory,identity,deadline=started+worker_allowance)
+            waited=wait_owned_worker(process,memory,identity,deadline=None)
             code=waited['exit_code'];timed_out=waited['timed_out']
             memory_limit_stop=waited['memory_limit_stop'];termination=waited['termination']
         finally:
@@ -202,8 +204,8 @@ def main(argv=None):
         gpu_review_process_wall_s=wall,attributed_cpu_planning_wall_s=cpu_wall,
         actual_cpu_planning_wall_s=cpu_cost['total_s'],excluded_cpu_search_wall_s=cpu_cost['search_s'],
         actual_cpu_plus_review_wall_s=cpu_cost['total_s']+wall,cpu_resource_attribution_policy=cpu_cost['policy'],
-        additive_cpu_plus_review_wall_s=cpu_wall+wall,requested_complete_budget_s=args.wall_limit_s,
-        observed_additive_cost_within_budget=physical and cpu_wall+wall<=args.wall_limit_s,
+        additive_cpu_plus_review_wall_s=cpu_wall+wall,requested_complete_budget_s=None,
+        observed_additive_cost_within_budget=None,wall_time_policy='measure_only',
         cpu_cost_scope='Measured CPU elapsed minus synchronous selected search callbacks, plus GPU review. Actual CPU total and search are retained separately; not one uninterrupted process wall.',
         process_vram_status=memory_receipt['status'],
         observed_sampled_process_vram_within_budget=memory_receipt['observed_sampled_peak_within_limit'],
@@ -220,7 +222,7 @@ def main(argv=None):
         report['provided_fixed_peer_geometry_calibration']={'path':str(args.fixed_peer_reference),
             'sha256':hashlib.sha256(args.fixed_peer_reference.read_bytes()).hexdigest(),
             'state_restoration_claimed':False,'same_layout_and_peer_INITIAL_only':True}
-    report['review_accepted']=bool(physical and report['observed_additive_cost_within_budget']
+    report['review_accepted']=bool(physical and not memory_limit_stop
         and report['observed_sampled_process_vram_within_budget'])
     from physics.transport_outcomes import read_device_diagnostics, review_outcome
     diagnostics=[]

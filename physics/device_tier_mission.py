@@ -1,9 +1,10 @@
 """Persistent original-INITIAL bead tiers with a separate native phase scheduler.
 
 All three robots remain real dynamic entities. Only one commanded actor moves
-at a time. The cup, three beads, scene, native clock and handling owner persist.
+at a time. The cup, five beads, scene, native clock and handling owner persist.
 No legacy dispatcher rows or first-carry completion flags are manufactured.
 """
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 import json
@@ -128,28 +129,28 @@ class _Support:
 
 
 class _Mission:
-    def __init__(self, context, output, deadline):
+    def __init__(self, context, output, deadline=None):
         self.c, self.scene = context, context['scene']
         self.driver, self.helper = context['student_driver'], context['automatic_grasp']
         self.plan = self.driver.saved_plan
         self.contract = self.plan.task_contract
         self.output = Path(output).resolve()
         self.output.mkdir(parents=True, exist_ok=False)
-        self.deadline = deadline
+        self.deadline = None  # Actual computer time is measured, never a native execution cap.
         self.contents=context.get('contents','beads')
-        require(self.contents in ('beads','empty') and len(context['beads'])==len(context['ids'])==(0 if self.contents=='empty' else 3),'Explicit original payload inventory required')
+        require(self.contents in ('beads','empty') and len(context['beads'])==len(context['ids'])==(0 if self.contents=='empty' else BEAD_COUNT),'Explicit original payload inventory required')
         self.names = tuple(sorted(context['arms']))
-        require(self.names == ('arm_0','arm_1','arm_2') and self.scene.rigid_solver.n_dofs == (33 if self.contents=='empty' else 51)
+        require(self.names == ('arm_0','arm_1','arm_2') and self.scene.rigid_solver.n_dofs == (33 if self.contents=='empty' else 33+6*BEAD_COUNT)
                 and getattr(self.scene, '_ap_single_active_arm_contract', None) is None,
-                'Tier replay requires the persistent original 51-DOF three-native-arm scene')
+                'Tier replay requires the persistent original bead-count-bound three-native-arm scene')
         require(int(self.scene.t) == 0 and self.scene.sim.dt == DT and self.scene.sim.substeps == SUBSTEPS,
                 'Tier replay must begin at unchanged native clock zero')
         require(self.helper.holder is None and self.plan.verify_sources(), 'Initial holder or source failure')
         fingerprint=context['initial_fingerprint']
         require(fingerprint['status']=='FRESH_INITIAL_OBSERVABLES_CAPTURED' and not fingerprint['missing_required_fields']
-                and fingerprint['fields']['rigid.rigid_info.qpos']['shape']==[34 if self.contents=='empty' else 55,1]
-                and fingerprint['fields']['rigid.dyn_state.dofs.pos']['shape']==[33 if self.contents=='empty' else 51,1],
-                'Complete original native 51DOF/55q (or empty 33DOF/34q) INITIAL fingerprint is required')
+                and fingerprint['fields']['rigid.rigid_info.qpos']['shape']==[34 if self.contents=='empty' else 34+7*BEAD_COUNT,1]
+                and fingerprint['fields']['rigid.dyn_state.dofs.pos']['shape']==[33 if self.contents=='empty' else 33+6*BEAD_COUNT,1],
+                'Complete original count-bound native (or empty 33DOF/34q) INITIAL fingerprint is required')
         self.initial = copy.deepcopy(context['initial_observation'])
         self.observation = copy.deepcopy(self.initial)
         self.commands = copy.deepcopy(self.plan.record()['initial_commands_by_arm'])
@@ -164,11 +165,12 @@ class _Mission:
         self.bead_gate = self.bead_lifecycle = self.latest_bead_reset = None
         self.record = dict(schema_version=SCHEMA, contents=self.contents, passed=False, full_mission_physical_verified=False,
             status='TIER_DEVICE_EXECUTION_INCOMPLETE', task_contract=self.contract,
+            wall_limit_s=None,wall_time_policy='measure_only',
             task_contract_sha256=digest(self.contract), saved_bundle_sha256=self.plan.sha256,
             saved_plan_file_sha256=self.plan.file_sha256, required_arm_ids=list(self.plan.required_arm_ids),
             original_initial_observation=self.initial, original_sample_ids=copy.deepcopy(context['ids']),
             original_initial_fingerprint=copy.deepcopy(fingerprint),
-            original_initial_free_bodies=free_body_state(context), model='serial-active-three-native-arm-empty33dof' if self.contents=='empty' else 'serial-active-three-native-arm-51dof',
+            original_initial_free_bodies=free_body_state(context), model='serial-active-three-native-arm-empty33dof' if self.contents=='empty' else f'serial-active-three-native-arm-{33+6*BEAD_COUNT}dof',
             vessel_geometry=copy.deepcopy(context['model'].geometry_record()),
             vessel_geometry_sha256=context['model'].geometry_sha256,
             native_output_directory=str(self.output),native_scene_identity=self.scene_identity(),
@@ -250,8 +252,8 @@ class _Mission:
                     and last['end_native_step']==int(self.scene.t),
                     'Carry endpoint readback must use its unchanged current native history')
             with np.load(raw_path,allow_pickle=False) as raw:
-                require(raw['payload'].shape==(last['actual_intervals'],38),
-                        'Carry endpoint requires the complete original three-bead POST history')
+                require(raw['payload'].shape==(last['actual_intervals'],14+8*BEAD_COUNT),
+                        'Carry endpoint requires the complete original five-bead POST history')
                 raw_post=raw['payload'][-1].tolist()
             readbacks=dict(schema_version='same-clock-carry-endpoint-readbacks-v1',
                 native_scene_step=int(self.scene.t),raw_history=copy.deepcopy(last['raw_history']),
@@ -270,7 +272,6 @@ class _Mission:
             lifecycle=self.bead_lifecycle.record())
 
     def check(self, next_steps=0):
-        if time.perf_counter() >= self.deadline:raise TimeoutError('Complete tier review wall budget exceeded')
         require(self.c['source_check']() is True, 'Tier source bindings changed')
         require(int(self.scene.t)+next_steps <= INITIAL_TICKS+self.contract['completion_limit_ticks'],
                 'Tier simulated transport deadline exceeded')
@@ -359,7 +360,6 @@ class _Mission:
             with device_contact_hooks(self.scene,contact,'bead16',support,self.handling,payload,bead_gate=self.bead_gate):
                 try:
                     for index in range(count):
-                        if time.perf_counter() >= self.deadline:raise TimeoutError('Complete tier wall budget exceeded')
                         control.apply(index);self.scene.step();control.capture_post(index);payload.capture_post(index)
                         if payload.poll_failure():
                             interrupted='Native payload escape or invalid state'
@@ -653,7 +653,7 @@ def completion_summary(record):
     beads=record.get('contents')=='beads'
     seals=record.get('ideal_bead_lifecycle',{}).get('carry_seals',[]) if beads else []
     retained=(len(seals)==len(arms) and [s.get('arm_id') for s in seals]==arms
-        and all(s.get('passed') is True and s.get('original_three_retained_before_reset') is True
+        and all(s.get('passed') is True and s.get('original_beads_retained_before_reset') is True
                 and s.get('original_bead_ids')==record['original_sample_ids'] for s in seals)
         and [v['id'] for v in seals[-1]['endpoint']['materials']]==initial_ids==final_ids
         and all(p['payload']['passed'] for p in phases if p['phase']=='carry')) if beads else initial_ids==final_ids==[]
@@ -661,7 +661,7 @@ def completion_summary(record):
         last['passed'] and last['strict_material'] is True and last['expected_material_endpoints']==201)
     checks=dict(
         collision_free=all(p['contacts']['passed'] and p['contacts']['category_counts'].get('UNALLOWED_CONTACT')==0 for p in phases),
-        sample_retained=retained and len(initial_ids)==(3 if beads else 0),
+        sample_retained=retained and len(initial_ids)==(BEAD_COUNT if beads else 0),
         tracking_passed=all(p['control']['passed'] for p in phases),
         finite_state=all(p['control']['passed'] and p['payload']['passed'] for p in phases),
         handling_passed=handling['passed'] and handling['qualified_holder_id'] is None
@@ -857,8 +857,8 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
                 'Native result belongs to a different tier plan')
     from physics.tier_mission_plan import validate_task_contract
     validate_task_contract(record['task_contract'])
-    require(record['model']==('serial-active-three-native-arm-empty33dof' if contents=='empty' else 'serial-active-three-native-arm-51dof')
-            and record['native_counts']['dofs']==(33 if contents=='empty' else 51) and record['native_counts']['q_coordinates']==(34 if contents=='empty' else 55),
+    require(record['model']==('serial-active-three-native-arm-empty33dof' if contents=='empty' else f'serial-active-three-native-arm-{33+6*BEAD_COUNT}dof')
+            and record['native_counts']['dofs']==(33 if contents=='empty' else 33+6*BEAD_COUNT) and record['native_counts']['q_coordinates']==(34 if contents=='empty' else 34+7*BEAD_COUNT),
             'Full tier requires all three actual native robots and original free bodies')
     identity=record['native_scene_identity']
     require(type(identity) is list and len(identity)==4 and all(type(v) is int and v>0 for v in identity),
@@ -904,7 +904,7 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
             require(sha(phase[key]['file'])==phase[key]['sha256'],'Native phase artifact changed')
         with np.load(phase['raw_history']['file'],allow_pickle=False) as raw:
             require(set(raw.files)=={'control','payload','support','command_position','command_velocity','payload_escape_steps','payload_escape_points'}
-                    and raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,14 if contents=='empty' else 38)
+                    and raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,14 if contents=='empty' else 14+8*BEAD_COUNT)
                     and raw['payload_escape_steps'].shape==(len(record['original_sample_ids']),)
                     and raw['payload_escape_points'].shape==(len(record['original_sample_ids']),6)
                     and raw['support'].shape==(count*SUBSTEPS,6) and raw['support'].dtype==np.dtype('int64')
@@ -980,7 +980,7 @@ def load_failed_tier_proof(owned_output_directory, plan, *, contents, source_bin
         lifecycle=_validate_ideal_bead_record(record,plan.record(),complete=False)
     for stage in progress['valid_carry_stage_ids']:
         if lifecycle is not None:
-            require(any(s['stage_id']==stage and s['original_three_retained_before_reset'] is True
+            require(any(s['stage_id']==stage and s['original_beads_retained_before_reset'] is True
                         for s in lifecycle['carry_seals']), 'Credited carry lacks its original pre-reset retention seal')
         require(any(g.get('stage_id')==stage and g.get('kind')=='carry' and g.get('gate',{}).get('passed') is True
             and ((contents=='empty' and g['gate'].get('strict_material') is True)
@@ -997,7 +997,7 @@ def load_failed_tier_proof(owned_output_directory, plan, *, contents, source_bin
         physical_transport_accepted=False,full_mission_passed=False)
 
 
-def execute_device_tier_mission(context,*,output,wall_deadline):
+def execute_device_tier_mission(context,*,output,wall_deadline=None):
     owner=_Mission(context,output,wall_deadline)
     started=time.perf_counter()
     try:

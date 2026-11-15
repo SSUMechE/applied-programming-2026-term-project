@@ -119,13 +119,17 @@ def validate_rule(rule):
     version = rule.get("schema_version") if type(rule) is dict else None
     require(version in ("ap-leaderboard-rule-v1", "ap-leaderboard-rule-v2", "ap-leaderboard-rule-v3"),
             "RULE_VERSION", "Unknown rule format.")
+    from .v3 import official_rule_generation
+    generation = official_rule_generation(rule)
+    require(generation is None or generation < 5 or version == "ap-leaderboard-rule-v3",
+            "RULE_VERSION", "Current term rules retain the complete v3 scoring and bead policy contract.")
     v3 = version == "ap-leaderboard-rule-v3"
     deadline_rule = version in ("ap-leaderboard-rule-v2", "ap-leaderboard-rule-v3")
     fields = DEADLINE_RULE_FIELDS if deadline_rule else RULE_FIELDS
     if v3:
-        from .v3 import EXTRA_RULE_FIELDS, validate_v3_rule_extras, official_rule_generation
+        from .v3 import EXTRA_RULE_FIELDS, validate_v3_rule_extras
         fields = fields | EXTRA_RULE_FIELDS
-        if official_rule_generation(rule) == 4:
+        if generation is not None and generation >= 4:
             fields = fields | {'ideal_bead_policy'}
     exact_keys(rule, fields, "Rule")
     require(type(rule["rule_id"]) is str and re.fullmatch(r"[a-z0-9][a-z0-9_-]{2,79}", rule["rule_id"]),
@@ -164,7 +168,12 @@ def validate_rule(rule):
                 "CLOCK_CONTRACT", "The fixed initial stabilization and transport clock cannot be changed.")
         integer(rule["max_completion_ticks"], rule["minimum_final_rest_steps"] + len(rule["stages"]),
                 1000000000, "max_completion_ticks")
-    finite(rule["max_wall_s"], 1, 86400, "max_wall_s")
+    if v3 and generation is not None and generation >= 5:
+        require(rule["max_wall_s"] is None, "COMPUTE_TIME_POLICY",
+                "Computer elapsed time is recorded without a time limit in this term rule.")
+    else:
+        # Historical rule bytes retain their original numeric resource contract.
+        finite(rule["max_wall_s"], 1, 86400, "max_wall_s")
     integer(rule["max_vram_bytes"], 1, 5000000000, "max_vram_bytes")
     sources = rule["evaluation_sources"]
     require(type(sources) is dict and 1 <= len(sources) <= 10000, "SOURCE_INVENTORY", "Supplied sources are required.")
@@ -333,7 +342,13 @@ def validate_evaluation_record(rule, report):
     resources = report["resources"]
     exact_keys(resources, {"wall_s", "sampled_peak_process_vram_bytes", "valid_memory_samples",
                           "unknown_memory_samples", "timed_out", "memory_limit_stop"}, "Resources")
-    finite(resources["wall_s"], 0.000001, rule["max_wall_s"], "wall_s")
+    if rule["max_wall_s"] is None:
+        elapsed = resources["wall_s"]
+        require(type(elapsed) in (int, float) and elapsed > 0
+                and (type(elapsed) is int or math.isfinite(elapsed)),
+                "INVALID_NUMBER", "wall_s must be positive finite elapsed-time metadata.")
+    else:
+        finite(resources["wall_s"], 0.000001, rule["max_wall_s"], "wall_s")
     integer(resources["sampled_peak_process_vram_bytes"], 1, rule["max_vram_bytes"],
             "sampled_peak_process_vram_bytes")
     integer(resources["valid_memory_samples"], 1, 10000000, "valid_memory_samples")

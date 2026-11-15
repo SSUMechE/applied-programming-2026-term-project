@@ -225,16 +225,22 @@ class ProcessMemorySampler:
         return receipt
 
 
-def wait_owned_worker(process,memory,identity,*,deadline):
-    """Stop only the owned process tree on deadline or a valid sampled breach."""
+def wait_owned_worker(process,memory,identity,*,deadline=None):
+    """Wait without a time cap by default, while enforcing sampled memory limits.
+
+    An explicit deadline is retained for non-student infrastructure callers.
+    """
     termination=None;timed_out=False;memory_limit_stop=False
     while process.poll() is None:
         if memory.limit_exceeded.is_set():
             memory_limit_stop=True;termination=kill_owned_tree(process,identity);break
-        remaining=deadline-time.perf_counter()
-        if remaining<=0:
-            timed_out=True;termination=kill_owned_tree(process,identity);break
-        try:process.wait(timeout=min(.1,remaining))
+        poll_s=.1
+        if deadline is not None:
+            remaining=deadline-time.perf_counter()
+            if remaining<=0:
+                timed_out=True;termination=kill_owned_tree(process,identity);break
+            poll_s=min(poll_s,remaining)
+        try:process.wait(timeout=poll_s)
         except subprocess.TimeoutExpired:pass
     return dict(exit_code=process.poll(),timed_out=timed_out,
         memory_limit_stop=memory_limit_stop,termination=termination)

@@ -1,13 +1,13 @@
 """Published material availability, shared by CLI and recipe APIs."""
 from .contracts import ContractError
 
-BEAD_COUNT = 3
+BEAD_COUNT = 5
 
 
 def material_status():
     """Return a fresh availability record. No calendar-based unlocking occurs."""
     return {
-        "beads": {"unlocked": True, "description": "Three rigid beads"},
+        "beads": {"unlocked": True, "description": "Five rigid beads"},
         "process_liquid": {"unlocked": False, "description": "Planned for the next project disclosure"},
         "sand": {"unlocked": False, "description": "Planned for the next project disclosure"},
     }

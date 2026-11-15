@@ -4,6 +4,7 @@ This collector reads the same real native state used by the viewer. The owned
 gate separately proves that bead dynamics, integration and contacts were OFF
 for every internal step. The ordinary carry audit remains unchanged.
 """
+from transport_challenge.material_access import BEAD_COUNT
 import copy
 import hashlib
 from pathlib import Path
@@ -17,8 +18,8 @@ class PreparedPayloadAudit(DeferredPayloadAudit):
         self.native_gate = native_gate
         self.off_start = native_gate.count_off
         super().__init__(*args, **kwargs)
-        require(len(self.beads) == 3 and self.internal_spill,
-                'Prepared observation retains the original three identities and every internal observation')
+        require(len(self.beads) == BEAD_COUNT and self.internal_spill,
+                'Prepared observation retains the original five identities and every internal observation')
         path = str(Path(__file__).resolve())
         self.pins[path] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
 

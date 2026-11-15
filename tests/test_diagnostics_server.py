@@ -283,7 +283,7 @@ class DiagnosticsServerTests(unittest.TestCase):
         self.assertEqual(page["status"], 200)
         self.assertEqual(page["raw"], CLASSROOM_DASHBOARD.read_bytes())
         self.assertEqual(page["headers"]["Cache-Control"], "no-store")
-        self.assertIn("history --rule-id ap2026-easy-beads-term-v4", page["value"])
+        self.assertIn("history --rule-id ap2026-easy-beads-term-v6", page["value"])
         self.assertNotIn('type="file"', page["value"])
         for path, query, method, value in [("/health","","GET",None),
             ("/api/rules","","GET",None),("/api/v3/history","rule_id=absent","GET",None),

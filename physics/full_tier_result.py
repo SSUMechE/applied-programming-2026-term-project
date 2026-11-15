@@ -154,7 +154,7 @@ def export_full_review(*, rule, plan, supervisor, native_result, native_path,
         "rule_digest": rule["rule_digest"], "rule_qualified": rule["qualified"],
         "score_eligibility": "qualified_rule" if rule["qualified"] else "disabled_qualification_candidate",
         "submitted_to_server": False,
-        "wall_scope": "CPU attribution and parent time through native proof validation and input serialization. Supervisor rechecks after export and revokes any over-budget output.",
+        "wall_scope": "Actual CPU attribution and parent time through native proof validation and input serialization. Elapsed time is recorded without a computation-time cap or elapsed-time score penalty.",
         "scope": "Projection of validated actual full native findings. No qualification or physical PASS is inserted."}
     write_json(output / "PRODUCER_AUDIT.json", audit)
     return {"output": str(output.resolve()), "run_id": report["run_id"],

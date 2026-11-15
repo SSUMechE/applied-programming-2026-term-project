@@ -6,6 +6,7 @@ from physics import device_tier_mission as native
 from physics.ideal_bead_policy import BeadLifecycle,policy_contract
 from physics.automatic_manipulation import make_prepared_bead_receipt
 from transport_challenge.contracts import ContractError,digest
+from transport_challenge.material_access import BEAD_COUNT
 
 
 class FailedNativeProofTests(unittest.TestCase):
@@ -14,8 +15,8 @@ class FailedNativeProofTests(unittest.TestCase):
         self.output=Path(self.temp.name);self.directory=self.output/'device_tier_execution';self.directory.mkdir()
         self.source=self.output/'fixture_source.py';self.source.write_text('# Synthetic unit-test source only.\n')
         self.pins={str(self.source):hashlib.sha256(self.source.read_bytes()).hexdigest()}
-        self.ids=[dict(id='sample_'+str(i),entity_idx=10+i,mass_kg=.01,radius_m=.01) for i in range(3)]
-        self.positions=[[-.02,0.,0.],[0.,0.,0.],[.02,0.,0.]]
+        self.ids=[dict(id='sample_'+str(i),entity_idx=10+i,mass_kg=.01,radius_m=.01) for i in range(BEAD_COUNT)]
+        self.positions=[[-.03,0.,0.],[0.,0.,0.],[.03,0.,0.],[0.,.03,0.],[0.,-.03,0.]]
         world=dict(initial_contents=[dict(v,shape='sphere',frame='body',position_units='m',mass_units='kg',
             center_body_m=p) for v,p in zip(self.ids,self.positions)])
         self.world_path=self.output/'world.json';self.world_path.write_text(json.dumps(world))
@@ -91,13 +92,14 @@ class FailedNativeProofTests(unittest.TestCase):
             materials=[dict(v,position_world_m=p,velocity_world_m_s=[0.]*3,inside_carrier=True) for v,p in zip(self.ids,self.positions)])
 
     def carry_phase(self):
-        payload=dict(schema_version='deferred-native-payload-post-audit-v1',passed=True,original_bead_ids=self.ids,bead_count=3,
+        payload=dict(schema_version='deferred-native-payload-post-audit-v1',passed=True,original_bead_ids=self.ids,bead_count=BEAD_COUNT,
             actual_POST_samples=200,compact_host_polls=200,actual_internal_POST_samples=3200,requested_POST_samples=200,
             observed_prefix_only=False,immediate_failure_halt_preserved=True,source_bindings_unchanged=True,
             first_escape=None,escape_witnesses=[],first_failed_step=None,first_failed_global_substep=None,
             flags=dict(nonfinite=False,native_mass_changed=False,bead_outside=False,body_tilt=False,quaternion_invalid=False))
-        mass_bytes=struct.pack('<fff',*[v['mass_kg'] for v in self.ids])
-        payload.update(native_mass_dtype='<f4',expected_native_masses_kg=list(struct.unpack('<fff',mass_bytes)),
+        mass_format='<'+BEAD_COUNT*'f'
+        mass_bytes=struct.pack(mass_format,*[v['mass_kg'] for v in self.ids])
+        payload.update(native_mass_dtype='<f4',expected_native_masses_kg=list(struct.unpack(mass_format,mass_bytes)),
             initial_native_mass_sha256=hashlib.sha256(mass_bytes).hexdigest())
         return dict(phase='carry',stage_id='arm_0__carry',active_arm_id='arm_0',actual_holder_arm_id='arm_0',
             native_scene_identity=[1,2,3,4],actual_intervals=200,start_native_step=1,end_native_step=201,payload=payload,
