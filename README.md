@@ -61,11 +61,11 @@ Use the materials marked **Open** for your current work.
 | Joint path | A sequence of seven-angle configurations in rad | `student/joint_strategy.py` → `plan_path` |
 | Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
 
-**Choose the support, then the landing point.** In each `handoffs` entry, `support_id` selects an existing handoff surface. `x_m` and `y_m` place the supplied cup reference point in world coordinates. They are not offsets from the support centre. Selecting a handoff does not move the table. The supplied target fixes the cup's height and orientation.
+In each `handoffs` entry, select an existing surface with `support_id`. Set the cup reference point with `x_m` and `y_m` in world metres, not offsets from the surface centre. The table stays fixed. Cup height and orientation are supplied.
 
 ![An actual map view distinguishes the handoff support from the cup reference point and its world X/Y coordinates](docs/figures/handoff-xy-design.png)
 
-*Handoff design detail. Edit `student/<tier>_design.json` → `handoffs[index]`. The pictured point illustrates the coordinate convention, not a supplied solution. Check your own placement for reachability, cup footprint and clearance using the [allowed regions](docs/MAPS_AND_DESIGN.md#choose-bases-and-handoffs).*
+*P is an illustrative cup reference point. The dashed region limits P. Obstacles are faded for visibility only. See the [JSON example and allowed regions](docs/MAPS_AND_DESIGN.md#choose-bases-and-handoffs).*
 
 **Edit only these student targets:**
 

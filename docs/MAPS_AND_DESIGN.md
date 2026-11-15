@@ -34,9 +34,21 @@ In each `handoffs[index]`, set `support_id` to an allowed existing support. Set 
 
 The supplied target for that support fixes the cup's Z position and orientation. Do not add handoff Z or yaw fields. Only `arms[].base_placement.yaw_rad` is an editable orientation input.
 
-![Illustrative cup body-origin world X/Y and corresponding handoff JSON entry](figures/handoff-xy-design.png)
+![Select a handoff surface and choose the cup reference point in world X/Y](figures/handoff-xy-design.png)
 
-*Illustrative point on the supplied map, not a validated placement solution. Use your map's bounds and the supplied checks to evaluate your own choice.*
+*P is the illustrative cup body origin. The dashed region limits P. Obstacles are faded for visibility only.*
+
+Example syntax for `student/hard_design.json` → `handoffs[0]`:
+
+```json
+{
+  "support_id": "relay_2_support",
+  "x_m": 2.34,
+  "y_m": 1.17
+}
+```
+
+This example shows the coordinate convention, not a validated placement solution. Choose your own values and check reachability, cup footprint and clearance.
 
 Select distinct allowed handoff supports. Candidates include the relay and quality support surfaces, except the fixed destination for your tier. A catalogue entry is permission to try it, not a guarantee that adjacent arms can reach it. The published XY bounds account for the complete cup footprint. CPU contact planning also requires the bottom corners to remain at least `context.query_tracking_clearance_m` inside the support edges (currently 0.004 m). Choosing an exact catalogue boundary can therefore fail the endpoint check. Allow this extra margin, then check the selected endpoint with the oracle. No required intermediate joint posture is supplied.
 
