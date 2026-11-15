@@ -704,7 +704,7 @@ Open `docs/map_viewer.html` locally. Load your design, exported CPU path or succ
 <details>
 <summary>Preview/export commands and viewer controls</summary>
 
-Open `docs/map_viewer.html` locally in Chrome or Edge and select the same complexity. Keep its supplied JavaScript files beside it. Use **Preview your design JSON** for the layout. Use **Preview your saved motion** for one of the exports below.
+Open `docs/map_viewer.html` locally in Chrome or Edge and select the same complexity. Keep its supplied JavaScript files beside it. The 3D view requires WebGL 2. If graphics are unavailable, the viewer stops rendering and keeps the numeric object list available. Use **Preview your design JSON** for the layout. Use **Preview your saved motion** for one of the exports below.
 
 **CPU geometry:** export your own path and commanded times, without a physics run.
 
@@ -1026,7 +1026,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-path-examples-yaw-20261116"
+set "RELEASE=term-v6-viewer-depth-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1081,7 +1081,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-path-examples-yaw-20261116"
+set "RELEASE=term-v6-viewer-depth-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
