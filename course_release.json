@@ -3,7 +3,7 @@
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
     "PACKAGE_STATUS.json": "d7c9b5d1c5b398d37a42e3dc9bbd94f6158f4c32cca680e9a12284621a032470",
-    "README.md": "e8139b43ac54b8049d4391dfd48d0c3e6e53e54e25bcf03104ead92123ee56db",
+    "README.md": "75d8394983560c11a96e07abaa34cba3c4fca3df704606b16e05817d0ed9e3af",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "b175f615345b03b89ec28946cc3c44223ee49324f02cb499e5676782ebc9c3d3",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "c1645f3a24df041fc2a7e9ad5533b1bd332af0b8ca2fcc0af4a09b4f71b4a882",
@@ -61,7 +61,7 @@
     "docs/outline-planner-contract.png": "ee9068cb4a9b2852bf8e1299f9ec28620162a8a9492cd38919268ebdc6d80993",
     "docs/project-map-overview.png": "db00a6c9a0d5a3a332036a134da7d736d050374e7ccb76fc201a6c50e507d88e",
     "docs/project-schedule.svg": "d00edb5fcc2f7ae9c27a98b8e690cb5c83fa14ecbadb9f9bee62c88a6a3d2d62",
-    "docs/project_outline_with_appendix.pdf": "93c2120ba99daeffd5ab98e651ba33bd6793537736c0dda7bf58833ba44c33d3",
+    "docs/project_outline_with_appendix.pdf": "7310ec300b293302e2352bd467112403fbff90f5681e2248e25b1422a7e96ac6",
     "docs/viewer_capture.js": "a7ab1bc100bbc0626dfdfd6340bbda8006d998fb1e386f951a25512dceb09976",
     "docs/written-exam-date.svg": "9de58425e224cfee9f36f71b4351de4f627b6931fd2dbacf447df9961c2cb370",
     "environment_reference.json": "0aae029122295ed2fe0a2e29c28cc0546ad9322091991802dc99b191a1557c49",
@@ -228,7 +228,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v6-readme-quickstart-20261115",
+  "release_tag": "term-v6-outline-guide-20261116",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v6": {
