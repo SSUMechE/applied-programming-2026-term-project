@@ -57,9 +57,15 @@ Use the materials marked **Open** for your current work.
 | Decision | Input and units | Edit location |
 | --- | --- | --- |
 | Robot placement | Mounting surface, X/Y in m, yaw in rad. Surface choice fixes height. | `student/<tier>_design.json` → `arms` |
-| Handoffs | Allowed support ID and landing X/Y in m | Same JSON → `handoffs` |
+| Handoffs | Existing support ID and cup reference point's **world X/Y in m**. Height and orientation are supplied. | Same JSON → `handoffs` |
 | Joint path | A sequence of seven-angle configurations in rad | `student/joint_strategy.py` → `plan_path` |
 | Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
+
+**Choose the support, then the landing point.** In each `handoffs` entry, `support_id` selects an existing handoff surface. `x_m` and `y_m` place the supplied cup reference point in world coordinates. They are not offsets from the support centre. Selecting a handoff does not move the table. The supplied target fixes the cup's height and orientation.
+
+![An actual map view distinguishes the handoff support from the cup reference point and its world X/Y coordinates](docs/figures/handoff-xy-design.png)
+
+*Handoff design detail. Edit `student/<tier>_design.json` → `handoffs[index]`. The pictured point illustrates the coordinate convention, not a supplied solution. Check your own placement for reachability, cup footprint and clearance using the [allowed regions](docs/MAPS_AND_DESIGN.md#choose-bases-and-handoffs).*
 
 **Edit only these student targets:**
 
@@ -74,7 +80,7 @@ Implement `plan_path` in `student/joint_strategy.py`. Each request gives one arm
 
 Only start and goal configurations are supplied. Generate intermediate configurations using RRT, bidirectional RRT, A*, or another suitable course method. Choose clearance constraints and connection sampling. Final validation resolution stays fixed.
 
-**Share the work by arm.** In `plan_path`, use `context.active_arm_id` and `context.motion_kind` to select your team's arm-specific search or helper function. Merge everyone's work into one strategy and one selected design JSON. CPU planning exports the complete mission. Then [practice one selected arm](#36-optionally-check-with-an-empty-cup) with an empty cup or beads before the full-scene review. See the [context contract](docs/STUDENT_API.md#implement-the-search).
+**Share the work by arm.** In `plan_path`, use `context.active_arm_id` and `context.motion_kind` to select your team's arm-specific search or helper function. Merge everyone's work into one strategy and one selected design JSON. CPU planning exports the complete mission. Then [practice one selected arm](#36-start-physical-experiments-with-an-empty-cup), first with an empty cup and then with beads, before the full-scene review. See the [context contract](docs/STUDENT_API.md#implement-the-search).
 
 ![Supplied endpoints and checks connect student planning to a path or a failed search](docs/outline-planner-contract.png)
 
@@ -117,7 +123,9 @@ Treat a Genesis replay as a **virtual experiment**. Predict how a change in plac
 
 *Figure 5. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
 
-Use CPU geometry checks for frequent, inexpensive iterations. Empty-cup and glass-bead Genesis tests answer different physical questions. Both reuse the saved CPU path and timing unchanged. After editing your planner or design, export a fresh plan. You do **not** need three full runs after every change. Choose the next check from the evidence you still need.
+**Recommended first experiment: CPU geometry → empty cup → three glass beads.** First find a geometrically valid path on the CPU. Use an empty-cup Genesis experiment to check robot/cup motion, contact and automatic handling. Then replay the same saved path and timing with beads to test their motion and retention during carrying.
+
+After the first comparison, target later experiments to the uncertainty you need to resolve. You do **not** need three full runs after every change. After editing the planner, layout, handoff or timing, export a fresh CPU plan before another physical experiment.
 
 Team members can also [practice one arm in Genesis](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) using an empty cup or glass beads. These separate runs help diagnose each arm. Only the full bead mission can enter the leaderboard.
 
@@ -225,6 +233,8 @@ python -B project_run.py plan --scope tier-mission --difficulty %LEVEL% --materi
 
 Continue after `CPU_GEOMETRIC_TIER_MISSION_PLANNED`. The saved plan is `%RUN%/cpu/saved_tier_mission.json`. It contains your exact joint path, edge times, layout and source identities.
 
+Keep `--material beads` in this planning command even when your next experiment uses an empty cup. The replay's `--contents` option selects whether samples are present.
+
 If you implemented explicit edge times, set `joint_speed_scale` to `1.0` and append `--edge-timing-hook` to this command. Otherwise the JSON speed scale is used.
 
 **Do not edit the planner, design or supplied files between export and replay.** After an edit, choose a fresh `RUN` and export again. CPU success does not prove bead retention or completion within the simulated deadline.
@@ -237,28 +247,32 @@ python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json
 
 Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity, choose **Preview your saved motion**, and load the exported JSON. Use **Stage**, **Frame** and **Play** to see your planned path and handoff coordinates. This CPU preview has no simulated beads and does not run physics.
 
-### 3.6 Optionally check with an empty cup
+<a id="36-optionally-check-with-an-empty-cup"></a>
 
-Choose the test that answers your current question. Use CPU geometry for inexpensive checks without physical integration. The GPU modes are **virtual experiments in Genesis**: predict what your path and timing will do, test, observe and revise.
+### 3.6 Start physical experiments with an empty cup
 
-| CPU: geometry | GPU: empty cup | GPU: three glass beads |
+After CPU validation, **start your first physical experiment with an empty cup, then add beads**. These GPU runs are **virtual experiments in Genesis**: predict what your path and timing will do, test, observe and revise. The empty cup helps isolate robot/cup motion before adding payload behavior.
+
+| 1. CPU: check geometry | 2. GPU: experiment with an empty cup | 3. GPU: experiment with three glass beads |
 | :---: | :---: | :---: |
 | ![Cup geometry exported by the supplied CPU motion-preview renderer](docs/figures/test-cpu-geometry.png) | ![Empty cup and gripper cropped from a recorded Genesis animation](docs/figures/test-genesis-empty.png) | ![Cup containing beads cropped from a recorded Genesis animation](docs/figures/test-genesis-beads.png) |
-| Geometry only · no physical integration | Physical robot and cup behavior | Added bead physics during carrying |
+| Check configurations, connections and clearance. No physical integration. | Check tracking, contact, automatic pick/place and handoffs. No bead dynamics. | Add bead motion, contact, spill and retention checks during carrying. |
 
-*Figure 6. Actual CPU geometry and recorded Genesis carrying views. Empty-cup experiments isolate robot and cup behavior. Three-bead experiments add payload physics during carrying. Total wall times may be similar. Use original run receipts to judge success.*
+*Figure 6. Actual CPU geometry and recorded Genesis carrying views. Follow the columns from left to right for your first comparison. Both physical experiments use the same saved path and times.*
 
 - [CPU planning and geometry checks](#35-export-your-cpu-checked-path): get low-cost geometric feedback on configurations, clearance and connections. Search time still depends on your planning strategy.
 - **Empty-cup GPU experiment:** investigate robot/cup tracking, contact and automatic handling without bead physics. It cannot demonstrate bead retention.
 - [Three-bead GPU experiment](#37-verify-the-full-glass-bead-mission): test bead motion, spill and retention during carrying alongside the robot/cup checks. Only a successful full bead mission can enter the ranking.
 
-Startup, cache state and the path affect total wall time. Neither GPU mode guarantees a shorter run. Let the observed failure or uncertainty decide your next test. After a successful CPU export, you may proceed directly to beads or first use an empty cup. For focused experiments, use the per-arm commands below instead of replaying the full route. Keep the other arms, layout and saved motion unchanged when comparing empty and bead runs. You do not need three full runs after every change. Revise your design, path or timing and export a fresh CPU plan before retesting.
+Empty-cup experiments omit bead dynamics and bead contacts, reducing the modeled work. **Total wall times can still be similar** because startup, cache state and the shared robot/cup checks also cost time. Use empty-cup results to diagnose motion and handling, then spend the bead experiment on payload behavior. An empty-cup pass does not prove bead retention.
+
+The full-route empty-cup command is below. For a focused first experiment, use the per-arm commands instead. Keep the layout and saved motion unchanged for an empty/bead comparison. These are recommended development experiments, not additional required submissions or three compulsory full runs after every edit.
 
 ```bat
 python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents empty --output "%RUN%/empty"
 ```
 
-This replays the saved motion in Genesis to check tracking, contact and automatic handling. In `%RUN%/empty/REVIEW_SUPERVISOR.json`, an empty-cup pass has `review_accepted` and `empty_mission_passed` both `true`. Its `full_mission_passed` remains `false`, as expected. It does not test bead retention or produce a competition record. If you revise your inputs after a failure, return to CPU export with a fresh `RUN`.
+This replays the saved motion in Genesis to check tracking, contact and automatic handling. In `%RUN%/empty/REVIEW_SUPERVISOR.json`, an empty-cup pass has `review_accepted` and `empty_mission_passed` both `true`. Its `full_mission_passed` remains `false`, as expected. It does not produce a competition record. After an empty-cup pass, continue to 3.7 with the unchanged saved plan. If you revise any input, return to CPU export with a fresh `RUN` before retesting.
 
 **Optional: test one arm at a time.** After the complete CPU export in 3.5, select `arm_0` for Lower, `arm_0` or `arm_1` for Moderate, or any of `arm_0`, `arm_1`, `arm_2` for Higher. For example:
 
@@ -277,7 +291,7 @@ Read `PRACTICE_RESULT.json` in each output folder. `ARM_PRACTICE_PASS` means tha
 ### 3.7 Verify the full glass-bead mission
 
 ```bat
-python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v4/ap2026-%LEVEL%-beads-term-v4.json --output "%RUN%/full"
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents beads --rule leaderboard/rules/term_v4/ap2026-%LEVEL%-beads-term-v4.json --output "%RUN%/full"
 ```
 
 Genesis uses the same saved path and times with all **three original bead IDs**. Bead dynamics run during each carry. Supplied ideal handling performs pick/place and timestamped resets to prepared bead states outside carries. Carry failure remains failed after any reset. Every completed full bead review automatically records success or failure. No separate result packaging or manual upload is needed.

@@ -9,7 +9,9 @@
 
 **Do not manually edit other supplied files. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** Keep supplied planners, models, maps, limits, physics, interpolation, checkers, tests, scoring rules and registration/recording code unchanged. Do not edit generated plans, logs or result receipts. Instructor-announced updates through the official updater are allowed.
 
-Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a carrying robot's mounting location. A handoff selects a support surface and X/Y point between two arms. Lower has one arm entry and no handoffs. Moderate has two arm entries and one handoff. Higher has three arm entries and two handoffs. The supplied adapter fixes the source, finish and unused-arm parking. Do not add those entries or edit the generated internal design.
+Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while filling the JSON's `null` choices. A base is a carrying robot's mounting location. The supplied adapter fixes the source, finish and unused-arm parking. Do not add those entries or edit the generated internal design.
+
+In `student/<tier>_design.json`, each `handoffs[index].support_id` chooses an existing support. Its `x_m` and `y_m` set the cup **body origin's world X/Y coordinates in metres**, not offsets from the support centre. The supplied target fixes cup Z and orientation. The editable orientation field is `arms[].base_placement.yaw_rad`. Lower keeps `handoffs: []`, Moderate fills `handoffs[0]`, and Higher fills `handoffs[0]` and `handoffs[1]`. See the [coordinate illustration](figures/handoff-xy-design.png) and [footprint and clearance conditions](MAPS_AND_DESIGN.md#which-entries-do-i-fill). The illustrated point is not a validated placement solution.
 
 ## Implement the search
 
@@ -92,7 +94,9 @@ python -B project_run.py test
 
 The unfinished starter has two path errors and one passing default timing check. After implementation, all three should pass. They check endpoint and timing contracts in simple joint space, not workcell feasibility.
 
-Follow [CPU plan, optional empty cup and full beads](EVALUATION_AND_SUBMISSION.md). CPU export freezes exact paths, times and source identities. Both replay modes use the same export without new RRT, online IK or hidden timing changes. After editing planner or design inputs, create a fresh CPU output before replaying.
+For initial development, follow the recommended sequence: [CPU geometry](EVALUATION_AND_SUBMISSION.md#3-save-a-cpu-checked-path), then an [empty-cup Genesis check](EVALUATION_AND_SUBMISSION.md#4-optionally-replay-with-an-empty-cup), then [bead replay](EVALUATION_AND_SUBMISSION.md#5-replay-the-full-path-with-beads). The empty-cup check tests robot/cup tracking, contact and handling before you add bead motion and retention. CPU export freezes exact paths, times and source identities. Both physical modes reuse that export without new RRT, online IK or hidden timing changes.
+
+Empty-cup checks and per-arm practice remain optional. Use [one-arm practice](EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) for a local question and full review for the complete transfer sequence. Only the full bead mission can enter ranking. You do not need three full runs after every change. After editing planner or design inputs, create a fresh CPU output before another physical check.
 
 CPU search defaults to no wall timeout (`--wall-limit-s 0`) and 50,000 validity queries per stage. `--seed`, `--max-queries` and `--endpoint-attempts` control local search, not the simulated deadline. `--max-stages 1` produces a first-approach diagnostic with `CPU_PLAN_PREFIX_ONLY`. A prefix is not a complete replayable mission and never enters competition history. Failed supplied-runner commands are reported privately to the instructor.
 

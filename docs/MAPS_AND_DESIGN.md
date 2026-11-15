@@ -20,7 +20,7 @@ For an arm, select `mount_region`, then set `base_placement.x_m`, `y_m` and `yaw
 
 ### Which entries do I fill?
 
-A **base** is a carrying robot's mounting location. A **handoff** is a support surface and X/Y point where one arm leaves the cup for the next arm. Use this table while filling your selected design JSON. Array entries start at index 0.
+A **base** is a carrying robot's mounting location. A **handoff** selects an existing support and the cup's landing point for the next arm. Use this table while filling `student/<tier>_design.json`, where `<tier>` is `easy`, `medium` or `hard`. Array entries start at index 0.
 
 | Complexity | Student `arms` entries | Student `handoffs` entries | Supplied fixed finish |
 | --- | --- | --- | --- |
@@ -29,6 +29,14 @@ A **base** is a carrying robot's mounting location. A **handoff** is a support s
 | Higher | `arm_0`, `arm_1`, `arm_2` | `handoffs[0]` for the first transfer, then `handoffs[1]` for the second. Choose both supports and X/Y points. | `goal_support` |
 
 Every tier starts at the supplied `source_support`. Do not enter the fixed start or finish in `handoffs`. Do not add unused-arm or unused-handoff entries. The supplied code parks any unused scene arms and retains their collision geometry. Their positions are not student inputs. Keep `schema_version: "student-tier-design-v1"`, the selected `difficulty`, arm IDs and entry counts unchanged. Replace the editable `null` values before planning.
+
+In each `handoffs[index]`, set `support_id` to an allowed existing support. Set `x_m` and `y_m` to the **world X/Y position of the cup's body origin, in metres**. The body origin is the cup reference point shown in the illustration below. These are world coordinates, not offsets from the support centre. Your choice moves the landing target, not the physical support.
+
+The supplied target for that support fixes the cup's Z position and orientation. Do not add handoff Z or yaw fields. Only `arms[].base_placement.yaw_rad` is an editable orientation input.
+
+![Illustrative cup body-origin world X/Y and corresponding handoff JSON entry](figures/handoff-xy-design.png)
+
+*Illustrative point on the supplied map, not a validated placement solution. Use your map's bounds and the supplied checks to evaluate your own choice.*
 
 Select distinct allowed handoff supports. Candidates include the relay and quality support surfaces, except the fixed destination for your tier. A catalogue entry is permission to try it, not a guarantee that adjacent arms can reach it. The published XY bounds account for the complete cup footprint. CPU contact planning also requires the bottom corners to remain at least `context.query_tracking_clearance_m` inside the support edges (currently 0.004 m). Choosing an exact catalogue boundary can therefore fail the endpoint check. Allow this extra margin, then check the selected endpoint with the oracle. No required intermediate joint posture is supplied.
 
@@ -43,6 +51,8 @@ python -B -c "import json,os; from pathlib import Path; from transport_challenge
 ## Inspect your saved motion
 
 After a successful CPU export, follow the [optional motion-preview command](EVALUATION_AND_SUBMISSION.md#3-save-a-cpu-checked-path). In the viewer opened from your cloned repository, select the same complexity and choose **Preview your saved motion** to load the exported JSON. Use **Stage**, **Frame** or **Play** to inspect your seven joint angles, planned arm/cup geometry and handoff coordinates. **Top XY**, **Front XZ** and **Side YZ** provide comparison views. No completed reference path is bundled. The preview changes no path or timing and does not establish physical success. Its stage command time is not the competition completion time.
+
+For physical checks, follow the [recommended CPU → empty cup → beads sequence](STUDENT_API.md#test-and-interpret-results). Empty-cup and bead replay use the same saved path and timing. Per-arm practice can investigate one leg, while a full review checks the complete handoff sequence.
 
 ## Use geometry in your search
 

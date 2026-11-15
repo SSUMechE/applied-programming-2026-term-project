@@ -4,7 +4,9 @@
 
 Design your layout, seven-joint path and speed. Supplied code performs grasping and placement. The exact saved CPU path is reused by empty-cup and bead replay. [Inputs and API](STUDENT_API.md) · [Maps](MAPS_AND_DESIGN.md) · [Scoring](SCORING.md)
 
-Use the [three test choices in the README](../README.md#36-optionally-check-with-an-empty-cup) to plan your experiments. CPU geometry is a fast check without physical simulation. Empty-cup Genesis tests tracking, contact and handling. Glass-bead Genesis also tests bead motion, spill and retention during carrying. Both physical modes use the provided ideal handling outside carries. Predict a design change, choose the evidence you need, inspect the result and revise. Empty-cup testing is optional. You do not need three full runs after each change. Per-arm practice helps investigate a local question, while the full bead mission is required for ranking. After any student-input edit, export a fresh CPU plan before another Genesis test.
+Follow the [recommended first experiment in the README](../README.md#36-start-physical-experiments-with-an-empty-cup): **CPU geometry → empty-cup Genesis → glass-bead Genesis**. First find a geometrically valid path. Use the empty cup to investigate robot/cup tracking, contact and automatic handling. Then reuse the same saved path and times with beads to test payload motion, spill and retention during carrying. Both physical modes use the provided ideal handling outside carries.
+
+Empty-cup runs omit bead dynamics and bead contacts, reducing the modeled work. Total wall times can still be similar because setup, cache state and shared robot/cup checks also cost time. Predict a change, inspect its effect and choose later experiments around the remaining uncertainty. These are recommended development experiments, not three compulsory full runs after every edit or extra submission items. Per-arm practice helps investigate a local question. Only the full bead mission can enter the ranking. After any student-input edit, export a fresh CPU plan before another Genesis test.
 
 Verify your own layout, path and speed with the steps below. Official bead competition and final representative selection are active. Instructor test records are separate from classroom standings. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and silica sand remain locked.
 
@@ -85,6 +87,8 @@ python -B project_run.py plan --scope tier-mission --difficulty %LEVEL% --materi
 
 Continue after `CPU_GEOMETRIC_TIER_MISSION_PLANNED`. `%RUN%/cpu/saved_tier_mission.json` contains exact joints, edge durations, layout and source identities. CPU geometry and analytic timing checks do not establish actual velocity/acceleration compliance, bead retention or completion within the simulated deadline. To use your explicit timing function, set JSON speed scale to `1.0` and append `--edge-timing-hook`.
 
+Keep `--material beads` in the planning command for both later physical modes. The replay's `--contents empty` or `--contents beads` chooses the payload without changing the saved path or timing.
+
 Do not edit planner, design or supplied files between export and replay. After an edit, plan again in a fresh output folder. Default CPU search has no wall timeout. The query budget remains finite.
 
 **Optional: inspect your own saved motion.** After a complete CPU export, create a viewer file:
@@ -93,7 +97,7 @@ Do not edit planner, design or supplied files between export and replay. After a
 python -B export_student_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --output "%RUN%/motion_preview.json"
 ```
 
-Open `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep its supplied JavaScript files beside it. Select the same complexity as your plan and choose **Preview your saved motion**, then load `motion_preview.json`. Use **Stage**, **Frame**, **Play** and **Planned cup path (current stage)** to inspect the arm, cup, seven joint angles, planned path and chosen handoff coordinates. Use **Preview your design JSON** to inspect base and handoff choices before planning. The preview reads your saved plan without replanning, retiming or starting Genesis. Its stage command time is not the competition completion time. It shows planned collision geometry without simulated beads. Continue with empty-cup or bead replay for physical verification.
+Open `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep its supplied JavaScript files beside it. Select the same complexity as your plan and choose **Preview your saved motion**, then load `motion_preview.json`. Use **Stage**, **Frame**, **Play** and **Planned cup path (current stage)** to inspect the arm, cup, seven joint angles, planned path and chosen handoff coordinates. Use **Preview your design JSON** to inspect base and handoff choices before planning. The preview reads your saved plan without replanning, retiming or starting Genesis. Its stage command time is not the competition completion time. It shows planned collision geometry without simulated beads. For your first physical comparison, continue with an empty cup and then beads.
 
 **Optional: diagnose one CPU stage.** If a CPU attempt failed after saving its input records, you may edit `student/joint_strategy.py` and retry just its next stage with the supplied diagnostic tool:
 
@@ -105,7 +109,9 @@ Read `DIAGNOSTIC.json` in that fresh output folder. `DIAGNOSTIC_STAGE_PLANNED` m
 
 Remove `--plan` to inspect the reconstructed endpoints and direct-edge diagnostic without calling your planner. For a completed attempt, replace `next` with a saved stage ID, such as `arm_0__carry`. Append `--edge-timing-hook` to test your timing function. The diagnostic has a 120-second default wall limit. Inspect `DIAGNOSTIC_PROCESS.json` and `worker_stdout.log` for timeout or interrupted-worker details. A timeout that prevents the worker report produces `DIAGNOSTIC_TIMEOUT`. Use `--wall-limit-s` to choose another positive limit. Completed stages supply the original seed and budgets. If the first stage failed, supply the original `--seed`, `--max-queries` and `--endpoint-attempts` values. Their normal CPU defaults are `71`, `50000` and `32`. Missing or inconsistent records require a fresh normal CPU run. This diagnostic is optional and adds no submission item.
 
-## 4. Optionally replay with an empty cup
+<a id="4-optionally-replay-with-an-empty-cup"></a>
+
+## 4. Start physical experiments with an empty cup
 
 ```bat
 python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents empty --output "%RUN%/empty"
@@ -113,11 +119,13 @@ python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json"
 
 This uses the same layout, initial robot/cup poses, paths, times and rigid16 settings, with only the beads removed. It checks physical following, contact, handling and completion. It cannot check bead retention and never uploads a competition record. A passing supervisor reports `review_accepted: true` and `empty_mission_passed: true`. Its `full_mission_passed` remains false.
 
+After a passing empty-cup experiment, continue to Section 5 with the same saved plan. If you edit the layout, handoff, path or timing, export a fresh CPU plan before retesting. A focused first experiment can use the per-arm commands below instead of a full-route empty run.
+
 ### Practice one arm in Genesis (optional)
 
 Team members may design different arms by using [`context.active_arm_id` and `context.motion_kind`](STUDENT_API.md#implement-the-search) in their shared `plan_path`. Merge the arm helpers into one strategy and agree on one shared placement/handoff design. First produce a **complete successful CPU export** with Section 3, then test the assigned arms separately. Use the same unchanged planner, design and saved mission. No additional practice-specific student code is required.
 
-Choose a participating arm: Lower uses `arm_0`, Moderate uses `arm_0` and `arm_1`, and Higher uses `arm_0`, `arm_1` and `arm_2`. Set `ARM` to the one you want to test, then run either or both commands:
+Choose a participating arm: Lower uses `arm_0`, Moderate uses `arm_0` and `arm_1`, and Higher uses `arm_0`, `arm_1` and `arm_2`. Set `ARM` to the one you want to test. For your first comparison, run the empty-cup command, inspect its result, then run the bead command with the unchanged saved plan:
 
 ```bat
 set "ARM=arm_0"
@@ -140,7 +148,7 @@ Practice has a default computer wall-time guard of 1,800 seconds. On a slower co
 ## 5. Replay the full path with beads
 
 ```bat
-python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v4/ap2026-%LEVEL%-beads-term-v4.json --output "%RUN%/full"
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents beads --rule leaderboard/rules/term_v4/ap2026-%LEVEL%-beads-term-v4.json --output "%RUN%/full"
 ```
 
 Genesis replays the saved path without new RRT or online IK. Lower completes one carry, Moderate two and Higher three, using the same cup and three bead IDs. Actual joint velocity/acceleration violations, tracking failure, prohibited contact, bead loss during carrying or an unmet final support/rest condition reject the run. The [speed contract](STUDENT_API.md#design-speed) gives the fixed limits and explains automatic acceleration/deceleration. Carry spill stops the run immediately and remains a failure. All three original IDs must pass the carry-end retention check before the place reset. A supplied reset cannot replenish a lost bead or convert failure into success. Preparation, approach, pick/place and released or handoff waits use prepared bead states, with instantaneous position/velocity resets recorded at their simulation timestamps. These phases still simulate the robot and cup and retain contact/support/rest checks. Only carrying enables bead dynamics and bead contacts.
@@ -235,7 +243,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v4-three-beads-20261115"
+set "RELEASE=term-v4-experiment-guide-20261115"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -274,7 +282,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v4-three-beads-20261115"
+set "RELEASE=term-v4-experiment-guide-20261115"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
