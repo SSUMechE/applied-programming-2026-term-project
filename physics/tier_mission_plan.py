@@ -113,7 +113,7 @@ def verify_task_design(contract,world,scenario):
     source=contract['source_support_id']; n=len(contract['required_arm_ids'])
     require(world.get('rigid_runtime_profile')=='rigid16_bead_tc2h_v1'
         and world.get('payload_mode')!='empty' and 'particle_material_request' not in world,
-        'Tier replay preserves the original four-bead rigid16 profile')
+        'Tier replay preserves the original three-bead rigid16 profile')
     require('one_carry_fixture' not in scenario.get('provenance',{}),
         'Full tier begins at original INITIAL, not a grasp-ready one-carry fixture')
     require([r['id'] for r in scenario['robots']]==['arm_0','arm_1','arm_2'],

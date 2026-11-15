@@ -6,6 +6,7 @@ Native welds suppress ALL hand-link/cup-link collision pairs. Finger contacts,
 other links/arms/world and cup/material physics are not globally filtered.
 """
 from __future__ import annotations
+import copy
 import math
 import numpy as np
 from physics.carried_body import VesselModel,WorldPose
@@ -130,10 +131,30 @@ class ProvidedAutomaticGrasp:
     def _unchanged(before,after):
         _require({k:v for k,v in before.items() if k!='inventory'}=={k:v for k,v in after.items() if k!='inventory'},'Attach/release or support callback changed pose/velocity/mass/clock')
 
-    def attach(self,arm_id):
+    def attach(self,arm_id,*,supplied_endpoint=None,support_ready=None):
+        _require((supplied_endpoint is None)==(support_ready is None),
+            'A supplied approach endpoint requires its same-clock support proof')
         _require(self._holder is None,'Double attachment is not allowed')
         before=self.snapshot(arm_id);self._check_inventory(before)
-        target=grasp_endpoint_candidates(self.model,before['body_world'])[0]
+        actual_cup_target=grasp_endpoint_candidates(self.model,before['body_world'])[0]
+        target=actual_cup_target;proof=None;reference='actual_cup_endpoint';supplied=None
+        if supplied_endpoint is not None:
+            _require(type(supplied_endpoint) is dict
+                and set(supplied_endpoint)=={'frame','position_m','quaternion_wxyz'}
+                and supplied_endpoint['frame']=='world' and callable(support_ready),
+                'A finite supplied world endpoint and trusted support callback are required')
+            target=WorldPose(supplied_endpoint['position_m'],supplied_endpoint['quaternion_wxyz'])
+            supplied=copy.deepcopy(supplied_endpoint);reference='supplied_approach_endpoint'
+            proof=copy.deepcopy(support_ready(copy.deepcopy(before)))
+            checked=self.snapshot(arm_id);self._unchanged(before,checked);self._check_inventory(checked)
+            _require(type(proof) is dict and proof.get('passed') is True
+                and proof.get('native_clock')==before['native_clock']
+                and proof.get('body_entity_idx')==before['body_entity_idx']
+                and type(proof.get('support_id')) is str and bool(proof['support_id'].strip())
+                and proof.get('supplied_endpoint')==supplied
+                and type(proof.get('evidence_sha256')) is str and len(proof['evidence_sha256'])==64
+                and all(c in '0123456789abcdef' for c in proof['evidence_sha256']),
+                'Actual same-clock support and frozen supplied endpoint proof is missing')
         measured=WorldPose(before['hand_world']['position_m'],before['hand_world']['quaternion_wxyz'])
         position=math.dist(target.position_m,measured.position_m)
         dot=abs(sum(a*b for a,b in zip(target.quaternion_wxyz,measured.quaternion_wxyz)))
@@ -149,6 +170,8 @@ class ProvidedAutomaticGrasp:
         except BaseException:self._faulted=True;raise
         self._holder=arm_id;self._owned_row=[self.weld_type,*pair]
         return dict(model='provided-ideal-native-weld-v1',event='attach',arm_id=arm_id,pair=pair,position_error_m=position,orientation_error_rad=angle,before=before,after=after,
+            target_reference=reference,supplied_endpoint=supplied,support_ready=proof,
+            actual_cup_endpoint_error_m=math.dist(actual_cup_target.position_m,measured.position_m),
             scope='Native attachment membership only; finite solver compliance and actual carried motion require physical observation. Standard entire hand-link/cup-link collision exclusion applies.')
 
     def release(self,arm_id,*,support_ready):

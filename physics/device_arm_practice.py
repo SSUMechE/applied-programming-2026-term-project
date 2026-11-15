@@ -216,6 +216,7 @@ def _run_leg(mission, boundary):
     m = mission
     actor = boundary['arm_id']
     source, destination = boundary['source_support_id'], boundary['destination_support_id']
+    m.prepare_beads(required_arm_ids=[actor],support_route=[source,destination],scope='arm_practice')
     m.hold('practice_initial_settle', 'settle', actor, source, .5)
     require(int(m.scene.t) == INITIAL_TICKS, 'Practice initial stabilization must use exactly 200 ticks')
     for index, stage in zip(boundary['stage_indices'], boundary['stages']):
@@ -223,10 +224,12 @@ def _run_leg(mission, boundary):
         kind = stage['kind']
         op = dict(stage_id=stage['stage_id'], kind=kind, active_arm_id=actor,
                   support_id=source, destination=destination)
+        if kind == 'approach':
+            op['supplied_pick_endpoint'] = copy.deepcopy(stage['nominal_goal_hand_world'])
         m.driver.current = op
         if kind == 'approach':
             require(m.helper.holder is None and m.driver.held is None, 'Practice approach begins held')
-            endpoint = grasp_endpoint_candidates(m.c['model'], m.observation['body_world'])[0].to_record()
+            endpoint = copy.deepcopy(stage['nominal_goal_hand_world'])
             m.driver.endpoint_hand_pose = endpoint
         else:
             require(m.helper.holder == actor and m.driver.held is not None, 'Practice carry lacks native acquisition')
@@ -237,11 +240,14 @@ def _run_leg(mission, boundary):
         trajectory = m.validate_stage(index, stage, goal)
         table = trajectory_commands(trajectory, m.commands, actor, m.c['limits_by_arm'][actor])
         begin = int(m.scene.t)
-        _, raw_support = m.phase(stage['stage_id'], kind, actor,
+        if kind == 'carry':
+            m.begin_bead_carry(actor,stage['stage_id'])
+        carry_phases, raw_support = m.phase(stage['stage_id'], kind, actor,
                                  source if kind == 'approach' else destination, table)
         m.commands[actor]['q_rad'] = list(trajectory['waypoints'][-1])
         if kind == 'approach':
             m.hold(stage['stage_id'] + '__endpoint_settle', 'settle', actor, source, .5)
+            m.reset_beads('PRE_PICK',actor,source,stage_id=stage['stage_id'])
             before = m.snapshot()
             gate = pick(m.driver, m.state(), op)
             m.observation = copy.deepcopy(m.c['observe']())
@@ -256,6 +262,7 @@ def _run_leg(mission, boundary):
                                              phase='carry', holder_arm_id=actor)
             load = support['maximum_consecutive_unsupported_held_s']
             require(load >= .5, 'Practice lacks the original unsupported-load window')
+            m.finish_bead_carry(actor,stage['stage_id'],carry_phases,destination)
             m.hold(stage['stage_id'] + '__supported_hold', 'place', actor, destination, .5)
             ready = assess_place_ready(m.observation, m.rows, m.c['settings'], m.c['rest_policy'], m.driver.goal)
             require(ready['passed'], 'Practice placement lacks actual support/body rest')
@@ -282,18 +289,10 @@ def _run_leg(mission, boundary):
             m.hold(stage['stage_id'] + '__released_settle', 'released_settle', actor, destination, 1.)
             targets = {n: m.q[9*j+7:9*j+9].copy() for j, n in enumerate(m.names)}
             extra = 0.
-            while True:
-                hard = released_numeric_gate(m.rows, settings=m.c['settings'], rest_policy=m.c['rest_policy'],
-                    goal=m.driver.goal, arm_order=m.names, finger_targets=targets, load_bearing_s=load,
-                    model=m.c['model'], identities=m.c['ids'], strict_material=False, contents=m.contents)
-                if hard['bead_bulk_rest']['passed']:
-                    gate = released_numeric_gate(m.rows, settings=m.c['settings'], rest_policy=m.c['rest_policy'],
-                        goal=m.driver.goal, arm_order=m.names, finger_targets=targets, load_bearing_s=load,
-                        model=m.c['model'], identities=m.c['ids'], strict_material=True, contents=m.contents)
-                    break
-                require(extra + .5 <= 5., 'Original additional material-settle allowance exhausted')
-                m.hold(stage['stage_id'] + '__material_wait', 'released_settle', actor, destination, .5)
-                extra += .5
+            gate = released_numeric_gate(m.rows, settings=m.c['settings'], rest_policy=m.c['rest_policy'],
+                goal=m.driver.goal, arm_order=m.names, finger_targets=targets, load_bearing_s=load,
+                model=m.c['model'], identities=m.c['ids'], strict_material=m.contents=='empty', contents=m.contents,
+                ideal_bead_prepared=m.prepared_bead_receipt())
             require(gate['passed'], 'Practice destination release/rest gate failed')
             m.gates.append(dict(stage_id=stage['stage_id'], kind=kind, active_arm_id=actor, gate=gate,
                                 carried_support=support, additional_material_wait_s=extra))
@@ -348,6 +347,8 @@ def execute(context, *, output, deadline, arm_id):
                       actual_final_state=_body_and_arms(context), actual_destination_goal=copy.deepcopy(mission.driver.goal),
                       original_rest_thresholds_unchanged=True, no_online_replanning=True)
     except BaseException as exc:
+        if mission is not None and mission.bead_lifecycle is not None and mission.bead_lifecycle.state != 'FAILED':
+            mission.bead_lifecycle.note_failure(type(exc).__name__+': '+str(exc))
         result.update(failure=dict(type=type(exc).__name__, message=str(exc)), traceback=traceback.format_exc())
         try:
             result['actual_failed_state'] = _body_and_arms(context)
@@ -356,6 +357,10 @@ def execute(context, *, output, deadline, arm_id):
             result['failure_readback_error'] = dict(type=type(read_error).__name__, message=str(read_error))
     finally:
         if mission is not None:
+            mission.record_bead_policy()
+            for key in ('ideal_bead_policy','ideal_bead_lifecycle','prepared_bead_body_local_positions_m'):
+                if key in mission.record:
+                    result[key] = mission.record[key]
             result.update(phases=mission.phases, boundary_events=mission.events, stage_gates=mission.gates,
                           completed_stage_ids=mission.completed, native_output_directory=str(mission.output),
                           distance_metric=mission.distance.record(), final_native_step=int(mission.scene.t),

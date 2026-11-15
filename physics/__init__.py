@@ -1,1 +1,1 @@
-"""Supplied persistent four-bead hardware-test runtime."""
+"""Supplied persistent three-bead hardware-test runtime."""

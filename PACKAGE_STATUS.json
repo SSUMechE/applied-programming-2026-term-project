@@ -1,9 +1,9 @@
 {
   "schema_version": "ap-term-project-package-status-v3",
   "semester": "2026-02",
-  "date": "2026-11-14",
-  "status": "STUDENT_DISTRIBUTION_ACTIVE_CURRENT_PC_VALIDATED",
-  "current_rule_version": "term_v3",
+  "date": "2026-11-15",
+  "status": "THREE_BEAD_CURRENT_PC_RELEASE_READY_OFFICIAL_RULES_ACTIVE",
+  "current_rule_version": "term_v4",
   "materials": {
     "beads": "available_for_student_design_and_verification",
     "process_liquid": "locked",
@@ -15,18 +15,17 @@
   "student_source_publication_authorized": true,
   "qualification_is_external_to_immutable_rule": true,
   "same_protected_physics_source_full_native_matrix_completed": true,
-  "five_independent_student_role_solves_reviewed": true,
-  "student_role_scope": "Agent role exercises, including revisions after failed attempts. Not measured human workload.",
+  "five_independent_student_role_solves_reviewed": false,
+  "student_role_scope": "Five historical agent-role implementations and designs were reviewed. The later Role 05 revision was additionally reviewed against the current API and three-bead handling contract. Current-source validation separately reuses six archived path/design sets with unchanged joint paths and edge times. These checks are not five fresh cold solves or measured human workload.",
   "GTX1660_SUPER_final_source_measured": false,
   "leaderboard_url": "https://phoniness-reenact-veggie.ngrok-free.dev",
-  "installed_term_v3_rule_digests_match": true,
   "official_competition_activated": true,
   "instructor_team_token_distribution_required": false,
   "team_registration": "Automatic first-use team name and shared-password sign-in. The supplied client stores a separate device credential outside Git and reuses it for results and diagnostics.",
   "team_identity_scope": "Self-registered team access. Possession of the agreed shared password is not verification of GitHub membership or university identity.",
   "preview_scope": "Optional own-plan CPU geometry and actual recorded Genesis robot/cup/bead playback. Read-only export does not rerun physics or create a validation certificate.",
-  "scope": "Student workspace and English guidance for the activated term_v3 bead competition. Protected physics, source and rule hashes match retained current-PC native evidence. GTX1660 SUPER performance remains unmeasured. No reference solution is included.",
-  "release_authorization_scope": "Instructor explicitly requested student distribution and official activation on 2026-11-14. Current-PC native evidence retained. GTX1660 SUPER qualification is still pending.",
+  "scope": "Three-bead student workspace approved for release on the validated current PC. RTX 4090 validation passed six CPU exports, seven full native reviews and six local practices with archived paths and timings. The official HTTPS endpoint has all three exact term_v4 rules active. Supplied first-use sign-in, real result upload/retry/history and owned-test cleanup passed. GTX1660 SUPER performance is unmeasured. No reference solution is included.",
+  "release_authorization_scope": "Instructor authorized the three-bead revision and publication. Current-PC student release is approved after source-bound validation, final document/media review, exact official rule activation and the supplied HTTPS account/result flow. Public Git publication and LMS delivery are separate operational actions.",
   "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
   "student_repository_visibility": "one private shared repository per team",
   "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
@@ -44,7 +43,7 @@
     "inside_view": "Transparent cup, follow camera and cup-only interior view",
     "recorded_state_export_tested": true,
     "browser_video_download_verified": false,
-    "verification_limit": "Recorded-data conversion, component rendering and recording lifecycle tested. Real browser video download remains unverified."
+    "verification_limit": "Current empty/three-bead practice exports and a full-run carry excerpt were independently checked against actual native records. Cropped PNGs and encoded media use the supplied recorded-state renderer. They are not live Genesis viewport screenshots. Actual browser video encoding and download remain unverified."
   },
   "compact_design_inputs": {
     "schema": "student-tier-design-v1",
@@ -61,19 +60,25 @@
     "fixed_source_finish_and_inactive_parking": "supplied",
     "completed_legacy_designs": "unchanged and supported",
     "student_files_overwritten": false,
-    "all_three_tier_cpu_planning": "passed",
+    "all_three_tier_cpu_planning": "six_archived_trajectory_CPU_exports_validated_no_new_RRT",
     "inactive_parking_native_initial_state_check": {
+      "status": "VERIFIED_WITH_CURRENT_SOURCE_FULL_TRANSPORT",
       "tiers": [
         "easy",
         "medium"
       ],
-      "outer_steps_each": 50,
-      "internal_checks_each": 800,
-      "failures": 0,
-      "full_transport": false
+      "successful_full_reviews_by_tier": {
+        "easy": 2,
+        "medium": 2
+      },
+      "all_three_native_robots_retained": true,
+      "supplied_inactive_base_and_command_configuration_retained": true,
+      "full_transport": true,
+      "dedicated_short_initial_state_test_run": false,
+      "scope": "Current compact parking was checked by source-bound initial fingerprints and complete collision/control/handling checks throughout four Lower/Moderate full reviews. No old 50-step count is claimed as a new-source test."
     },
-    "new_parking_full_native_transport_matrix_repeated": false,
-    "scope": "Input adapter and visualization change. Protected physics/source and rules unchanged. New supplied parking has CPU path validation. Existing full-transport evidence does not establish a repeated full-native matrix for these new parking values."
+    "new_parking_full_native_transport_matrix_repeated": true,
+    "scope": "Current compact design inputs passed six CPU geometry validations and seven full native reviews across all tiers. Exact archived joint paths and times were reused. Lower/Moderate evidence includes the supplied inactive parking configuration."
   },
   "student_naming": {
     "solo": "Own student ID for the private repository and leaderboard name",
@@ -90,23 +95,53 @@
     "saved_placements_handoffs_paths_times_and_peer_commands_retained": true,
     "previous_physical_handoff_continuity_claimed": false,
     "full_mission_and_ranking_eligible": false,
-    "competition_rules_and_protected_evaluation_sources_changed": false,
+    "competition_rules_and_protected_evaluation_sources_changed": true,
     "current_pc_native_validation": {
-      "hardware": "RTX 4090",
-      "map": "Higher",
-      "selected_arms": [
+      "status": "COMPLETE_PASS",
+      "cases": 6,
+      "arm_ids": [
         "arm_0",
         "arm_1",
         "arm_2"
       ],
-      "contents_per_arm": [
+      "contents": [
         "empty",
         "beads"
       ],
-      "passed_runs": 6,
-      "same_final_practice_source": true
+      "fresh_nominal_support_boundary": true,
+      "reporting_outboxes_unchanged": true,
+      "rule_version": "term_v4",
+      "gpu": "NVIDIA GeForce RTX 4090"
     },
-    "validation_timing_scope": "Independent workspaces ran concurrently with separate caches. Recorded times are not standalone performance benchmarks.",
+    "validation_timing_scope": "Separate working copies ran sequentially on one NVIDIA GeForce RTX 4090 PC, using shared, reused Genesis and Quadrants caches. Times cover the whole command and are elapsed wall times. They are not cold-cache, isolated GPU, GTX1660 SUPER or human-workload measurements.",
     "GTX1660_SUPER_measured": false
-  }
+  },
+  "sample_count": 3,
+  "installed_term_v4_rule_digests_match": true,
+  "current_pc_validation": {
+    "status": "COMPLETE_PASS",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "cpu_exports": 6,
+    "full_native_reviews": 7,
+    "local_arm_practices": 6,
+    "independent_cpu_and_full_audit_rows": 13,
+    "independent_practice_audit_rows": 6,
+    "verified_private_server_receipts": 7,
+    "archived_joint_paths_and_edge_times_reused": true,
+    "new_RRT_solve_claimed": false,
+    "public_activation_established_by_this_evidence": false,
+    "cross_hardware_qualification_claimed": false
+  },
+  "official_student_account_flow": {
+    "status": "VERIFIED_WITH_OWNED_QA_ACCOUNT",
+    "actual_supplied_first_use_team_password_sign_in": true,
+    "real_HTTPS_upload_retry_and_owner_history": true,
+    "unchanged_genuine_native_record_reused": true,
+    "new_native_run_for_upload": false,
+    "owned_QA_entry_removed_after_capture": true,
+    "non_QA_records_enrollment_and_key_preserved": true,
+    "legacy_instructor_token_override_used": false,
+    "scope": "Instructor-owned verification only. This is not an additional student solve or physical qualification."
+  },
+  "student_release_approval_scope": "Current-PC student release: source-bound three-bead validation, final supplied documents and recorded-state media, and the actual HTTPS student account/result flow are verified. GTX1660 SUPER performance, fresh independent student cold solves and browser video download are not claimed."
 }

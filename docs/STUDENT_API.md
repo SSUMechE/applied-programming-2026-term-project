@@ -1,6 +1,6 @@
 # Design the path, layout and speed
 
-**2026-02 · Four glass beads · term_v3**
+**2026-02 · Three glass beads · term_v4**
 
 **Edit only the student targets below.** Process liquid and sand are locked.
 
@@ -13,7 +13,9 @@ Use the [per-tier entry table](MAPS_AND_DESIGN.md#which-entries-do-i-fill) while
 
 ## Implement the search
 
-Complete `plan_path(request, oracle, *, kinematics=None, context=None)` in `student/joint_strategy.py`. Use RRT, bidirectional RRT, A*, or another suitable taught search. Each request supplies one arm's start and goal. Generate all intermediate configurations yourself. Provided endpoint IK handles grasp and placement poses, without supplying a transit route.
+Complete `plan_path(request, oracle, *, kinematics=None, context=None)` in `student/joint_strategy.py`. Use RRT, bidirectional RRT, A*, or another suitable taught search. Each request supplies one arm's start and goal. Generate all intermediate configurations yourself. Provided endpoint IK handles grasp and placement poses, without supplying a transit route. Automatic pickup checks the hand against the saved CPU plan’s fixed pickup endpoint and separately verifies that the cup satisfies the supplied support, rest and pose limits on its named support.
+
+For team work divided by arm, branch on `context.active_arm_id` (`arm_0`, `arm_1` or `arm_2`) and `context.motion_kind` (`approach` or `carry` in the complete mission). You may call different helper functions under `student/` from the same `plan_path`. The small supplied tests also use `arm_0` and `carry`, with simple test geometry. Read the supplied request and oracle instead of hardcoding a workcell route. Merge the arm helpers and shared placement/handoff choices into one strategy and one design before the complete CPU export. The [per-arm Genesis practice commands](EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional) replay the selected arm's exact saved stages. They do not create partial CPU missions or replace the final full-scene test.
 
 Use these interfaces to construct and check candidate connections.
 
@@ -74,7 +76,11 @@ Use the following fixed task limits when choosing times. They are instructor-cho
 
 The physical review checks actual joint velocity and acceleration against these limits. Actual acceleration is `(v_after - v_before) / 0.0025` over one outer physics interval. Its absolute value is checked, so both acceleration and deceleration can reject a run. Actual joint position must also track its command within `0.03 rad`.
 
-The CPU minimum-duration check guarantees the interpolated command limits only. A legal command can still produce `control:acceleration_limit` in physical replay. On the same edge, doubling its duration halves peak commanded velocity and quarters peak commanded acceleration. This scaling does not guarantee the same change in actual motion or a physical pass. Unnecessary waypoints add stops and can increase completion time. Use the [failure records](EVALUATION_AND_SUBMISSION.md#resolve-failures) to revise the relevant edge times or path, then export again. No fixed slowdown factor is required. Forbidden contact, tracking error and actual bead loss also reject a run. There is no separate 8-degree spill gate.
+The CPU minimum-duration check guarantees the interpolated command limits only. A legal command can still produce `control:acceleration_limit` in physical replay. On the same edge, doubling its duration halves peak commanded velocity and quarters peak commanded acceleration. This scaling does not guarantee the same change in actual motion or a physical pass. Unnecessary waypoints add stops and can increase completion time. Use the [failure records](EVALUATION_AND_SUBMISSION.md#resolve-failures) to revise the relevant edge times or path, then export again. No fixed slowdown factor is required. Forbidden contact, tracking error and bead loss during carrying also reject a run. There is no separate 8-degree spill gate.
+
+The supplied material policy enables bead dynamics and bead contacts only during an actual carry. Initial preparation, approach, automatic pick/place and released or handoff waits use three prepared bead states. The runner records instantaneous position/velocity resets with timestamps. You do not write grip physics or the reset routine. The fixed robot/cup handling holds and their physical contact/support/rest checks continue. Only extra bead-settling waits and retries are removed.
+
+A carry must retain all three original IDs before the supplied place reset. A detected carry spill stops the run immediately and remains a failure. Resetting cannot replace a missing bead or rescue that run. Resets take zero simulated time and change neither the saved path nor its edge times. The complete task clock still includes robot/cup approach, handling, carrying, waiting and final rest after the initial 0.5-second exclusion.
 
 ## Test and interpret results
 

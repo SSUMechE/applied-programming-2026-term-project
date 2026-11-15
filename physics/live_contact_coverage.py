@@ -435,7 +435,7 @@ def build_live_contact_coverage(scene, *, arms, owners, readback="scalar", runti
         payload.update(schema_version="live-contact-coverage-rigid16-v1", runtime_profile=runtime_profile)
     if single is not None:
         if runtime_profile!=RIGID16_PROFILE or payload_mode is not None:
-            raise ContractError('Single-active coverage is only the explicit rigid16 four-bead operation')
+            raise ContractError('Single-active coverage is only the explicit rigid16 three-bead operation')
         payload['single_active_contract']=single
     if payload_mode=='empty':
         payload.update(schema_version='live-contact-coverage-empty-v1',payload_mode='empty',material_count=0,
@@ -493,7 +493,7 @@ def require_live_contact_coverage(ledger):
 
 
 
-AUTOMATIC_GRASP_HELPER_SHA256 = "7458d4f339da20d91d819f981cc8e30c3b018dd5cce375e9d61f32eb55e3c291"
+AUTOMATIC_GRASP_HELPER_SHA256 = "a2c2c2aad83499e1f793d46a8893c59c96ab84d5e2741fc83228ed06350dcf60"
 AUTOMATIC_GRASP_SCOPE = "Native current-pose weld; standard entire hand-link/cup-link collision exclusion only. No bilateral-contact or no-weld certificate."
 
 

@@ -22,7 +22,7 @@ import numpy as np
 
 from physics import live_contact_coverage as base
 from physics.handle_contacts import validate_contact_snapshot
-raise RuntimeError('This hardware package supports the fixed four-bead tiers only')
+raise RuntimeError('This hardware package supports the fixed three-bead tiers only')
 from transport_challenge.contracts import ContractError
 
 DT, SUBSTEPS = .0025, 100

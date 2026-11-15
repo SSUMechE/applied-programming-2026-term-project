@@ -287,7 +287,7 @@ class ContinuationDispatcher:
         binding=after.get("provided_grasp") if native["event"]=="attach" else before.get("provided_grasp")
         if (type(binding) is not dict or set(binding)!={"schema_version","model","holder_arm_id","helper_source_sha256","attach_receipt","current_snapshot"}
                 or binding["schema_version"]!="provided-automatic-grasp-binding-v1" or binding["model"]!="provided_ideal"
-                or binding["holder_arm_id"]!=arm or binding["helper_source_sha256"]!="7458d4f339da20d91d819f981cc8e30c3b018dd5cce375e9d61f32eb55e3c291"
+                or binding["holder_arm_id"]!=arm or binding["helper_source_sha256"]!="a2c2c2aad83499e1f793d46a8893c59c96ab84d5e2741fc83228ed06350dcf60"
                 or binding["current_snapshot"]!=attached):
             raise ContractError("Actual provided-grasp source/holder/snapshot binding differs")
         if native["event"]=="attach":

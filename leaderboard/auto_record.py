@@ -22,7 +22,8 @@ from .contracts import canonical_bytes, decode_json, digest, load_rule, require,
 from .evaluate import verify_review
 from .submit import _NoRedirect, token_value
 from .v3 import (RECORD_SCHEMA, RULE_SCHEMA, SELECTION_SCHEMA, capture_student_snapshot,
-                 commit_student_snapshot, utc_timestamp, validate_attempt, validate_snapshot)
+                 commit_student_snapshot, utc_timestamp, validate_attempt, validate_snapshot,
+                 archived_rule, require_current_rule)
 
 
 DEFAULT_SERVER = 'https://phoniness-reenact-veggie.ngrok-free.dev'
@@ -113,6 +114,11 @@ def upload_queued(path, *, server_url=None, token_file=None):
     status_path = path.with_suffix('.status.json')
     base = {'run_id': record['run_id'], 'simulation_outcome': record['outcome'],
             'record_file': str(path), 'native_physics_launched': False}
+    if archived_rule(record):
+        result = {**base, 'status': 'superseded', 'reason': 'RULE_REPLACED',
+                  'message': 'This result belongs to a replaced rule. Update supplied files and make a fresh three-bead full run.'}
+        _atomic(status_path, result)
+        return result
     url = server_url or os.environ.get('AP_LEADERBOARD_URL') or DEFAULT_SERVER
     try:
         token = token_value(token_file=token_file or os.environ.get('AP_LEADERBOARD_TOKEN_FILE'))
@@ -165,7 +171,8 @@ def _partial_count(native, required):
 def auto_record_from_review(rule_path, review_dir, *, project_root, student_snapshot, queue_dir,
                             server_url=None, token_file=None):
     rule = load_rule(rule_path)
-    require(rule['schema_version'] == RULE_SCHEMA, 'RULE_VERSION', 'Automatic attempt recording requires term v3.')
+    require_current_rule(rule)
+    require(rule['schema_version'] == RULE_SCHEMA, 'RULE_VERSION', 'Automatic attempt recording requires the distance/time protocol.')
     validate_snapshot(student_snapshot)
     directory = Path(review_dir).resolve(strict=True)
     supervisor_path = directory / 'REVIEW_SUPERVISOR.json'
@@ -226,6 +233,7 @@ def auto_record_from_review(rule_path, review_dir, *, project_root, student_snap
 
 def select_record(record_file, commit_id, *, project_root, server_url=None, token_file=None):
     record, _ = _read(record_file, 1_048_576)
+    require_current_rule(record)
     require(record.get('schema_version') == RECORD_SCHEMA and record.get('outcome') == 'SUCCESS',
             'SELECTION_FAILED_RUN', 'Select a locally recorded successful full run.')
     snapshot = commit_student_snapshot(project_root, commit_id)

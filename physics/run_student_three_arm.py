@@ -25,7 +25,7 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def save(p,v):Path(p).write_text(json.dumps(v,indent=2,allow_nan=False)+'\n',encoding='utf-8')
 
 
-def finalize_single_batch_result(result,*,mode,source_bindings_unchanged):
+def finalize_single_batch_result(result,*,mode,source_bindings_unchanged,plan_record=None):
     """Fail closed after cleanup. This cannot create physical completion proof."""
 
     if mode=='tier_mission':
@@ -36,7 +36,8 @@ def finalize_single_batch_result(result,*,mode,source_bindings_unchanged):
             and result.get('status')==expected_status
             and result.get('completion_scope')=='provided_device_tier_mission_v1')
         try:
-            if healthy:healthy=validate_device_tier_completion(result.get('device_tier_execution'),contents='empty' if empty else 'beads')
+            if healthy:healthy=validate_device_tier_completion(result.get('device_tier_execution'),
+                plan_record=plan_record,contents='empty' if empty else 'beads')
         except Exception as exc:
             healthy=False;result.setdefault('failure',{'type':type(exc).__name__,'message':str(exc)})
         result.update(full_mission_passed=bool(healthy and not empty),empty_mission_passed=bool(healthy and empty),physical_transport_accepted=bool(healthy),student_release_approved=False,
@@ -221,13 +222,13 @@ def main():
     if particle_mode and args.mode!='one_carry':
         parser.error('This saved particle adapter is explicit one_carry only')
     if args.contents not in ('beads','empty') and (args.rigid16_readback!='legacy' or args.trace_mode!='full'):
-        parser.error('Consolidated CUDA readback and compact traces require the four-bead rigid16 task')
+        parser.error('Consolidated CUDA readback and compact traces require the three-bead rigid16 task')
     if args.mode=='tier_mission' and (args.contents not in ('beads','empty') or args.execution_backend!='device' or args.single_active_arm is not None):
         parser.error('Tier replay requires persistent three-native-arm beads/device, without fixed-peer mode')
     if args.saved_plan is not None and (args.mode not in ('mission','tier_mission','one_carry')
             or not (args.contents in ('beads','empty') or particle_mode and args.mode=='one_carry')
             or args.edge_timing_hook or args.strategy!='student.joint_strategy' or args.grasp_policy=='friction'):
-        parser.error('--saved-plan requires the automatic four-bead full mission, with no online strategy or timing hook')
+        parser.error('--saved-plan requires the automatic three-bead full mission, with no online strategy or timing hook')
     empty_mode=args.contents=='empty'
     if args.video and (not empty_mode or args.images):
         parser.error('--video requires --contents empty and cannot combine with --images')
@@ -252,6 +253,7 @@ def main():
     output=args.output.resolve();output.mkdir(parents=True,exist_ok=False)
     started=time.monotonic();gs=None;result={'status':'STUDENT_RUN_FAILED','full_mission_passed':False,'student_release_approved':False}
     paths={};snapshots={};source_errors=[];source_guard=None;setup_source_receipt=None;saved_plan=None
+    owned_tier_plan_record=None
     def matches():
         try:
             if source_guard is not None:return source_guard()
@@ -304,6 +306,8 @@ def main():
                 effective_scenario=scenario
             saved_plan.verify_bound_inputs(world,effective_scenario,design_sha256=design.sha256,
                 task_manifest_sha256=sha(task/'manifest.json'))
+            if args.mode=='tier_mission':
+                owned_tier_plan_record=copy.deepcopy(saved_plan.record())
         empty_program=None;empty_overlay=None
         if empty_mode:
             from transport_challenge.empty_container_program import load_empty_program,empty_container_overlay
@@ -483,7 +487,8 @@ def main():
             'preinit_full_hash_fallback_only':source_receipt is None,
             'scope':'Full initial/before/after SHA and callback-serviced periodic1s SHA. Every callback stats all paths. Same-signature content changes can evade quick checks until a full boundary. No per-call cryptographic guarantee.'}
         result.setdefault('execution_backend',args.execution_backend)
-        finalize_single_batch_result(result,mode=args.mode,source_bindings_unchanged=unchanged)
+        finalize_single_batch_result(result,mode=args.mode,source_bindings_unchanged=unchanged,
+            plan_record=owned_tier_plan_record)
         accepted=result.get('status') in ('STUDENT_EXECUTION_SHORT_CUTOFF','STUDENT_THREE_ARM_MOTION_PROBE_PASS',
             'PROVIDED_PICK_PLACE_UNIT_SAMPLED_PASS','PROVIDED_PLACEMENT_PROBE_SAMPLED_PASS','PROVIDED_BEAD_LIFT_UNIT_SAMPLED_PASS',
             'STUDENT_THREE_ARM_SINGLE_BATCH_SAMPLED_PASS','STUDENT_FIRST_HANDOFF_SAMPLED_PASS','EMPTY_CONTAINER_JOINT_PATH_SAMPLED_PASS',

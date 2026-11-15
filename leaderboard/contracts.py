@@ -123,8 +123,10 @@ def validate_rule(rule):
     deadline_rule = version in ("ap-leaderboard-rule-v2", "ap-leaderboard-rule-v3")
     fields = DEADLINE_RULE_FIELDS if deadline_rule else RULE_FIELDS
     if v3:
-        from .v3 import EXTRA_RULE_FIELDS, validate_v3_rule_extras
+        from .v3 import EXTRA_RULE_FIELDS, validate_v3_rule_extras, official_rule_generation
         fields = fields | EXTRA_RULE_FIELDS
+        if official_rule_generation(rule) == 4:
+            fields = fields | {'ideal_bead_policy'}
     exact_keys(rule, fields, "Rule")
     require(type(rule["rule_id"]) is str and re.fullmatch(r"[a-z0-9][a-z0-9_-]{2,79}", rule["rule_id"]),
             "RULE_ID", "Use a stable lowercase rule identifier.")

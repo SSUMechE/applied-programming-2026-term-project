@@ -82,7 +82,7 @@ def prepare_stage(args, check=lambda: None):
         require(current.is_file() and sha(current) == expected,
                 'Stale design, map or supplied source. Run full CPU again: ' + str(current))
         current_pins[str(current.resolve())] = expected
-    rule_path = ROOT / 'leaderboard/rules/term_v3' / ('ap2026-' + args.difficulty + '-beads-term-v3.json')
+    rule_path = ROOT / 'leaderboard/rules/term_v4' / ('ap2026-' + args.difficulty + '-beads-term-v4.json')
     rule = read(rule_path)
     for relative, expected in rule['evaluation_sources'].items():
         current = ROOT / relative

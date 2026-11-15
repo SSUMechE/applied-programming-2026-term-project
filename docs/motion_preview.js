@@ -81,10 +81,32 @@
     requireValue(data && ['ap-student-motion-preview-v1', 'ap-student-physical-preview-v1'].includes(data.schema_version), 'Use a JSON produced by a supplied preview exporter.');
     const physical = data.schema_version === 'ap-student-physical-preview-v1';
     if (physical) {
-      requireValue(Array.isArray(data.bead_ids) && data.bead_ids.length <= 100 && new Set(data.bead_ids).size === data.bead_ids.length
+      requireValue(Array.isArray(data.bead_ids) && [0, 3].includes(data.bead_ids.length) && new Set(data.bead_ids).size === data.bead_ids.length
         && data.bead_ids.every(id => typeof id === 'string' && id.length > 0 && id.length <= 128), 'Invalid recorded bead IDs.');
       requireValue(finite(data.bead_radius_m) && data.bead_radius_m > 0 && data.bead_radius_m < 1, 'Invalid recorded bead radius.');
       requireValue(typeof data.result_sha256 === 'string' && /^[0-9a-f]{64}$/.test(data.result_sha256), 'Missing physical result hash.');
+      requireValue(data.contents === (data.bead_ids.length ? 'beads' : 'empty'), 'Recorded contents and original bead count differ.');
+      if (data.bead_ids.length) {
+        const policy = data.bead_display_policy;
+        requireValue(policy?.schema_version === 'ap-carry-only-bead-display-v1'
+          && /^[0-9a-f]{64}$/.test(policy.source_policy_sha256) && /^[0-9a-f]{64}$/.test(policy.source_lifecycle_sha256)
+          && policy.reset_simulation_duration_s === 0 && policy.no_reset_interpolation === true,
+          'Export the recorded motion again to include its carry-only bead policy.');
+        requireValue(Array.isArray(data.bead_reset_events) && data.bead_reset_events.length > 0
+          && data.bead_reset_events.length <= 7, 'Missing or excessive supplied reset markers.');
+        let previousReset = -1;
+        for (const event of data.bead_reset_events) {
+          requireValue(['INITIAL', 'PRE_PICK', 'PLACE'].includes(event.reason) && /^arm_[012]$/.test(event.arm_id)
+            && typeof event.support_id === 'string' && event.support_id.length <= 128
+            && Number.isInteger(event.native_step) && event.native_step >= 0 && event.native_step >= previousReset
+            && finite(event.global_sim_time_s) && Math.abs(event.global_sim_time_s - event.native_step * .0025) < 1e-8
+            && event.simulation_duration_s === 0 && /^[0-9a-f]{64}$/.test(event.source_event_sha256),
+            'Invalid supplied zero-time reset marker.');
+          previousReset = event.native_step;
+        }
+        requireValue(data.bead_reset_events[0].reason === 'INITIAL' && data.bead_reset_events[0].native_step === 0,
+          'Missing original initial preparation marker.');
+      }
     }
     requireValue(data.difficulty === map.difficulty && data.map_id === map.map_id, 'This preview belongs to a different map. Select its complexity first.');
     const expectedKeys = Object.keys(map.source_files_sha256).sort();
@@ -121,6 +143,17 @@
       stageIDs.add(stage.stage_id);
       requireValue((physical ? stage.kind === 'physical' : ['approach', 'carry', 'kinematic_return'].includes(stage.kind)) && /^arm_[012]$/.test(stage.active_arm_id), 'Invalid stage arm or motion kind.');
       requireValue(finite(stage.duration_s) && stage.duration_s >= 0 && stage.duration_s <= 100000, 'Invalid stage duration.');
+      if (physical && data.bead_ids.length) {
+        const carry = stage.phase === 'carry' && !stage.zero_physics_return;
+        requireValue(stage.bead_state_mode === (carry ? 'CARRY' : 'OFF_PREPARED')
+          && stage.bead_dynamics_evaluated === carry
+          && stage.cup_robot_physics_evaluated === !Boolean(stage.zero_physics_return),
+          'The recorded bead mode differs from its phase.');
+        requireValue(Number.isInteger(stage.start_native_step) && stage.start_native_step >= 0
+          && Array.isArray(stage.provided_bead_resets_before)
+          && JSON.stringify(stage.provided_bead_resets_before) === JSON.stringify(data.bead_reset_events.filter(e => e.native_step === stage.start_native_step)),
+          'Stage preparation markers differ from the recorded reset ledger.');
+      }
       const source = stage.source_trajectory;
       if (!physical) {
       requireValue(source && Array.isArray(source.waypoints) && source.waypoints.length > 0 && source.waypoints.length <= 10000

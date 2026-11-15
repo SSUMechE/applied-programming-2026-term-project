@@ -39,7 +39,7 @@ class CpuSurfaceGeometryTests(unittest.TestCase):
         self.assertEqual(len(surfaces),e.model.ngeom)
         self.assertTrue(any(s.shape=='mesh' and len(s.vertices_m)>8 and s.triangles for s in surfaces))
         self.assertTrue(any(s.owner_kind=='tray' for s in surfaces))
-        self.assertEqual(len([s for s in surfaces if s.owner_kind=='bead']),4)
+        self.assertEqual(len([s for s in surfaces if s.owner_kind=='bead']),3)
         with self.assertRaises(FrozenInstanceError):surfaces[0].center_m=(0.,0.,0.)
         before=surfaces
         q[0]+=.1;facade.geometry(q)

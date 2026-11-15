@@ -1,5 +1,6 @@
 {
-  "status": "RELEASED_DELIVERY_SAMPLED_PASS",
+  "status": "CONFIGURATION_REFERENCE_ONLY",
+  "native_scene_verified": false,
   "controller": {
     "name": "gravity_pd",
     "kp": [
@@ -50,19 +51,19 @@
     "rest_speed_rad_s": 0.001,
     "rest_acceleration_fd_rad_s2": 0.05
   },
-  "input_source_hashes_still_match": true,
-  "frozen_snapshot_hashes_still_match": true,
   "configured_grasp_physics": {
     "requested": {
       "noslip_iterations": 5,
       "torsional_friction": true,
       "tray_torsional_radius_m": 0.001
     },
-    "diagnostic_simulation": {
+    "simulation": {
       "dt_s": 0.0025,
-      "finger_equality_timeconst_s": 0.01,
-      "substeps": 1
-    }
+      "substeps": 16,
+      "substeps_local": 1,
+      "finger_equality_timeconst_s": 0.01
+    },
+    "scope": "Declared three-bead settings only. Actual source-bound native validation is required."
   },
   "contact_accuracy_configuration": {
     "requested": {
@@ -74,13 +75,11 @@
         "tray_0",
         "tray_0_ball_0",
         "tray_0_ball_1",
-        "tray_0_ball_2",
-        "tray_0_ball_3"
+        "tray_0_ball_2"
       ]
     }
   },
   "provenance": {
-    "source_result_sha256": "66f749c3a7a381955aa7511e3ef93957e03feb88b8854ec1dd6d7445a5f1dbdf",
-    "scope": "Inherited measured controller/physics calibration only. This is not a success claim for a new student layout."
+    "scope": "Declared three-bead configuration. This file is not a measured result or physical qualification."
   }
 }

@@ -44,6 +44,9 @@ def export_full_review(*, rule, plan, supervisor, native_result, native_path,
     proof = native_result.get("device_tier_execution")
     require(validate_device_tier_completion(proof, plan_record=plan.record()) is True,
             "NATIVE_PROOF", "Complete original native phase evidence is required", 409)
+    if 'ideal_bead_policy' in rule:
+        require(proof.get('ideal_bead_policy') == rule['ideal_bead_policy'],
+                'BEAD_POLICY', 'The native bead handling policy differs from the frozen rule.', 409)
     require(plan.verify_sources() is True and source_before == source_after == rule["evaluation_sources"]
             and runtime_versions == rule["runtime_versions"],
             "EVALUATION_CODE_MODIFIED", "Native execution sources or runtime do not match this rule", 409)

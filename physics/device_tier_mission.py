@@ -1,7 +1,7 @@
 """Persistent original-INITIAL bead tiers with a separate native phase scheduler.
 
 All three robots remain real dynamic entities. Only one commanded actor moves
-at a time. The cup, four beads, scene, native clock and handling owner persist.
+at a time. The cup, three beads, scene, native clock and handling owner persist.
 No legacy dispatcher rows or first-carry completion flags are manufactured.
 """
 import copy
@@ -137,19 +137,19 @@ class _Mission:
         self.output.mkdir(parents=True, exist_ok=False)
         self.deadline = deadline
         self.contents=context.get('contents','beads')
-        require(self.contents in ('beads','empty') and len(context['beads'])==len(context['ids'])==(0 if self.contents=='empty' else 4),'Explicit original payload inventory required')
+        require(self.contents in ('beads','empty') and len(context['beads'])==len(context['ids'])==(0 if self.contents=='empty' else 3),'Explicit original payload inventory required')
         self.names = tuple(sorted(context['arms']))
-        require(self.names == ('arm_0','arm_1','arm_2') and self.scene.rigid_solver.n_dofs == (33 if self.contents=='empty' else 57)
+        require(self.names == ('arm_0','arm_1','arm_2') and self.scene.rigid_solver.n_dofs == (33 if self.contents=='empty' else 51)
                 and getattr(self.scene, '_ap_single_active_arm_contract', None) is None,
-                'Tier replay requires the persistent original 57-DOF three-native-arm scene')
+                'Tier replay requires the persistent original 51-DOF three-native-arm scene')
         require(int(self.scene.t) == 0 and self.scene.sim.dt == DT and self.scene.sim.substeps == SUBSTEPS,
                 'Tier replay must begin at unchanged native clock zero')
         require(self.helper.holder is None and self.plan.verify_sources(), 'Initial holder or source failure')
         fingerprint=context['initial_fingerprint']
         require(fingerprint['status']=='FRESH_INITIAL_OBSERVABLES_CAPTURED' and not fingerprint['missing_required_fields']
-                and fingerprint['fields']['rigid.rigid_info.qpos']['shape']==[34 if self.contents=='empty' else 62,1]
-                and fingerprint['fields']['rigid.dyn_state.dofs.pos']['shape']==[33 if self.contents=='empty' else 57,1],
-                'Complete original native 57DOF/62q INITIAL fingerprint is required')
+                and fingerprint['fields']['rigid.rigid_info.qpos']['shape']==[34 if self.contents=='empty' else 55,1]
+                and fingerprint['fields']['rigid.dyn_state.dofs.pos']['shape']==[33 if self.contents=='empty' else 51,1],
+                'Complete original native 51DOF/55q (or empty 33DOF/34q) INITIAL fingerprint is required')
         self.initial = copy.deepcopy(context['initial_observation'])
         self.observation = copy.deepcopy(self.initial)
         self.commands = copy.deepcopy(self.plan.record()['initial_commands_by_arm'])
@@ -161,13 +161,14 @@ class _Mission:
         self.completed, self.events, self.returns = [], [], []
         self.phases, self.gates, self.handoffs = [], [], []
         self.last_release = None
+        self.bead_gate = self.bead_lifecycle = self.latest_bead_reset = None
         self.record = dict(schema_version=SCHEMA, contents=self.contents, passed=False, full_mission_physical_verified=False,
             status='TIER_DEVICE_EXECUTION_INCOMPLETE', task_contract=self.contract,
             task_contract_sha256=digest(self.contract), saved_bundle_sha256=self.plan.sha256,
             saved_plan_file_sha256=self.plan.file_sha256, required_arm_ids=list(self.plan.required_arm_ids),
             original_initial_observation=self.initial, original_sample_ids=copy.deepcopy(context['ids']),
             original_initial_fingerprint=copy.deepcopy(fingerprint),
-            original_initial_free_bodies=free_body_state(context), model='serial-active-three-native-arm-empty33dof' if self.contents=='empty' else 'serial-active-three-native-arm-57dof',
+            original_initial_free_bodies=free_body_state(context), model='serial-active-three-native-arm-empty33dof' if self.contents=='empty' else 'serial-active-three-native-arm-51dof',
             vessel_geometry=copy.deepcopy(context['model'].geometry_record()),
             vessel_geometry_sha256=context['model'].geometry_sha256,
             native_output_directory=str(self.output),native_scene_identity=self.scene_identity(),
@@ -181,6 +182,92 @@ class _Mission:
             context['gravity'] = {name: GravityFeedforward(arm, (0,0,-9.81), readback='fused')
                                   for name,arm in context['arms'].items()}
             for feed in context['gravity'].values():feed.torques()
+
+    def record_bead_policy(self):
+        if self.bead_lifecycle is not None:
+            self.record['ideal_bead_lifecycle'] = self.bead_lifecycle.record()
+
+    def prepare_beads(self, *, required_arm_ids=None, support_route=None, scope='full_mission'):
+        if self.contents == 'empty':
+            return
+        from physics.ideal_bead_handling import bind
+        from physics.ideal_bead_policy import BeadLifecycle, policy_contract, canonical_prepared_positions
+        require(self.bead_gate is None and int(self.scene.t) == 0, 'Initialize the bead gate once before physics')
+        arms = list(required_arm_ids or self.plan.required_arm_ids)
+        route = list(support_route or self.plan.support_route)
+        self.prepared_bead_positions = canonical_prepared_positions(self.driver.world, self.c['ids'])
+        self.bead_lifecycle = BeadLifecycle(self.c['ids'], self.prepared_bead_positions, arms,
+                                            support_route=route, scope=scope)
+        self.bead_gate = bind(self.scene, cup=self.c['tray'], beads=self.c['beads'], identities=self.c['ids'])
+        self.record.update(ideal_bead_policy=policy_contract(),
+                           prepared_bead_body_local_positions_m=copy.deepcopy(self.prepared_bead_positions))
+        initial_pause = self.bead_gate.pause()
+        self.reset_beads('INITIAL', arms[0], route[0], initial_pause=initial_pause)
+
+    def bead_support_evidence(self, support, *, initial=False):
+        from physics.episode_transport_assessment import _angle
+        actual = self.observation['body_world']
+        target = self.driver.scenario['supported_body_poses'][support]
+        position_error = math.dist(actual['position_m'], target['position_m'])
+        orientation_error = _angle(actual['quaternion_wxyz'], target['quaternion_wxyz'])
+        require(position_error <= self.c['execution']['final_body_position_error_m']
+                and orientation_error <= self.c['execution']['final_body_orientation_error_rad'],
+                'Bead preparation requires the actual named support pose')
+        if initial:
+            require(int(self.scene.t) == 0, 'Fresh source geometry is only a clock-zero condition')
+        else:
+            require(self.rows and self.rows[-1]['native_scene_step'] == int(self.scene.t)
+                    and self.rows[-1]['named_goal_support_every_internal'],
+                    'Bead preparation requires actual named support contacts in the endpoint interval')
+        return dict(passed=True, support_id=support, native_scene_step=int(self.scene.t),
+                    simulation_s=float(self.scene.cur_t), position_error_m=position_error,
+                    orientation_error_rad=orientation_error,
+                    evidence_kind='fresh_source_geometry' if initial else 'native_endpoint_support',
+                    support_contact_evaluated=not initial, material_rest_assessed=False)
+
+    def reset_beads(self, reason, actor, support, stage_id=None, initial_pause=None):
+        if self.bead_gate is None:
+            return
+        self.bead_lifecycle.check_reset_allowed(reason, arm_id=actor, support_id=support, stage_id=stage_id)
+        evidence = self.bead_support_evidence(support, initial=reason == 'INITIAL')
+        transition = self.bead_gate.reset(self.prepared_bead_positions)
+        self.bead_lifecycle.record_reset(reason, transition, arm_id=actor, support_id=support,
+            stage_id=stage_id, support_evidence=evidence, initial_pause=initial_pause)
+        self.latest_bead_reset = transition
+        self.observation = copy.deepcopy(self.c['observe']())
+        self.record_bead_policy()
+
+    def begin_bead_carry(self, actor, stage_id):
+        if self.bead_gate is not None:
+            self.bead_lifecycle.begin_carry(actor, stage_id, self.bead_gate.resume())
+            self.record_bead_policy()
+
+    def finish_bead_carry(self, actor, stage_id, phases, support):
+        if self.bead_gate is not None:
+            last=phases[-1]
+            raw_path=Path(last['raw_history']['file'])
+            require(artifact(raw_path)==last['raw_history']
+                    and last['end_native_step']==int(self.scene.t),
+                    'Carry endpoint readback must use its unchanged current native history')
+            with np.load(raw_path,allow_pickle=False) as raw:
+                require(raw['payload'].shape==(last['actual_intervals'],38),
+                        'Carry endpoint requires the complete original three-bead POST history')
+                raw_post=raw['payload'][-1].tolist()
+            readbacks=dict(schema_version='same-clock-carry-endpoint-readbacks-v1',
+                native_scene_step=int(self.scene.t),raw_history=copy.deepcopy(last['raw_history']),
+                raw_post_ordinal=last['actual_intervals']-1,raw_post_payload=raw_post,
+                native_snapshot=self.bead_gate.snapshot())
+            self.bead_lifecycle.finish_carry(phases, self.observation, readbacks)
+            self.bead_lifecycle.pause(self.bead_gate.pause())
+            self.reset_beads('PLACE', actor, support, stage_id=stage_id)
+
+    def prepared_bead_receipt(self):
+        if self.bead_gate is None:
+            return None
+        from physics.automatic_manipulation import make_prepared_bead_receipt
+        return make_prepared_bead_receipt(observation=self.observation, identities=self.c['ids'],
+            native_gate=self.bead_gate.metadata(), latest_reset=self.latest_bead_reset,
+            lifecycle=self.bead_lifecycle.record())
 
     def check(self, next_steps=0):
         if time.perf_counter() >= self.deadline:raise TimeoutError('Complete tier review wall budget exceeded')
@@ -222,7 +309,10 @@ class _Mission:
                     settings=self.c['settings'],rest_policy=self.c['rest_policy'],
                     stable_since=stable,support_since=supported,observe=self.c['observe'],
                     source_check=self.c['source_check'],wall_check=self.check,output=self.output,
-                    record_provided_grasp_event=self.transaction)
+                    record_provided_grasp_event=self.transaction,
+                    provided_pick_endpoint=copy.deepcopy(self.driver.current['supplied_pick_endpoint'])
+                        if self.driver.current is not None and self.driver.current['kind']=='approach' else None,
+                    **({'ideal_bead_prepared': self.prepared_bead_receipt} if self.bead_gate is not None else {}))
 
     def phase(self, purpose, phase, actor, support_id, commands, *, permission=None):
         from physics.deferred_gpu_control import DeviceCarryControl
@@ -254,10 +344,19 @@ class _Mission:
                 kp=self.c['kp'],kv=self.c['kv'],effort=self.c['effort'],finger_bounds=self.c['finger_bounds'],
                 hands=self.c['hands'],tool_workspace_m=self.c['case']['tool_workspace_m'],
                 tracking_error_rad=self.c['execution']['tracking_error_rad'],dt_s=DT)
-            payload=DeferredPayloadAudit(self.scene,self.c['beads'],self.c['tray'],self.c['model'],self.c['ids'],
-                tilt_limit_deg=180.,capacity_steps=count,internal_spill=True)
+            payload_type = DeferredPayloadAudit
+            payload_options = {}
+            if self.bead_gate is not None:
+                require(self.bead_gate.mode == ('CARRY' if phase == 'carry' else 'OFF'),
+                        'Bead physics mode differs from the supplied phase')
+                if phase != 'carry':
+                    from physics.prepared_bead_observation import PreparedPayloadAudit
+                    payload_type = PreparedPayloadAudit
+                    payload_options['native_gate'] = self.bead_gate
+            payload=payload_type(self.scene,self.c['beads'],self.c['tray'],self.c['model'],self.c['ids'],
+                tilt_limit_deg=180.,capacity_steps=count,internal_spill=True,**payload_options)
             interrupted=None;loop_error=None
-            with device_contact_hooks(self.scene,contact,'bead16',support,self.handling,payload):
+            with device_contact_hooks(self.scene,contact,'bead16',support,self.handling,payload,bead_gate=self.bead_gate):
                 try:
                     for index in range(count):
                         if time.perf_counter() >= self.deadline:raise TimeoutError('Complete tier wall budget exceeded')
@@ -296,6 +395,9 @@ class _Mission:
                     start_native_step=begin,end_native_step=int(self.scene.t),actual_intervals=observed,
                     requested_intervals=count,raw_history=artifact(path),checks=checks,
                     halt_before_next_command=True,maximum_detection_latency_s=DT)
+            if checks['assessment']['checks_passed'] is not True and self.bead_lifecycle is not None:
+                self.bead_lifecycle.note_failure(checks['assessment']['outcome'])
+                self.record_bead_policy()
             reject_failed_checks(checks['assessment'])
             if loop_error is not None:raise loop_error
             if metric_error is not None:raise metric_error
@@ -349,7 +451,7 @@ class _Mission:
         before=self.snapshot()
         response=validate_saved_motion(request,self.plan,index,previous_commands=self.commands,
             output=self.output/(stage['stage_id']+'__planning'),source_check=self.c['source_check'],wall_check=self.check,
-            fixture_readback=self.driver.fixture_readback)
+            fixture_readback=self.driver.fixture_readback,fixed_pick_endpoint=kind=='approach')
         require(before==self.snapshot() and response.get('durable_path_validation',{}).get('passed') is True
                 and response.get('source_bindings_verified') is True and response.get('physical_steps')==0
                 and response.get('runtime_ik_calls')==response.get('runtime_rrt_calls')==0
@@ -421,6 +523,7 @@ class _Mission:
         from physics.provided_manipulation import grasp_endpoint_candidates,placement_endpoint,assess_place_ready
         from physics.automatic_manipulation import pick
         from physics.deferred_gpu_tail import assess_support_history,released_numeric_gate
+        self.prepare_beads()
         self.hold('initial_settle','settle','arm_0',self.plan.support_route[0],.5)
         require(int(self.scene.t)==INITIAL_TICKS,'Initial stabilization must finish at tick200')
         for index,signature in enumerate(self.plan.stage_signatures):
@@ -429,10 +532,12 @@ class _Mission:
             actor=stage['active_arm_id'];kind=stage['kind'];leg=self.plan.required_arm_ids.index(actor)
             source=self.plan.support_route[leg];destination=self.plan.support_route[leg+1]
             op=dict(stage_id=stage['stage_id'],kind=kind,active_arm_id=actor,support_id=source,destination=destination)
+            if kind == 'approach':
+                op['supplied_pick_endpoint'] = copy.deepcopy(stage['nominal_goal_hand_world'])
             self.driver.current=op
             if kind=='approach':
                 require(self.helper.holder is None and self.driver.held is None,'Receiver approached an already held cup')
-                endpoint=grasp_endpoint_candidates(self.c['model'],self.observation['body_world'])[0].to_record()
+                endpoint=copy.deepcopy(stage['nominal_goal_hand_world'])
                 goal=dict(kind='world_hand_pose',position_m=endpoint['position_m'],quaternion_wxyz=endpoint['quaternion_wxyz'])
                 self.driver.endpoint_hand_pose=endpoint
             else:
@@ -443,10 +548,13 @@ class _Mission:
             tr=self.validate_stage(index,stage,goal)
             table=trajectory_commands(tr,self.commands,actor,self.c['limits_by_arm'][actor])
             begin=int(self.scene.t)
-            _,raw_support=self.phase(stage['stage_id'],kind,actor,source if kind=='approach' else destination,table)
+            if kind == 'carry':
+                self.begin_bead_carry(actor,stage['stage_id'])
+            carry_phases,raw_support=self.phase(stage['stage_id'],kind,actor,source if kind=='approach' else destination,table)
             self.commands[actor]['q_rad']=list(tr['waypoints'][-1])
             if kind=='approach':
                 self.hold(stage['stage_id']+'__endpoint_settle','settle',actor,source,.5)
+                self.reset_beads('PRE_PICK',actor,source,stage_id=stage['stage_id'])
                 before=self.snapshot()
                 gate=pick(self.driver,self.state(),op)
                 self.observation=copy.deepcopy(self.c['observe']())
@@ -468,6 +576,7 @@ class _Mission:
                 support=assess_support_history(raw_support,start_ordinal=begin*SUBSTEPS,phase='carry',holder_arm_id=actor)
                 load=support['maximum_consecutive_unsupported_held_s']
                 require(load>=.5,'Original carried unsupported-load window is incomplete')
+                self.finish_bead_carry(actor,stage['stage_id'],carry_phases,destination)
                 self.hold(stage['stage_id']+'__supported_hold','place',actor,destination,.5)
                 ready=assess_place_ready(self.observation,self.rows,self.c['settings'],self.c['rest_policy'],self.driver.goal)
                 require(ready['passed'],'Actual support/body placement readiness failed')
@@ -487,17 +596,10 @@ class _Mission:
                 self.hold(stage['stage_id']+'__released_settle','released_settle',actor,destination,1.)
                 targets={n:self.q[9*j+7:9*j+9].copy() for j,n in enumerate(self.names)}
                 extra=0.
-                while True:
-                    hard=released_numeric_gate(self.rows,settings=self.c['settings'],rest_policy=self.c['rest_policy'],
-                        goal=self.driver.goal,arm_order=self.names,finger_targets=targets,load_bearing_s=load,
-                        model=self.c['model'],identities=self.c['ids'],strict_material=False,contents=self.contents)
-                    if hard['bead_bulk_rest']['passed']:
-                        gate=released_numeric_gate(self.rows,settings=self.c['settings'],rest_policy=self.c['rest_policy'],
-                            goal=self.driver.goal,arm_order=self.names,finger_targets=targets,load_bearing_s=load,
-                            model=self.c['model'],identities=self.c['ids'],strict_material=True,contents=self.contents)
-                        break
-                    require(extra+.5<=5.,'Original additional material settling allowance exhausted')
-                    self.hold(stage['stage_id']+'__material_wait','released_settle',actor,destination,.5);extra+=.5
+                gate=released_numeric_gate(self.rows,settings=self.c['settings'],rest_policy=self.c['rest_policy'],
+                    goal=self.driver.goal,arm_order=self.names,finger_targets=targets,load_bearing_s=load,
+                    model=self.c['model'],identities=self.c['ids'],strict_material=self.contents=='empty',contents=self.contents,
+                    ideal_bead_prepared=self.prepared_bead_receipt())
                 for j,name in enumerate(self.names):self.commands[name]['finger_q_m']=self.q[9*j+7:9*j+9].tolist()
                 self.gates.append(dict(stage_id=stage['stage_id'],kind=kind,active_arm_id=actor,gate=gate,
                                        carried_support=support,additional_material_wait_s=extra))
@@ -548,16 +650,25 @@ def completion_summary(record):
         cursor=phase['end_native_step']
     completion=record['completion_clock'];ticks=completion['native_end_step']-completion['first_motion_start_step']
     clock=check_completion_clock(completion['first_motion_start_step'],completion['native_end_step'],contract['completion_limit_ticks'])
+    beads=record.get('contents')=='beads'
+    seals=record.get('ideal_bead_lifecycle',{}).get('carry_seals',[]) if beads else []
+    retained=(len(seals)==len(arms) and [s.get('arm_id') for s in seals]==arms
+        and all(s.get('passed') is True and s.get('original_three_retained_before_reset') is True
+                and s.get('original_bead_ids')==record['original_sample_ids'] for s in seals)
+        and [v['id'] for v in seals[-1]['endpoint']['materials']]==initial_ids==final_ids
+        and all(p['payload']['passed'] for p in phases if p['phase']=='carry')) if beads else initial_ids==final_ids==[]
+    final_rest=(_prepared_release_gate_passes(last) if beads else
+        last['passed'] and last['strict_material'] is True and last['expected_material_endpoints']==201)
     checks=dict(
         collision_free=all(p['contacts']['passed'] and p['contacts']['category_counts'].get('UNALLOWED_CONTACT')==0 for p in phases),
-        sample_retained=all(p['payload']['passed'] for p in phases) and initial_ids==final_ids and len(initial_ids)==(0 if record.get('contents')=='empty' else 4),
+        sample_retained=retained and len(initial_ids)==(3 if beads else 0),
         tracking_passed=all(p['control']['passed'] for p in phases),
         finite_state=all(p['control']['passed'] and p['payload']['passed'] for p in phases),
         handling_passed=handling['passed'] and handling['qualified_holder_id'] is None
             and handling['supported_pickup_count']==handling['release_count']==len(arms)
             and handling['PRE_samples']==handling['POST_samples']==cursor*SUBSTEPS,
         supported_release=len(releases)==len(carried)==len(arms) and all(e['ready']['passed'] and g['gate']['passed'] for e,g in zip(releases,carried)),
-        final_rest=last['passed'] and last['strict_material'] is True and last['expected_material_endpoints']==201,
+        final_rest=final_rest,
         original_initial_state=record['original_initial_observation']['native_scene_step']==0
             and record['original_initial_fingerprint']['status']=='FRESH_INITIAL_OBSERVABLES_CAPTURED'
             and not record['original_initial_fingerprint']['missing_required_fields']
@@ -582,7 +693,8 @@ def completion_summary(record):
         checks=checks,initial_sample_ids=initial_ids,final_sample_ids=final_ids,
         passed_carry_count=partial_progress(record)['valid_carry_count'],
         support_route=list(contract['support_route']),carried_distance_mm=record['distance_metric']['distance_mm'],
-        final_rest_steps=last['expected_material_endpoints'],completion_ticks=ticks,completion_clock=clock)
+        final_rest_steps=last['expected_intervals']+1 if beads else last['expected_material_endpoints'],
+        completion_ticks=ticks,completion_clock=clock)
 
 
 def validate_phase_schedule(phases,contract,plan_record=None):
@@ -620,18 +732,115 @@ def validate_phase_schedule(phases,contract,plan_record=None):
                     and all(p['actual_holder_arm_id'] is None and p['contact_permission_arm_id'] is None
                             for p in motion+group),'Original approach/settling phases differ')
         else:
-            require(len(group)>=3 and [(p['phase'],p['actual_intervals']) for p in group[:3]]
+            require(len(group)==3 and [(p['phase'],p['actual_intervals']) for p in group]
                     ==[('place',200),('release',400),('released_settle',400)],
                     'Original supported placement, release or released-settle duration differs')
             require(all(p['actual_holder_arm_id']==actor and p['contact_permission_arm_id']==actor for p in motion+group[:1])
                     and group[1]['actual_holder_arm_id'] is None and group[1]['contact_permission_arm_id']==actor
                     and all(p['actual_holder_arm_id'] is None and p['contact_permission_arm_id'] is None for p in group[2:]),
                     'Actual holder/contact permission changed outside a supported release')
-            extra=group[3:]
-            require(len(extra)<=10 and all(p['phase']=='released_settle' and p['actual_intervals']==200 for p in extra),
-                    'Original additional material settling allowance changed')
     require(position==len(phases),'Unexpected stages after the final terminal or a final return was added')
     return cursor
+
+
+def _prepared_release_gate_passes(gate):
+    return (type(gate) is dict and gate.get('schema_version')=='deferred-prepared-bead-released-rest-gate-v1'
+        and gate.get('passed') is True and gate.get('strict_material') is False
+        and gate.get('expected_intervals')==200 and gate.get('expected_material_endpoints')==0
+        and gate.get('bead_dynamics_evaluated') is False
+        and gate.get('material_rest')=='NOT_APPLICABLE_DISABLED' and 'bead_bulk_rest' not in gate
+        and gate.get('all_arms_rest',{}).get('passed') is True and gate.get('body_rest',{}).get('passed') is True
+        and type(gate.get('actual_unsupported_held_s')) in (int,float) and gate['actual_unsupported_held_s']>=.5)
+
+
+def _validate_ideal_bead_record(record, plan_record, *, complete, scope='full_mission', required_arm_ids=None, support_route=None):
+    """Bind the pure lifecycle to the saved recipe and actual owned phases."""
+    from physics.ideal_bead_policy import policy_contract, canonical_prepared_positions, validate_lifecycle
+    require(record.get('ideal_bead_policy')==policy_contract(), 'Missing current carry-only bead policy')
+    require(type(plan_record) is dict and type(plan_record.get('source_pins')) is dict,
+            'Carry-only bead proof requires its source-bound saved plan')
+    worlds=[]
+    for name,pinned in plan_record['source_pins'].items():
+        path=Path(name)
+        if path.name!='world.json':continue
+        require(path.is_file() and sha(path)==pinned, 'Canonical recipe source file changed')
+        world=json.loads(path.read_bytes())
+        if digest(world)==record['task_contract']['source_world_sha256']:worlds.append(world)
+    require(worlds and all(w==worlds[0] for w in worlds), 'Original source-bound bead recipe not found')
+    positions=canonical_prepared_positions(worlds[0],record['original_sample_ids'])
+    require(record.get('prepared_bead_body_local_positions_m')==positions, 'Prepared bead recipe was changed')
+    lifecycle=record.get('ideal_bead_lifecycle')
+    require(type(lifecycle) is dict, 'Missing actual ideal bead lifecycle')
+    arms=list(required_arm_ids or record['task_contract']['required_arm_ids'])
+    route=list(support_route or record['task_contract']['support_route'])
+    validate_lifecycle(lifecycle,identities=record['original_sample_ids'],body_local_positions=positions,
+        required_arm_ids=arms,support_route=route,scope=scope,actual_phases=record['phases'],require_complete=complete)
+    native_pins={}
+    for event in lifecycle['events']:
+        for key in ('native_transition','initial_pause','native_resume','native_pause'):
+            transition=event['inputs'].get(key)
+            if transition is None:continue
+            for name,expected in transition['source_hashes'].items():
+                require(name not in native_pins or native_pins[name]==expected, 'Bead transition source identities conflict')
+                native_pins[name]=expected
+    require(native_pins and all(sha(name)==expected for name,expected in native_pins.items()),
+            'Native bead transition sources changed')
+    from physics.automatic_manipulation import validate_prepared_bead_receipt
+    for stage in record.get('stage_gates',[]):
+        if stage.get('kind')!='carry':continue
+        gate=stage['gate'];require(_prepared_release_gate_passes(gate), 'Carry lacks its actual cup/arm release-rest gate')
+        actor=stage['active_arm_id'];leg=arms.index(actor)
+        require(gate['support_id']==route[leg+1]
+                and stage.get('additional_material_wait_s')==0., 'Released gate support or no-material-wait policy differs')
+        prepared=gate.get('ideal_bead_prepared')
+        require(type(prepared) is dict, 'Released gate lacks explicit prepared-state receipt')
+        latest=prepared.get('lifecycle',{}).get('events',[])
+        require(latest and latest[-1].get('operation')=='reset'
+                and latest[-1]['inputs'].get('reason')=='PLACE'
+                and latest[-1]['inputs'].get('stage_id')==stage['stage_id']
+                and prepared['lifecycle'].get('completed_carries')==leg+1,
+                'Released rest borrowed an earlier source or another leg preparation')
+        reset=prepared['latest_reset']['after']
+        observation=dict(native_scene_step=prepared['native_scene_step'],simulation_s=prepared['simulation_s'],
+            materials=[dict(item,position_world_m=q[:3],velocity_world_m_s=v[:3])
+                       for item,q,v in zip(record['original_sample_ids'],reset['bead_qpos'],reset['bead_qvel'])])
+        validate_prepared_bead_receipt(prepared,observation=observation,
+            identities=record['original_sample_ids'],exact_observation=False)
+        require(prepared['lifecycle']['events']==lifecycle['events'][:len(prepared['lifecycle']['events'])],
+                'Released gate refers to a different bead lifecycle')
+    return lifecycle
+
+
+def _validate_phase_bead_mode(phase, identities, native_scene_identity):
+    """Distinguish physical carry audits from actual disabled-state observations."""
+    count=phase['actual_intervals'];payload=phase['payload']
+    if phase['phase']=='carry':
+        require(payload.get('schema_version')=='deferred-native-payload-post-audit-v1'
+                and payload.get('bead_dynamics_evaluated',True) is True,
+                'Carry lacks the original physical bead audit')
+        return
+    require(phase['phase'] in ('settle','approach','place','release','released_settle')
+            and payload.get('schema_version')=='provided-disabled-bead-observation-v1'
+            and payload.get('bead_dynamics_evaluated') is False
+            and payload.get('material_rest')==payload.get('material_retention')=='NOT_APPLICABLE_DISABLED'
+            and payload.get('prepared_state_geometry_checked') is True,
+            'An off-phase observation claimed physical bead retention/rest or lacks prepared-state integrity')
+    gate=payload.get('native_gate')
+    require(type(gate) is dict and gate.get('schema_version')=='provided-ideal-bead-handling-native-v1'
+            and gate.get('mode')=='OFF' and gate.get('bead_identities')==identities,
+            'Missing disabled native bead gate identity')
+    identity=gate.get('native_scene_identity')
+    require(type(identity) is list and len(identity)==5 and identity[:3]==[native_scene_identity[i] for i in (0,2,3)],
+            'Disabled bead gate belongs to another native scene')
+    start,end=gate.get('start_off_internal_step'),gate.get('end_off_internal_step')
+    flags=gate.get('guard_flags')
+    require(type(start) is int and type(end) is int and 0<=start<end
+            and type(gate.get('off_internal_steps')) is int and gate['off_internal_steps']==end-start==count*SUBSTEPS
+            and type(flags) is list and len(flags)==5 and all(type(v) is int for v in flags)
+            and flags[0]>=count*SUBSTEPS and flags[1:]==[0,0,0,0],
+            'Disabled bead integration/contact/actuator guard or every-internal-step coverage failed')
+    pins=gate.get('source_hashes')
+    require(type(pins) is dict and pins and all(sha(p)==h for p,h in pins.items()), 'Disabled native bead gate source changed')
 
 
 def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
@@ -648,8 +857,8 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
                 'Native result belongs to a different tier plan')
     from physics.tier_mission_plan import validate_task_contract
     validate_task_contract(record['task_contract'])
-    require(record['model']==('serial-active-three-native-arm-empty33dof' if contents=='empty' else 'serial-active-three-native-arm-57dof')
-            and record['native_counts']['dofs']==(33 if contents=='empty' else 57) and record['native_counts']['q_coordinates']==(34 if contents=='empty' else 62),
+    require(record['model']==('serial-active-three-native-arm-empty33dof' if contents=='empty' else 'serial-active-three-native-arm-51dof')
+            and record['native_counts']['dofs']==(33 if contents=='empty' else 51) and record['native_counts']['q_coordinates']==(34 if contents=='empty' else 55),
             'Full tier requires all three actual native robots and original free bodies')
     identity=record['native_scene_identity']
     require(type(identity) is list and len(identity)==4 and all(type(v) is int and v>0 for v in identity),
@@ -663,6 +872,8 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
     phases=record['phases'];require(phases,'Missing actual phase lineage')
     end=validate_phase_schedule(phases,record['task_contract'],plan_record)
     require(end==record['final_native_step'],'Final native clock differs from the complete physical phase schedule')
+    lifecycle=_validate_ideal_bead_record(record,plan_record,complete=True) if contents=='beads' else None
+    if contents=='empty':require(record.get('ideal_bead_lifecycle') is None,'Empty replay cannot claim a bead lifecycle')
     measured=CarriedDistance({'interior_center_local_m':metric['reference_point_body_m']})
     for phase in phases:
         count=phase['actual_intervals']
@@ -670,6 +881,7 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
                 'A native phase has incomplete or failed original checks')
         require(phase['contacts']['PRE_samples']==phase['contacts']['POST_samples']==count*SUBSTEPS,
                 'Original actual16 PRE/POST phase coverage is incomplete')
+        if contents=='beads':_validate_phase_bead_mode(phase,record['original_sample_ids'],identity)
         require(phase['native_scene_identity']==identity and phase['control']['arm_order']==['arm_0','arm_1','arm_2']
                 and phase['control']['controlled_dof_count']==27
                 and phase['control']['start_native_step']==phase['support']['start_native_step']==phase['start_native_step']
@@ -692,7 +904,7 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
             require(sha(phase[key]['file'])==phase[key]['sha256'],'Native phase artifact changed')
         with np.load(phase['raw_history']['file'],allow_pickle=False) as raw:
             require(set(raw.files)=={'control','payload','support','command_position','command_velocity','payload_escape_steps','payload_escape_points'}
-                    and raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,14 if contents=='empty' else 46)
+                    and raw['control'].shape==(count,27,13) and raw['payload'].shape==(count,14 if contents=='empty' else 38)
                     and raw['payload_escape_steps'].shape==(len(record['original_sample_ids']),)
                     and raw['payload_escape_points'].shape==(len(record['original_sample_ids']),6)
                     and raw['support'].shape==(count*SUBSTEPS,6) and raw['support'].dtype==np.dtype('int64')
@@ -701,6 +913,29 @@ def validate_device_tier_completion(record,plan_record=None,*,contents='beads'):
                     'Native phase raw array ABI is incomplete or nonfinite')
             if phase['actual_holder_arm_id'] is not None:
                 measured.append(phase['actual_holder_arm_id'],phase['start_native_step'],phase['actual_initial_body_world'],raw['payload'])
+            if lifecycle is not None and phase['phase']=='carry':
+                seals=[s for s in lifecycle['carry_seals'] if s['stage_id']==phase['stage_id']
+                       and s['end_native_step']==phase['end_native_step']]
+                if seals:
+                    require(len(seals)==1,'Multiple seals claim the same actual carry endpoint')
+                    readbacks=seals[0]['endpoint_readbacks']
+                    require(readbacks['raw_history']==phase['raw_history']
+                            and readbacks['native_scene_step']==phase['end_native_step']
+                            and readbacks['raw_post_ordinal']==count-1
+                            and readbacks['raw_post_payload']==raw['payload'][-1].tolist(),
+                            'Sealed raw carry endpoint differs from its authenticated final POST')
+                    from physics.deferred_gpu_beads import bind_native_masses
+                    payload=phase['payload'];native_dtype=np.dtype(payload['native_mass_dtype'])
+                    native_mass_bytes=np.asarray(payload['expected_native_masses_kg'],dtype=native_dtype)
+                    native_masses=bind_native_masses([m['mass_kg'] for m in record['original_sample_ids']],native_mass_bytes,native_dtype)
+                    require(native_masses.tolist()==payload['expected_native_masses_kg']
+                            and hashlib.sha256(native_mass_bytes.tobytes()).hexdigest()==payload['initial_native_mass_sha256'],
+                            'Final carry native mass representation or initial binding changed')
+                    for i,material in enumerate(seals[0]['endpoint']['materials']):
+                        sample=raw['payload'][-1,14+8*i:22+8*i]
+                        require(sample[:3].tolist()==material['position_world_m']
+                                and sample[6]==1 and sample[7]==native_masses[i],
+                                'Sealed pre-reset retention differs from the actual final carry POST')
         require(phase['handling_checkpoint']['prefix_guard']==record['final_handling']['prefix_guard'],
                 'Persistent handling state was reset at a handoff')
     for event in record['boundary_events']:
@@ -740,9 +975,16 @@ def load_failed_tier_proof(owned_output_directory, plan, *, contents, source_bin
         and len(completed)<=len(expected),'Failed sidecar has a non-prefix stage sequence')
     progress=partial_progress(record)
     require(record.get('partial_progress')==progress,'Failed sidecar carry count does not match its accepted stages')
+    lifecycle=None
+    if contents=='beads':
+        lifecycle=_validate_ideal_bead_record(record,plan.record(),complete=False)
     for stage in progress['valid_carry_stage_ids']:
+        if lifecycle is not None:
+            require(any(s['stage_id']==stage and s['original_three_retained_before_reset'] is True
+                        for s in lifecycle['carry_seals']), 'Credited carry lacks its original pre-reset retention seal')
         require(any(g.get('stage_id')==stage and g.get('kind')=='carry' and g.get('gate',{}).get('passed') is True
-            and g['gate'].get('strict_material') is True for g in record.get('stage_gates',[])),
+            and ((contents=='empty' and g['gate'].get('strict_material') is True)
+                 or (contents=='beads' and _prepared_release_gate_passes(g['gate']))) for g in record.get('stage_gates',[])),
             'A credited carry lacks its accepted support/rest gate')
         require(any(e.get('stage_id')==stage and e.get('event')=='release' and e.get('ready',{}).get('passed') is True
             for e in record.get('boundary_events',[])), 'A credited carry lacks its actual supported release')
@@ -763,10 +1005,18 @@ def execute_device_tier_mission(context,*,output,wall_deadline):
         validate_device_tier_completion(result,owner.plan.record(),contents=owner.contents)
         return result
     except BaseException as exc:
+        if owner.bead_lifecycle is not None and owner.bead_lifecycle.state != 'FAILED':
+            owner.bead_lifecycle.note_failure(type(exc).__name__+': '+str(exc))
         owner.record.update(passed=False,full_mission_physical_verified=False,
                             failure=dict(type=type(exc).__name__,message=str(exc)))
+        try:
+            owner.record.update(actual_failed_observation=copy.deepcopy(context['observe']()),
+                                actual_failed_free_bodies=free_body_state(context))
+        except Exception as read_error:
+            owner.record['failure_readback_error']=dict(type=type(read_error).__name__,message=str(read_error))
         raise
     finally:
+        owner.record_bead_policy()
         owner.record.update(actual_native_end_step=int(owner.scene.t),host_wall_s=time.perf_counter()-started,
             partial_progress=partial_progress(owner.record),distance_metric=owner.distance.record(),
             passed_carry_count=partial_progress(owner.record)['valid_carry_count'])

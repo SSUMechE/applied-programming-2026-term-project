@@ -10,7 +10,7 @@ import re
 from .contracts import canonical_bytes, digest, exact_keys, require, sha
 from .store import Conflict, NotFound, Store, Unauthorized, utc_now
 from .v3 import (RULE_SCHEMA, SELECTION_SCHEMA, ranked_rows, utc_timestamp,
-                 validate_attempt, validate_snapshot)
+                 validate_attempt, validate_snapshot, require_current_rule)
 
 
 class AttemptStore:
@@ -62,6 +62,7 @@ class AttemptStore:
             ''')
 
     def record(self, team_id, rule, record):
+        require_current_rule(rule)
         validate_attempt(rule, record, allow_unqualified=True)
         encoded = canonical_bytes(record).decode()
         request_hash = digest(record)
@@ -92,6 +93,7 @@ class AttemptStore:
         return dict(row) if row else None
 
     def activate(self, rule, evidence_sha256):
+        require_current_rule(rule)
         require(rule['schema_version'] == RULE_SCHEMA, 'QUALIFICATION_RULE', 'External activation is only available for v3.')
         sha(evidence_sha256, 'qualification evidence')
         with self.base.connection() as db:
@@ -155,6 +157,7 @@ class AttemptStore:
         return json.loads(row[0])
 
     def select(self, team_id, rule, selection):
+        require_current_rule(rule)
         exact_keys(selection, {'schema_version', 'rule_id', 'rule_digest', 'run_id', 'commit_id', 'commit_student_snapshot'}, 'Final selection')
         require(selection['schema_version'] == SELECTION_SCHEMA and rule['schema_version'] == RULE_SCHEMA
                 and selection['rule_id'] == rule['rule_id'] and selection['rule_digest'] == rule['rule_digest'],

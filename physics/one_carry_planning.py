@@ -318,10 +318,10 @@ def final_result(driver, observation):
         require(gate.get('bead_bulk_rest',{}).get('observed_rows')==201,'Full original bead rest endpoints missing')
         original={m['id']:(m['entity_idx'],m['mass_kg']) for m in driver.initial_supply}
         materials=observation['materials']
-        require(len(original)==len(materials)==len({m['id'] for m in materials})==4
+        require(len(original)==len(materials)==len({m['id'] for m in materials})==3
             and all(m['inside_carrier'] is True and original.get(m['id'])==(m['entity_idx'],m['mass_kg']) for m in materials),
             'One-carry lost an original bead identity/mass/containment')
-        material_receipt=dict(payload='beads',original_four_beads_retained=True)
+        material_receipt=dict(payload='beads',original_three_beads_retained=True)
     return dict(status='ONE_CARRY_TRANSPORT_SAMPLED_PASS',one_carry_transport_accepted=True,
         scope='Fresh declared supported INITIAL, one exact saved carry, actual native pickup/release/rest. No physical home approach or full three-arm mission.',
         motion_source='saved_cpu_plan',saved_bundle_sha256=driver.saved_plan.sha256,

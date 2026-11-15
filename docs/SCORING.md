@@ -1,8 +1,8 @@
 # Assessment and competition
 
-**2026-02 · Beads only · term_v3**
+**2026-02 · Beads only · term_v4**
 
-The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. The three term_v3 bead rules are active. Instructor qualification records remain separate from classroom standings.
+The base assessment rewards your implemented design and valid transport. Competition separately compares successful teams' carried distance and completion time. Analysis is assessed in the existing presentation component, not a new report or extra base category. The three term_v4 bead rules are active. Instructor qualification records remain separate from classroom standings.
 
 ## Base assessment
 
@@ -31,9 +31,9 @@ For example, a Moderate team earning 30 of the 50 normalized design points and c
 
 ## Distance and time
 
-`D` is the actual cup-centre travel distance while a robot holds the cup, summed over physical outer steps. The board stores it in whole millimetres. It includes motion during held waits or handling. It excludes unheld approach, released settling and the supplied zero-time donor return. It is not joint-space distance in radians or the length of the planned tool path.
+`D` is the actual cup-centre travel distance while a robot holds the cup, summed over physical outer steps. The board stores it in whole millimetres. It includes motion during held waits or handling. It excludes unheld approach, released cup rest and the supplied zero-time donor return. It is not joint-space distance in radians or the length of the planned tool path.
 
-`T` is the verified completion clock in native `0.0025 s` ticks. It excludes the initial 200 preparation ticks and includes physical approach, carry, handling, waiting and required settling. The fixed inclusive limits are 40 s, 85 s and 105 s for Lower, Moderate and Higher.
+`T` is the verified completion clock in native `0.0025 s` ticks. It excludes the initial 200 preparation ticks and includes physical approach, carry, handling, waiting and required robot/cup rest. The fixed inclusive limits are 40 s, 85 s and 105 s for Lower, Moderate and Higher. Robot/cup dynamics and the existing fixed handling holds continue while supplied bead handling is idealized. Bead-state resets have zero simulation duration and do not move the cup, so they do not change D or T. Only extra material-settling waits and retries are removed. A spill detected during carrying remains failed after any reset.
 
 For each complexity and active rule, compare one successful representative per team. A solo entry is one team. With that population's minima and maxima:
 

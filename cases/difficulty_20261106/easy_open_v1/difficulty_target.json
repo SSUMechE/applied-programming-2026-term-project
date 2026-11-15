@@ -43,7 +43,7 @@
   "native_transport_verified": false,
   "fresh_cpu_export_required_before_native": true,
   "student_solution_or_intermediate_pose_supplied": false,
-  "material_profile": "four rigid beads, F32, rigid16_bead_tc2h_v1; no per-route physics or threshold tuning",
+  "material_profile": "three rigid beads, F32, rigid16_bead_tc2h_v1; no per-route physics or threshold tuning",
   "resource_policy": {
     "maximum_observed_process_vram_GB": 5,
     "one_active_dynamic_arm_per_review": true

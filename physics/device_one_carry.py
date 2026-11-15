@@ -1,4 +1,4 @@
-"""Supplied four-bead device execution of one unchanged CPU-saved carry.
+"""Supplied three-bead device execution of one unchanged CPU-saved carry.
 
 The original runtime owns fresh INITIAL, actual pick and native static validation.
 This module owns its distinct device histories, supported release and rest.
@@ -62,13 +62,17 @@ def state_row(observation):
     return dict(native_scene_step=observation['native_scene_step'], simulation_s=observation['simulation_s'], body_world=copy.deepcopy(observation['body_world']), q=[v for n in names for v in observation['arms'][n]['q_all_dofs']], qd=[v for n in names for v in observation['arms'][n]['qd_all_dofs']], materials=copy.deepcopy(observation.get('materials')), particle_material=copy.deepcopy(observation.get('particle_material')))
 
 @contextmanager
-def device_contact_hooks(scene, audit, mode, support=None, handling=None, payload=None):
+def device_contact_hooks(scene, audit, mode, support=None, handling=None, payload=None, bead_gate=None):
     import types
     solver = scene.rigid_solver
     constraint = solver._func_constraint_force
     substep = solver.substep
     if '_func_constraint_force' in vars(solver) or 'substep' in vars(solver):
         raise RuntimeError('Previous observation hooks must be restored before device execution')
+    if bead_gate is not None:
+        from physics.ideal_bead_handling import IdealBeadHandling
+        if type(bead_gate) is not IdealBeadHandling or bead_gate.scene is not scene or mode != 'bead16':
+            raise RuntimeError('Only the supplied scene-bound bead gate may select native integration')
 
     def wrapped_constraint(_self, *a, **kw):
         value = constraint(*a, **kw)
@@ -82,7 +86,7 @@ def device_contact_hooks(scene, audit, mode, support=None, handling=None, payloa
         return value
 
     def wrapped_substep(_self, *a, **kw):
-        value = substep(*a, **kw)
+        value = substep(*a, **kw) if bead_gate is None else bead_gate.step(substep, *a, **kw)
         if mode == 'bead16':
             g = int(scene.sim._cur_substep_global)
             audit.post(g)
@@ -318,9 +322,9 @@ def validate_device_completion(record, *, verify_files=True):
         and control['start_native_step']==begin and control['end_native_step']==end
         and control['first_failed_step'] is None and all(v is False for v in control['flags'].values()),
         'Control predicates or exact history count failed')
-    require(payload['actual_POST_samples']==n and payload['bead_count']==4
+    require(payload['actual_POST_samples']==n and payload['bead_count']==3
         and payload['first_failed_step'] is None and all(v is False for v in payload['flags'].values()),
-        'Payload predicates or all-four inventory failed')
+        'Payload predicates or all-three inventory failed')
     require(contacts['PRE_samples']==contacts['POST_samples']==16*n
         and contacts['sample_mode']=='bead16' and contacts['original_sampling_preserved'] is True
         and contacts['sticky_failed'] is False and contacts['first_bad_global_substep'] is None
@@ -381,8 +385,8 @@ def execute_device_one_carry(context,command,*,output,wall_deadline):
         and getattr(driver,'grasp_policy',None)=='automatic'
         and type(driver.saved_plan) is SavedOneCarryPlan
         and driver.saved_plan.record()['payload']=='beads'
-        and len(context['beads'])==len(context['ids'])==4,
-        'Device execution is explicit automatic four-bead saved one-carry only')
+        and len(context['beads'])==len(context['ids'])==3,
+        'Device execution is explicit automatic three-bead saved one-carry only')
     require(context['source_check']() is True and driver.saved_plan.verify_sources() is True,
         'Saved CPU/runtime source bindings changed at actual carry boundary')
     require(command.action_role=='carry' and context['automatic_grasp'].holder==command.active_arm_id

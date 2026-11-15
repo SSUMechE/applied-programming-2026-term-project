@@ -65,7 +65,7 @@ def validate_request(world, scenario=None):
     require(type(r) is dict and r == request(r.get('material_kind'), r.get('precision', '32'),
             r.get('runtime_profile', 'default')), 'Unapproved native particle request')
     require(world.get('initial_contents') == [] and world.get('initial_content_world_centers_m') == [],
-            'Native particles cannot be declared as four rigid beads')
+            'Native particles cannot be declared as three rigid beads')
     if scenario is not None:
         require(scenario.get('contents') == [] and scenario.get('particle_material_request') == r
                 and scenario['provenance']['world_sha256'] == digest(world),
@@ -125,11 +125,11 @@ def install_empty_scene(scene, world):
     r = validate_request(world)
     if r['material_kind'] == 'process_liquid': return None
     if r.get('runtime_profile') == CACHE_RUNTIME_PROFILE:
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         require(hashlib.sha256(Path(cache.__file__).read_bytes()).hexdigest() == CACHE_PROVIDER_SHA,
                 'Frozen cache provider changed')
         return cache.install_preentity(scene, opt_in=cache.OPT_IN)[1]
-    raise ContractError('This hardware package supports the fixed four-bead tiers only')
+    raise ContractError('This hardware package supports the fixed three-bead tiers only')
     require(hashlib.sha256(Path(provider.__file__).read_bytes()).hexdigest() == SPARSE_PROVIDER_SHA,
             'Frozen sparse provider changed')
     return provider.install_preentity(scene, opt_in=provider.OPT_IN)[1]
@@ -143,7 +143,7 @@ def rigid_option_overrides(world):
 def add_material(gs, scene, world, directory):
     r = validate_request(world)
     if r['material_kind'] == 'process_liquid':
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         cup, contents, provider, record = factory.add_canonical_liquid(gs, scene, directory)
         return cup, contents, provider, record
     from physics.scene_assets import write_tray_urdf
@@ -157,9 +157,9 @@ def add_material(gs, scene, world, directory):
     source = np.asarray(p['position_m'])+np.array([center[0], center[1], center[2]-half[2]+.020])
     contents = scene.add_entity(gs.morphs.Box(size=(.072, .072, .036), pos=tuple(source)),
         material=gs.materials.MPM.Sand(**r['material_settings']), name='sand')
-    raise ContractError('This hardware package supports the fixed four-bead tiers only')
+    raise ContractError('This hardware package supports the fixed three-bead tiers only')
     if r.get('runtime_profile') == CACHE_RUNTIME_PROFILE:
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
     record = dict(schema='canonical-sand-prebuild-candidate-v1', geometry=geometry,
         empty_mass_kg=mass, provider_sha256=r['provider_sha256'], original_source_pos_m=source.tolist(),
         pose_or_material_state_replayed=False, robot_transport_approved=False)
@@ -178,7 +178,7 @@ def provider_source_pins(kind, runtime_profile='default'):
     require(hashlib.sha256(path.read_bytes()).hexdigest() == expected, 'Native material provider changed')
     pins = {str(path.resolve()): expected}
     if kind == 'process_liquid':
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         pins.update(canonical_liquid_scene.source_bindings())
     else:
         from importlib.metadata import distribution
@@ -190,7 +190,7 @@ def provider_source_pins(kind, runtime_profile='default'):
                     'Sparse native source changed: '+relative)
             pins[str(source)] = sha
         if runtime_profile == CACHE_RUNTIME_PROFILE:
-            raise ContractError('This hardware package supports the fixed four-bead tiers only')
+            raise ContractError('This hardware package supports the fixed three-bead tiers only')
             cache_path = Path(cache.__file__).resolve()
             require(hashlib.sha256(cache_path.read_bytes()).hexdigest() == CACHE_PROVIDER_SHA,
                     'Frozen cache provider changed')

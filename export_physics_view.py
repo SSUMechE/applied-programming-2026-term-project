@@ -14,6 +14,7 @@ import math
 from pathlib import Path
 import sys
 import time
+from transport_challenge.material_access import BEAD_COUNT
 
 import export_student_view as nominal
 
@@ -77,6 +78,68 @@ def actual_frame(engine, indices, arm, q_by_arm, body, bead_positions, *,
                 bead_positions_m=beads.tolist(), bead_inside_carrier=list(inside))
 
 
+def validate_recorded_source(execution, plan, contents):
+    """Check original evidence without making a failed prefix a full result."""
+    from physics.device_tier_mission import validate_device_tier_completion, load_failed_tier_proof
+    from transport_challenge.contracts import digest
+    if execution.get("passed") is True:
+        require(validate_device_tier_completion(execution, plan_record=plan.record(), contents=contents) is True,
+                "Original native completion evidence is invalid")
+        return "complete_native_proof"
+    require(execution.get("passed") is False, "Missing native result state")
+    original, _ = load_failed_tier_proof(execution["native_output_directory"], plan,
+        contents=contents, source_bindings_unchanged=plan.verify_sources())
+    require(digest(original) == digest(execution), "Failed prefix differs from its original native sidecar")
+    return "failed_native_prefix_only"
+
+
+def bead_display_metadata(execution, contents):
+    """Summarize authenticated resets without synthesizing transition frames."""
+    from transport_challenge.contracts import digest
+    if contents == "empty":
+        require(execution.get("ideal_bead_lifecycle") is None, "Empty motion cannot claim bead resets")
+        return None, []
+    from physics.ideal_bead_policy import policy_contract
+    require(execution.get("ideal_bead_policy") == policy_contract(), "Missing current carry-only bead policy")
+    lifecycle = execution.get("ideal_bead_lifecycle")
+    require(type(lifecycle) is dict and type(lifecycle.get("events")) is list,
+            "Missing original bead preparation ledger")
+    resets = []
+    for event in lifecycle["events"]:
+        if event["operation"] != "reset":
+            continue
+        inputs = event["inputs"]
+        clock = inputs["native_transition"]["native_clock"]
+        resets.append(dict(reason=inputs["reason"], arm_id=inputs["arm_id"],
+            support_id=inputs["support_id"], stage_id=inputs.get("stage_id"),
+            native_step=clock[0], global_sim_time_s=clock[1], simulation_duration_s=0.,
+            source_event_sha256=digest(event)))
+    require(resets and resets[0]["reason"] == "INITIAL", "Missing initial prepared bead state")
+    return dict(schema_version="ap-carry-only-bead-display-v1",
+                source_policy_sha256=digest(execution["ideal_bead_policy"]),
+                source_lifecycle_sha256=digest(lifecycle),
+                reset_simulation_duration_s=0., no_reset_interpolation=True), resets
+
+
+def phase_display_metadata(phase, contents, resets, *, zero_physics_return=False):
+    carry = phase.get("phase") == "carry" and not zero_physics_return
+    if contents == "beads" and not zero_physics_return:
+        payload = phase["payload"]
+        if carry:
+            require(payload.get("schema_version") == "deferred-native-payload-post-audit-v1"
+                    and payload.get("bead_dynamics_evaluated", True) is True,
+                    "Carry preview lacks actual bead dynamics")
+        else:
+            require(payload.get("schema_version") == "provided-disabled-bead-observation-v1"
+                    and payload.get("bead_dynamics_evaluated") is False,
+                    "Prepared preview lacks explicit disabled bead evidence")
+    return dict(cup_robot_physics_evaluated=not zero_physics_return,
+                bead_dynamics_evaluated=contents == "beads" and carry,
+                bead_state_mode="EMPTY" if contents == "empty" else "CARRY" if carry else "OFF_PREPARED",
+                provided_bead_resets_before=[copy.deepcopy(e) for e in resets
+                    if e["native_step"] == phase["start_native_step"]])
+
+
 def build_preview(saved_path, review_dir, *, fps=15):
     import numpy as np
     from transport_challenge.contracts import digest
@@ -107,8 +170,11 @@ def build_preview(saved_path, review_dir, *, fps=15):
             "Review layout or difficulty differs")
     contents = execution.get("contents", "beads")
     identities = execution["original_sample_ids"]
-    require(contents in ("beads", "empty") and len(identities) == (4 if contents == "beads" else 0),
+    require(contents in ("beads", "empty") and len(identities) == (BEAD_COUNT if contents == "beads" else 0),
             "Only actual bead or empty-cup reviews are supported")
+    from physics.tier_mission_plan import TierMissionPlan
+    source_proof = validate_recorded_source(execution, TierMissionPlan.from_file(saved_path), contents)
+    bead_policy, bead_resets = bead_display_metadata(execution, contents)
     bead_ids = [item["id"] for item in identities]
     require(len(set(bead_ids)) == len(bead_ids), "Duplicate recorded bead IDs")
     radii = {item["radius_m"] for item in identities}
@@ -174,7 +240,7 @@ def build_preview(saved_path, review_dir, *, fps=15):
                            duration_s=(count-1)*DT, physical_duration_known=True,
                            simulation_duration_s=count*DT, start_native_step=start, end_native_step=end,
                            failed_prefix=bool(phase.get("failed_prefix")), source_history_sha256=sha(path),
-                           frames=frames))
+                           frames=frames, **phase_display_metadata(phase, contents, bead_resets)))
         total_frames += len(frames)
         if end in returns:
             receipt = returns.pop(end)
@@ -194,8 +260,11 @@ def build_preview(saved_path, review_dir, *, fps=15):
             stages.append(dict(stage_id=arm+"__recorded_kinematic_return", kind="physical",
                                active_arm_id=arm, phase="kinematic_return", purpose="Recorded zero-physics donor return",
                                duration_s=frames[-1]["time_s"], simulation_duration_s=0.,
+                               start_native_step=end, end_native_step=end,
                                physical_duration_known=True, zero_physics_return=True,
-                               recorded_fps=receipt["recorded_frames_fps"], frames=frames))
+                               recorded_fps=receipt["recorded_frames_fps"], frames=frames,
+                               **phase_display_metadata(dict(phase="kinematic_return", start_native_step=end),
+                                   contents, bead_resets, zero_physics_return=True)))
             total_frames += len(frames)
         require(total_frames <= MAX_FRAMES, "Preview exceeds 30,000 display frames")
     require(not returns, "A recorded donor return has no matching physical phase")
@@ -203,13 +272,14 @@ def build_preview(saved_path, review_dir, *, fps=15):
     metadata.update(schema_version="ap-student-physical-preview-v1", geometry=geometry, stages=stages,
         result_sha256=result_hash, bead_ids=bead_ids, bead_radius_m=next(iter(radii), .012),
         contents=contents, display_fps=fps, recorded_physics_dt_s=DT,
+        bead_display_policy=bead_policy, bead_reset_events=bead_resets, original_evidence_scope=source_proof,
         original_result_status=result.get("status"), original_full_mission_passed=result.get("full_mission_passed") is True,
         failed_prefix_included=failed is not None, total_display_frames=total_frames,
         source_record_sha256={str(Path(k).relative_to(review_dir)):v for k,v in source_hashes.items()},
         scope=dict(geometry_only=False, actual_recorded_states=True, genesis_imported=False,
                    physical_steps=0, ik_calls=0, planner_calls=0, source_commands_and_times_unchanged=True,
                    collision_or_retention_certificate=False, no_state_interpolation=True,
-                   note="Recorded Genesis robot/cup/bead states reconstructed with supplied collision geometry. Display sampling is not physics resolution. Zero-physics donor returns have a separate display clock. This export does not rerun, rescore or upload the review."))
+                   note="Recorded Genesis robot/cup/bead states reconstructed with supplied collision geometry. Bead dynamics run only during carry. Prepared/OFF stages and authorized zero-time resets are explicitly labelled, without interpolating a reset. Display sampling is not physics resolution. Zero-physics donor returns have a separate display clock. This export does not rerun, rescore or upload the review."))
     metadata.pop("frames_per_stage", None)
     for path, expected in source_hashes.items():
         require(sha(path) == expected, "Recorded source changed during preview export")

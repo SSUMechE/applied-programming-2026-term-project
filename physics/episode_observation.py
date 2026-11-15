@@ -90,7 +90,7 @@ class EpisodeObservationReader:
         if len(arms)==1:
             from physics.fixed_peer_arms import validate_scene_contract
             self.single_active_contract=validate_scene_contract(scene,arms)
-        if (len(arms) not in (2,3) and self.single_active_contract is None or (len(beads)!=(0 if payload_mode=='empty' else 4) if particle_material is None else bool(beads)) or set(hands)!=set(arms) or set(fingers)!=set(arms)
+        if (len(arms) not in (2,3) and self.single_active_contract is None or (len(beads)!=(0 if payload_mode=='empty' else 3) if particle_material is None else bool(beads)) or set(hands)!=set(arms) or set(fingers)!=set(arms)
                 or any(not isinstance(n,str) or not n.strip() for n in arms)
                 or any(len(fingers[n])!=2 for n in arms) or scene.rigid_solver.n_envs!=0):
             raise ContractError('Observation pack requires unbatched two/three-Panda and its explicit payload inventory')

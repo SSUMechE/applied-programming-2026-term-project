@@ -100,13 +100,13 @@ def assess_current_student_single_batch(execution,observation,*,route,initial_su
         if len({r['plan_path_source_sha256'] for r in plans})!=1:
             raise ContractError('Selected strategy source changes between motions')
         supply={m['id']:(m['mass_kg'],m['entity_idx']) for m in initial_supply}
-        if (len(supply)!=4 or len(initial_supply)!=4
+        if (len(supply)!=3 or len(initial_supply)!=3
                 or any(type(m['id']) is not str or not m['id']
                     or type(m['entity_idx']) is not int or m['entity_idx']<0
                     or isinstance(m['mass_kg'],bool) or not isinstance(m['mass_kg'],(int,float))
                     or not math.isfinite(m['mass_kg']) or m['mass_kg']<=0 for m in initial_supply)
-                or len({m['entity_idx'] for m in initial_supply})!=4):
-            raise ContractError('One current bead batch has exactly four original IDs')
+                or len({m['entity_idx'] for m in initial_supply})!=3):
+            raise ContractError('One current bead batch has exactly three original IDs')
         previous_step=0;previous_time=0.;last_gate=None
         for index,(done,entry) in enumerate(zip(completed,gates)):
             if (type(done.get('native_scene_step')) is not int or done['native_scene_step']<=previous_step
@@ -151,7 +151,7 @@ def assess_current_student_single_batch(execution,observation,*,route,initial_su
             raise ContractError('Final observation does not belong to the final completed release')
         final_materials=observation['materials']
         actual={m['id']:(m['mass_kg'],m['entity_idx']) for m in final_materials}
-        if len(final_materials)!=4 or actual!=supply:
+        if len(final_materials)!=3 or actual!=supply:
             raise ContractError('Original material IDs, native entities or masses changed')
         for material in final_materials:point(material['position_world_m'],3)
         if any(m.get('inside_carrier') is not True or
@@ -287,7 +287,7 @@ class StudentEpisodeDriver:
             raise ContractError('Private contact fixture requires exact Sand64/cache source_lift_probe/step_limit3')
 
     def bind_private_contact_profile(self,observer):
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         if (self.private_contact_profile is not True or self.initialized or self._particle_runtime is None
                 or self._private_contact_observer is not None or type(observer) is not ContactProfileObserver):
             raise ContractError('Bind the source-owned private observer after native particle authentication')
@@ -331,7 +331,7 @@ class StudentEpisodeDriver:
 
     def _particle_pause_before(self,observation,dispatcher):
         from physics.episode_continuation_protocol import rest_receipt
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         snapshot=self._particle_runtime[2](observation)
         boundary=rest_receipt(dispatcher.record(),observation,list(self.arm_ids))
         receipt=pause.begin_pause(observation,snapshot,bindings=self._particle_pause_bindings,
@@ -339,7 +339,7 @@ class StudentEpisodeDriver:
         return dict(receipt=receipt,boundary=boundary)
 
     def _particle_pause_after(self,context,observation,dispatcher):
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         snapshot=self._particle_runtime[2](observation)
         return pause.verify_pause(context['receipt'],observation,snapshot,bindings=self._particle_pause_bindings,
             dispatcher_record=dispatcher.record(),boundary_receipt=context['boundary'])
@@ -356,7 +356,7 @@ class StudentEpisodeDriver:
             raise ContractError('The bead settling policy cannot alter a native-particle episode')
         if self.particle_mode:
             from physics.particle_student_completion import particle_context
-            raise ContractError('This hardware package supports the fixed four-bead tiers only')
+            raise ContractError('This hardware package supports the fixed three-bead tiers only')
             if self._particle_runtime is None:raise ContractError('Bind the actual particle runtime before initial_plan')
             self.initial_supply=particle_context(world,scenario,observation,self._particle_runtime[0])
             if (observation['native_scene_step']!=0 or observation['simulation_s']!=0.
@@ -378,7 +378,7 @@ class StudentEpisodeDriver:
         if original_arm_ids!=('arm_0','arm_1','arm_2'):
             raise ContractError('Use the exact three persistent arm identities')
         if self.single_active_arm_contract is not None and (self.mode!='one_carry' or self.particle_mode or self.saved_plan is None):
-            raise ContractError('Single active execution currently requires the explicit saved four-bead one-carry scope')
+            raise ContractError('Single active execution currently requires the explicit saved three-bead one-carry scope')
         self.arm_ids=((self.single_active_arm_contract['active_arm_id'],) if self.single_active_arm_contract else original_arm_ids)
         self.initial_commands={r['id']:{'q_rad':(list(observation['arms'][r['id']]['q_all_dofs'][:7])
                 if self.particle_mode and world['particle_material_request'].get('precision','32') == '64'

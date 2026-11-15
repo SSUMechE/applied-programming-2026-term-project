@@ -1,6 +1,6 @@
 """Explicit instructor contact-accuracy experiment. No stepping or pose changes.
 
-Only thirteen named geometry time constants change. This is an uncalibrated
+Only twelve named geometry time constants change. This is an uncalibrated
 joint change of contact response and retained-contact visibility, not proof of
 continuous safety, physical convergence or a new student grading policy.
 """
@@ -16,7 +16,7 @@ import numpy as np
 
 from transport_challenge.contracts import ContractError, digest
 
-TARGET_ENTITIES = ('tray_0', *(f'tray_0_ball_{i}' for i in range(4)))
+TARGET_ENTITIES = ('tray_0', *(f'tray_0_ball_{i}' for i in range(3)))
 SOURCE_PINS = {
     'engine/entities/rigid_entity/rigid_geom.py': '399e0e0ec7d63a9a965c781f6946aed67109051ac8ccd666a47092cfb6a10a14',
     'engine/solvers/rigid/rigid_solver.py': 'e076854af17262323041544ff692d366402a700357053618c8d89fed1e86b19f',
@@ -34,7 +34,7 @@ def contact_accuracy_request():
 
 def validate_request(request):
     if not isinstance(request, dict) or digest(request) != digest(contact_accuracy_request()):
-        raise ContractError('Only the explicit thirteen-geometry .005s/unpruned experiment is supported')
+        raise ContractError('Only the explicit twelve-geometry .005s/unpruned experiment is supported')
     return copy.deepcopy(request)
 
 
@@ -83,13 +83,15 @@ def prepare_geometry_parameters(entities, request, *, box_type, sphere_type):
     if any(e.is_built for e in entities):
         raise ContractError('Contact accuracy requires unbuilt geometry')
     inventory = _inventory(entities)
+    if {e.name for e in entities if e.name.startswith('tray_0_ball_')} != set(TARGET_ENTITIES[1:]):
+        raise ContractError('Require exactly the three supplied sphere entities')
     selected = [(g, r) for g, r in inventory if r['entity'] in TARGET_ENTITIES]
     if ([r['identity']['local_index'] for _, r in selected if r['entity'] == 'tray_0'] != list(range(9))
             or any(r['identity']['link'] != 'payload' for _, r in selected if r['entity'] == 'tray_0')
             or any(g.type != box_type for g, r in selected if r['entity'] == 'tray_0')
             or any(len([r for _, r in selected if r['entity'] == name]) != 1 for name in TARGET_ENTITIES[1:])
-            or any(g.type != sphere_type for g, r in selected if r['entity'] != 'tray_0') or len(selected) != 13):
-        raise ContractError('Require exactly nine named tray boxes and four separately owned spheres')
+            or any(g.type != sphere_type for g, r in selected if r['entity'] != 'tray_0') or len(selected) != 12):
+        raise ContractError('Require exactly nine named tray boxes and three separately owned spheres')
     before = [(g, r, _vector(g.sol_params)) for g, r in inventory]
     rows = []
     for geom, identity, original in before:
@@ -183,7 +185,7 @@ def validate_evidence(evidence, request):
         if native.tolist() != expected_native:
             raise ContractError('Native geometry parameters differ from pinned exact dtype resolution')
         signatures.append({k: copy.deepcopy(v) for k, v in r.items() if k != 'global_id'})
-    if (len(selected) != 13
+    if (len(selected) != 12
             or sorted(r['identity']['local_index'] for r in selected if r['entity'] == 'tray_0') != list(range(9))
             or any(r['identity']['link'] != 'payload' for r in selected if r['entity'] == 'tray_0')
             or any(r['identity']['type'] != 5 for r in selected if r['entity'] == 'tray_0')
@@ -239,14 +241,15 @@ def _rigid16_inventory(entities):
 def prepare_rigid16_geometry(entities, request, *, floor, tray, beads, box_type, sphere_type, plane_type, payload_mode=None):
     """Select actual bound objects amid any complete three-arm geometry count."""
     request=validate_rigid16_request(request)
-    n=0 if payload_mode=='empty' else 4
+    n=0 if payload_mode=='empty' else 3
     if payload_mode not in (None,'empty'):raise ContractError('Explicit rigid16 payload required')
     if (any(e.is_built for e in entities) or len({id(e) for e in entities})!=len(entities)
+            or {id(e) for e in entities if e.name.startswith('tray_0_ball_')}!={id(e) for e in beads}
             or len(beads)!=n or len({id(e) for e in [floor,tray,*beads]})!=n+2
             or any(not any(e is selected for e in entities) for selected in [floor,tray,*beads])
             or floor.name!='floor' or tray.name!=TARGET_ENTITIES[0]
             or [e.name for e in beads]!=list(TARGET_ENTITIES[1:1+n])):
-        raise ContractError('Rigid16 requires the actual unbuilt floor/cup/original4bead objects')
+        raise ContractError('Rigid16 requires the actual unbuilt floor/cup/original3bead objects')
     if (len(floor.geoms)!=1 or floor.geoms[0].type!=plane_type
             or len(tray.geoms)!=9 or any(g.type!=box_type or g.link.name!='payload' for g in tray.geoms)
             or any(len(e.geoms)!=1 or e.geoms[0].type!=sphere_type for e in beads)):
@@ -306,7 +309,7 @@ def rigid16_built_evidence(scene, entities, before, request):
               'resolved_contact_pruning_tolerance':None,'native_pruning_tolerance':pruning,
               'native_default_timeconst_s':.01,'selection':copy.deepcopy(before['selection']),
               'geometries':rows,'source_sha256':dict(RIGID16_SOURCE_PINS),
-              'scope':'Configured native values under a separate rigid16 model, not the old13geometry contract or physical acceptance.'}
+              'scope':'Configured native values under the rigid16 model. Physical acceptance requires the complete native execution.'}
     validate_rigid16_evidence(evidence,request)
     return evidence
 
@@ -323,12 +326,13 @@ def inspect_source_root(solver):
 def validate_rigid16_evidence(evidence, request):
     request=validate_rigid16_request(request)
     if (type(evidence) is not dict or evidence.get('schema_version')!='rigid16-bead-contact-native-v1'
+            or evidence.get('payload_mode') not in (None,'empty')
             or evidence.get('requested')!=request or evidence.get('dt_s')!=.0025
             or evidence.get('substeps')!=16 or evidence.get('substeps_local')!=1
             or evidence.get('native_pruning_tolerance')!=0. or evidence.get('resolved_contact_pruning_tolerance','missing') is not None
             or evidence.get('native_default_timeconst_s')!=.01 or evidence.get('source_sha256')!=RIGID16_SOURCE_PINS):
         raise ContractError('Malformed rigid16 configured evidence')
-    n=0 if evidence.get('payload_mode')=='empty' else 4
+    n=0 if evidence.get('payload_mode')=='empty' else 3
     rows=evidence['geometries'];count=evidence['native_geometry_count'];selection=evidence['selection']
     if (type(count) is not int or count<10+n or len(rows)!=count
             or sorted(r['global_id'] for r in rows)!=list(range(count))

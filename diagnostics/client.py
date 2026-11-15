@@ -29,7 +29,7 @@ from .protocol import (ARGUMENT_KEYS, SCHEMA_VERSION, canonical_bytes,
                        sanitize_text, validate_report)
 from .process_tree import OwnedJob
 
-PACKAGE_VERSION = "term_v3-diagnostics-v1"
+PACKAGE_VERSION = "term_v4-diagnostics-v1"
 DEFAULT_SERVER = "https://phoniness-reenact-veggie.ngrok-free.dev"
 COMMANDS = {
     "check": ["check_environment.py"],
@@ -245,7 +245,7 @@ def metadata_source(root, argv):
     difficulty = option(argv, "difficulty")
     rule = option(argv, "rule")
     if not isinstance(rule, str) and difficulty in ("easy", "medium", "hard"):
-        rule = f"leaderboard/rules/term_v3/ap2026-{difficulty}-beads-term-v3.json"
+        rule = f"leaderboard/rules/term_v4/ap2026-{difficulty}-beads-term-v4.json"
     if isinstance(rule, str):
         mapping = read_json(root / rule).get("evaluation_sources", {})
         if type(mapping) is dict and mapping:

@@ -2,8 +2,9 @@
 
 Friction acquisition/retention uses the explicit native provided grasp model.
 After actual supported detach, the existing supplied open action clears fingers.
-Native sources, actual seven-joint paths, all-ID material quality/rest, sampled
-contact coverage, named support and actual released-state checks remain required.
+Native sources, actual seven-joint paths, sampled contact coverage, named support
+and actual cup/robot rest remain required. Explicit bead OFF boundaries use a
+source-bound preparation receipt, never a physical bead-rest verdict.
 """
 from __future__ import annotations
 import copy
@@ -13,7 +14,7 @@ from transport_challenge.contracts import ContractError,digest,point
 from physics.carried_body import HeldBodySpec,WorldPose
 from physics.provided_manipulation import assess_place_ready
 
-HELPER_SHA='7458d4f339da20d91d819f981cc8e30c3b018dd5cce375e9d61f32eb55e3c291'
+HELPER_SHA='a2c2c2aad83499e1f793d46a8893c59c96ab84d5e2741fc83228ed06350dcf60'
 RELEASED_EXTRA_HOLD_S=.5
 RELEASED_EXTRA_LIMIT_S=5.
 
@@ -25,10 +26,10 @@ def require(value,message):
 def policy():
     return dict(schema_version='provided-ideal-manipulation-policy-v1',grasp_model='provided_ideal',
         acquisition='Actual supplied endpoint then native hand/cup weld without pose/velocity reset.',
-        release='Actual named support, arm/body rest and all-ID quality, same-clock detach, supplied open, released hold and strict final material rest.',
-        released_material_settle=dict(hold_s=RELEASED_EXTRA_HOLD_S,maximum_extra_s=RELEASED_EXTRA_LIMIT_S,all_simulation_time_counted=True,final_rest_limits_unchanged=True),
+        release='Actual named support, arm/body rest and original material inventory, same-clock detach, supplied open and released hold. Explicit bead OFF uses its preparation receipt. Other material modes retain their strict final material-rest gate.',
+        released_material_settle=dict(hold_s=RELEASED_EXTRA_HOLD_S,maximum_extra_s=RELEASED_EXTRA_LIMIT_S,all_simulation_time_counted=True,final_rest_limits_unchanged=True,applies_to='Physical material-rest modes only. Authenticated bead OFF requires no material settling retry.'),
         fingers='Preserve commands except the owned post-detach place_actions open to the common native maximum. No close or preload.',
-        native_collision_rule='Native weld excludes entire hand-link/cup-link pair only. Other links, fingers, world and materials retain collisions.',
+        native_collision_rule='Native weld excludes the entire hand-link/cup-link pair only. Other robot/cup collisions remain. The separately authenticated bead policy controls bead dynamics and contacts.',
         student_intermediate_postures=False,legacy_friction_holder_certification=False)
 
 
@@ -94,8 +95,116 @@ def _recorded_empty_presence(receipt,step,now):
         'Empty payload observation source hash missing')
 
 
+def make_prepared_bead_receipt(*,observation,identities,native_gate,latest_reset,lifecycle):
+    """Bind an OFF boundary to native and policy evidence, not physical bead rest.
+
+    The owning runtime supplies authenticated native metadata and observation.
+    This pure factory does not authenticate an arbitrary caller or reset beads.
+    """
+    from physics.ideal_bead_policy import policy_contract
+    receipt=dict(schema_version='provided-disabled-bead-boundary-v1',
+        policy_sha256=digest(policy_contract()),native_scene_step=observation['native_scene_step'],
+        simulation_s=observation['simulation_s'],observation_sha256=digest(observation),
+        original_bead_ids=copy.deepcopy(identities),native_gate=copy.deepcopy(native_gate),
+        latest_reset=copy.deepcopy(latest_reset),lifecycle=copy.deepcopy(lifecycle),
+        bead_dynamics_evaluated=False,material_rest='NOT_APPLICABLE_DISABLED',
+        material_retention='NOT_APPLICABLE_DISABLED',rest_assessed=False,
+        quality_passed=True,source_bindings_verified=True)
+    return validate_prepared_bead_receipt(receipt,observation=observation,identities=identities)
+
+
+def validate_prepared_bead_receipt(receipt,*,observation,identities,exact_observation=True):
+    """Validate the prepared-state lineage. OFF is never a material-rest PASS."""
+    from physics.ideal_bead_policy import policy_contract,validate_native_transition,validate_lifecycle
+    require(type(receipt) is dict and receipt.get('schema_version')=='provided-disabled-bead-boundary-v1'
+        and receipt.get('policy_sha256')==digest(policy_contract())
+        and receipt.get('original_bead_ids')==identities
+        and receipt.get('bead_dynamics_evaluated') is False and receipt.get('rest_assessed') is False
+        and receipt.get('material_rest')==receipt.get('material_retention')=='NOT_APPLICABLE_DISABLED'
+        and receipt.get('quality_passed') is True and receipt.get('source_bindings_verified') is True
+        and 'passed' not in receipt and 'retained' not in receipt,
+        'Explicit disabled-bead boundary evidence required, not physical rest or retention')
+    step=observation['native_scene_step'];now=observation['simulation_s']
+    require(type(step) is int and step>=0 and type(now) in (int,float) and math.isfinite(now)
+        and abs(now-step*.0025)<=1e-9 and receipt.get('native_scene_step')==step
+        and receipt.get('simulation_s')==now,'Prepared bead receipt is not this native boundary')
+    sha=receipt.get('observation_sha256')
+    require(type(sha) is str and len(sha)==64 and all(c in '0123456789abcdef' for c in sha)
+        and (not exact_observation or sha==digest(observation)),'Prepared bead observation binding differs')
+    reset=receipt.get('latest_reset');native=receipt.get('native_gate');ledger=receipt.get('lifecycle')
+    validate_native_transition(reset,identities=identities,expected_event='reset')
+    require(type(native) is dict and native.get('mode')=='OFF'
+        and native.get('bead_identities')==identities
+        and native.get('native_scene_identity')==reset['after']['scene_identity']
+        and native.get('source_hashes')==reset['source_hashes']
+        and native.get('carry_original_solver_path') is False
+        and type(native.get('events')) is list and native['events'] and native['events'][-1]==reset,
+        'Native bead gate is not the original prepared OFF state')
+    flags=native.get('current_guard_flags');count=native.get('off_native_substeps')
+    require(type(flags) is list and len(flags)==5 and all(type(v) is int for v in flags)
+        and flags[0]>=0 and flags[1:]==[0]*4 and type(count) is int and count>=flags[0]
+        and reset['native_clock'][0]<=step,'Disabled native bead guard or reset clock failed')
+    require(type(ledger) is dict and ledger.get('identities')==identities
+        and ledger.get('state') in ('OFF','PREPARED','COMPLETE') and ledger.get('failures')==[],
+        'Prepared bead lifecycle is failed or still carrying')
+    validate_lifecycle(ledger,identities=identities,body_local_positions=ledger['body_local_positions_m'],
+        required_arm_ids=ledger['required_arm_ids'],support_route=ledger['support_route'],
+        scope=ledger['scope'],require_complete=False)
+    require(ledger['events'] and ledger['events'][-1]['operation']=='reset'
+        and ledger['events'][-1]['inputs']['native_transition']==reset,
+        'Prepared bead reset is not the latest authorized lifecycle boundary')
+    native_events=[]
+    for event in ledger['events']:
+        inputs=event['inputs']
+        if event['operation']=='reset':
+            if inputs.get('initial_pause') is not None:native_events.append(inputs['initial_pause'])
+            native_events.append(inputs['native_transition'])
+        elif event['operation']=='begin_carry':native_events.append(inputs['native_resume'])
+        elif event['operation']=='pause':native_events.append(inputs['native_pause'])
+    require(native['events']==native_events,'Native transitions differ from the authorized bead lifecycle')
+    validate_prepared_bead_sample(observation,receipt)
+    return receipt
+
+
+def validate_prepared_bead_sample(observation,receipt):
+    """Check original IDs and frozen coordinates without a containment verdict."""
+    materials=observation.get('materials');identities=receipt['original_bead_ids']
+    reset=receipt['latest_reset']['after'];start=reset['native_clock'][0]
+    step=observation.get('native_scene_step');now=observation.get('simulation_s')
+    require(type(step) is int and start<=step<=receipt['native_scene_step']
+        and type(now) in (int,float) and math.isfinite(now) and abs(now-step*.0025)<=1e-9
+        and type(materials) is list and len(materials)==3 and 'particle_material' not in observation,
+        'Prepared bead sample is not in its authenticated OFF interval')
+    for material,identity,q,v in zip(materials,identities,reset['bead_qpos'],reset['bead_qvel']):
+        require(all(material.get(k)==identity[k] for k in ('id','entity_idx','mass_kg'))
+            and point(material.get('position_world_m'),3)==tuple(q[:3])
+            and point(material.get('velocity_world_m_s'),3)==tuple(v[:3]) and not any(v),
+            'Original disabled beads moved or changed outside the authorized reset')
+    return True
+
+
+def prepared_material_receipt(driver,state):
+    """Only an explicit trusted callback can opt a boundary into bead OFF mode."""
+    if 'ideal_bead_prepared' not in state:return None
+    callback=state['ideal_bead_prepared']
+    require(callable(callback) and not driver.particle_mode and driver.world.get('payload_mode')!='empty',
+        'Prepared bead handling cannot override another material scope')
+    require(state['source_check']() is True,'Prepared bead boundary source bindings changed')
+    receipt=callback()
+    # Runtime inventory records may include measured initial coordinates. Keep
+    # all original identity/mass fields exact while using the native radius pins.
+    identities=receipt.get('original_bead_ids') if type(receipt) is dict else None
+    require(type(identities) is list and len(identities)==len(driver.initial_supply)==3
+        and all(all(a.get(k)==b.get(k) for k in ('id','entity_idx','mass_kg'))
+                for a,b in zip(identities,driver.initial_supply)),
+        'Prepared bead receipt replaced the original supply')
+    return validate_prepared_bead_receipt(receipt,observation=state['observation'],identities=identities)
+
+
 def bulk_rest(driver,state):
     obs=state['observation']
+    prepared=prepared_material_receipt(driver,state)
+    if prepared is not None:return prepared
     if driver.world.get('payload_mode')=='empty':return empty_material_receipt(driver,state)
     if driver.particle_mode:
         from physics.particle_student_completion import particle_context,checked_bulk_rest
@@ -110,6 +219,8 @@ def bulk_rest(driver,state):
 def material_quality(driver,state):
     """Full current native inventory/retention quality, without a rest verdict."""
     obs=state['observation']
+    prepared=prepared_material_receipt(driver,state)
+    if prepared is not None:return prepared
     if driver.world.get('payload_mode')=='empty':return empty_material_receipt(driver,state)
     if driver.particle_mode:
         from physics.particle_student_completion import particle_context
@@ -126,7 +237,8 @@ def material_quality(driver,state):
 
 def material_rest_status(driver,state):
     """Distinguish invalid data from a valid, still moving material window."""
-    obs=state['observation'];material_quality(driver,state)
+    obs=state['observation'];quality=material_quality(driver,state)
+    if quality.get('schema_version')=='provided-disabled-bead-boundary-v1':return quality
     if driver.world.get('payload_mode')=='empty':return empty_material_receipt(driver,state)
     if driver.particle_mode:
         from physics.particle_episode_state import validate_particle_packet,window_rest
@@ -168,10 +280,26 @@ def pick(driver,state,op):
     stable=0. if state['stable_since'] is None else obs['simulation_s']-state['stable_since']
     supported=0. if state['support_since'] is None else obs['simulation_s']-state['support_since']
     empty=driver.world.get('payload_mode')=='empty'
-    require((empty or stable>=state['settings']['scenario']['contained_stability_s']-1e-9)
+    prepared=material.get('schema_version')=='provided-disabled-bead-boundary-v1'
+    require((empty or prepared or stable>=state['settings']['scenario']['contained_stability_s']-1e-9)
         and supported>=state['settings']['scenario']['bilateral_window_s']-1e-9,'Original material/support stability duration incomplete')
     require(driver.automatic_grasp.holder is None and driver.held is None,'Automatic acquisition already held')
-    receipt=driver.automatic_grasp.attach(arm);driver.automatic_attachment_receipt=copy.deepcopy(receipt)
+    endpoint=state.get('provided_pick_endpoint')
+    if endpoint is None:
+        receipt=driver.automatic_grasp.attach(arm)
+    else:
+        # Keep the target supplied before approach. The separately checked
+        # actual cup may move within its unchanged supported-pose tolerance.
+        snapshot=driver.automatic_grasp.snapshot(arm)
+        def support_ready_callback(actual):
+            state['wall_check']()
+            require(state['source_check']() is True and actual==snapshot,
+                    'Supported acquisition snapshot or sources changed')
+            return dict(passed=True,native_clock=actual['native_clock'],
+                body_entity_idx=actual['body_entity_idx'],support_id=support,
+                supplied_endpoint=copy.deepcopy(endpoint),evidence_sha256=digest(ready))
+        receipt=driver.automatic_grasp.attach(arm,supplied_endpoint=endpoint,support_ready=support_ready_callback)
+    driver.automatic_attachment_receipt=copy.deepcopy(receipt)
     fresh=transition_observation(driver,state,obs,receipt);driver.held=held_spec(driver,fresh,arm);driver.held_observation_sha256=digest(fresh)
     event=dict(event='attach',stage_id=op['stage_id'],native_scene_step=fresh['native_scene_step'],simulation_s=fresh['simulation_s'],receipt=receipt)
     driver.automatic_events.append(event)
@@ -179,8 +307,10 @@ def pick(driver,state,op):
     gate=dict(schema_version='provided-automatic-supported-pick-gate-v1',passed=True,grasp_model='provided_ideal',
         all_arms_rest=arms,body_rest=body,source_support_observed=True,support_id=support,support_ready=ready,
         automatic_attachment_receipt_sha256=digest(receipt),actual_attach_receipt=receipt,observation_sha256=digest(fresh),
-        stable_contents_window_s=None if empty else stable,source_support_window_s=supported,
+        stable_contents_window_s=None if empty or prepared else stable,source_support_window_s=supported,
         **({'empty_payload':material,'material_window_required':False} if empty else
+            {'ideal_bead_prepared':material,'material_window_required':False,'bead_dynamics_evaluated':False,
+             'material_rest':'NOT_APPLICABLE_DISABLED'} if prepared else
             {'particle_bulk_rest':material} if driver.particle_mode else {'bead_bulk_rest':material}))
     driver._save(state,op['stage_id']+'__provided_pick.json',dict(gate=gate,held_body=driver.held.to_record(),observation_sha256=digest(fresh)))
     return gate

@@ -172,7 +172,7 @@ def default_contact_policy():
             "exact_phase_contact_classifier_required": True, "physical_grasp_verified": False}
 
 
-PROVIDED_AUTOMATIC_GRASP_SHA256 = "7458d4f339da20d91d819f981cc8e30c3b018dd5cce375e9d61f32eb55e3c291"
+PROVIDED_AUTOMATIC_GRASP_SHA256 = "a2c2c2aad83499e1f793d46a8893c59c96ab84d5e2741fc83228ed06350dcf60"
 
 
 def validate_provided_grasp_binding(spec, binding, *, active_arm_id, observation):

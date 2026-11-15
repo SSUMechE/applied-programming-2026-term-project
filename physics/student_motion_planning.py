@@ -207,7 +207,7 @@ def _query_scene(request, output):
         contents = ()
     else:
         materials, original = obs["materials"], world["initial_contents"]
-        if (len(materials) != len(original) or len(original) != 4
+        if (len(materials) != len(original) or len(original) != 3
                 or any(m["id"] != old["id"] or m["mass_kg"] != old["mass_kg"]
                        or m["inside_carrier"] is not True for m, old in zip(materials, original))):
             raise ContractError("Current persistent material IDs, masses or retention differ")

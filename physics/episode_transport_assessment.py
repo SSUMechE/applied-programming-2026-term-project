@@ -133,8 +133,8 @@ holder/support phase. This function does not create contacts or prove lifting.
 
 
 def _materials(values):
-    if not isinstance(values, (list, tuple)) or len(values) != 4:
-        raise ContractError('Require the four persistent material identities')
+    if not isinstance(values, (list, tuple)) or len(values) != 3:
+        raise ContractError('Require the three persistent material identities')
     result = {}
     for item in values:
         name = item['id']
@@ -146,7 +146,7 @@ def _materials(values):
         if type(item['entity_idx']) is not int or item['entity_idx'] < 0:
             raise ContractError('Material native entity must be an exact integer')
         result[name] = item
-    if len({m['entity_idx'] for m in result.values()}) != 4:
+    if len({m['entity_idx'] for m in result.values()}) != 3:
         raise ContractError('Material native entities must be unique')
     return result
 

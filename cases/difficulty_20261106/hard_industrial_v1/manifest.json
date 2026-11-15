@@ -1,9 +1,9 @@
 {
   "schema_version": "provided-three-arm-task-inputs-v1",
   "files": {
-    "cases/difficulty_20261106/hard_industrial_v1/initialization.json": "d205f1f69a5fae0d19e9d45bc9752503c7827211dcfe287cd22a90d332d748f3",
-    "cases/difficulty_20261106/hard_industrial_v1/physics_settings_reference.json": "b8b5c299ec0bc47ecd69d29d6b4d888057236dd6855d57df94ba5dee76f7754e",
-    "cases/difficulty_20261106/hard_industrial_v1/world.json": "513be26ad5433bdb5a890d119142df3f64f877c22c54cf91106f6f8a22ec328d"
+    "cases/difficulty_20261106/hard_industrial_v1/initialization.json": "063858c15e287dd9e4eb297d84ef3837be39e60516bc4a5de3f02dae397c3e7a",
+    "cases/difficulty_20261106/hard_industrial_v1/physics_settings_reference.json": "4c01bf649db6cba1104d89625197699a5cc6fcf64f7073b55a317ed0bf53acb0",
+    "cases/difficulty_20261106/hard_industrial_v1/world.json": "f2bea53d7ebf91370ab13665ca16e58dce9bc751b4cf1665b02e76fb40489934"
   },
   "source_case": {
     "cases/three_arm_cell_bead16_v2/world.json": "5685cd75be630c89d7bac2432622e79c9e66e92a3f9efb94da37a6c772f888f4",
@@ -12,9 +12,10 @@
   },
   "instructor_builder_sha256": "05eb3820be2a01bdcf7277c8eef87d4c442de9dd6fc28bbf9f02098064a64c02",
   "fixed_physics_and_criteria_signature_sha256": "2ea9171ad62a65a128ad56525774759a5b9ed95f886951744214b956826c7135",
-  "scope": "Immutable supplied physical geometry and initial joints. Student installation and internal handoff choices must be supplied separately. Release qualification is external to this input manifest.",
+  "scope": "Immutable supplied three-bead physical geometry and initial joints. Student installation and internal handoff choices are supplied separately. Native qualification is external to this manifest.",
   "supplemental_files": {
-    "cases/difficulty_20261106/hard_industrial_v1/difficulty_target.json": "87fadac2afddacb8f79c2b2348e82228af084fe5732569c9aca5e4e414810a00",
+    "cases/difficulty_20261106/hard_industrial_v1/difficulty_target.json": "e1ded9e3fd805ae105b4d5f73296a3a93c7c6d90fa4344ce016816b812aee368",
     "cases/difficulty_20261106/hard_industrial_v1/map_geometry.json": "74a987aa283155ab0ff994d0209de41a30da91787e688e22ee77a79e1d890cb8"
-  }
+  },
+  "sample_count": 3
 }

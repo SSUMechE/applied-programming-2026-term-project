@@ -38,7 +38,12 @@ def assess_device_checks(control, payload, contacts, handling):
         if record.get('source_bindings_unchanged') is not True:
             add(integrity,area,'source_changed')
         for name,value in flags.items():
-            if value:add(physical if name in pp else numeric if name in nn else integrity,area,name)
+            if value:
+                prepared = area == 'payload' and record.get('schema_version') == 'provided-disabled-bead-observation-v1'
+                if prepared and name == 'bead_outside':
+                    add(integrity,area,'prepared_state_outside')
+                else:
+                    add(physical if name in pp else numeric if name in nn else integrity,area,name)
         expected=not any(flags.values()) and record.get('source_bindings_unchanged') is True
         if record.get('passed') is not expected:add(integrity,area,'inconsistent_pass_flag')
     if type(contacts) is not dict or type(contacts.get('passed')) is not bool:

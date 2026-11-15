@@ -1,10 +1,10 @@
 # Leaderboard records and qualification
 
-**2026-02 · Beads only · term_v3**
+**2026-02 · Beads only · term_v4**
 
-The [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev/) is active for official bead attempts and final representative selection. Instructor qualification records are kept outside classroom standings. Activation uses the verified instructor-PC evidence. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and sand are locked. The three active rules are `ap2026-easy-beads-term-v3`, `ap2026-medium-beads-term-v3` and `ap2026-hard-beads-term-v3`, shown as Lower, Moderate and Higher complexity.
+The [class leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev/) is active for official bead attempts and final representative selection. Instructor qualification records are kept outside classroom standings. Activation uses the verified instructor-PC evidence. GTX 1660 SUPER runtime and memory remain unmeasured. Process liquid and sand are locked. The three active rules are `ap2026-easy-beads-term-v4`, `ap2026-medium-beads-term-v4` and `ap2026-hard-beads-term-v4`, shown as Lower, Moderate and Higher complexity.
 
-Use the [run and submit guide](EVALUATION_AND_SUBMISSION.md) for exact review, retry, history and final-selection commands. Students use the existing Python environment and an instructor-issued team token kept outside Git. No student Docker, ngrok or VPN installation is required.
+Use the [run and submit guide](EVALUATION_AND_SUBMISSION.md) for exact review, retry, history and final-selection commands. Students use the existing Python environment and sign in with their team name and shared project password once per checkout on each computer. The client automatically saves and reuses the returned credential outside Git. No instructor-issued token or student Docker, ngrok or VPN installation is required.
 
 ## Attempt history and representatives
 
@@ -16,7 +16,7 @@ The server validates submitted records and does not execute student Python or Ge
 
 ## Distance and time ranking
 
-For each complexity and rule, compare one successful representative per team. `D` is actual cup-centre travel while held, summed over physical outer steps and rounded once to the nearest whole millimetre, with half a millimetre rounded up. `T` is the verified task-completion time in integer `0.0025 s` ticks. The initial 200 preparation ticks and zero-time donor returns are excluded from `T`. Subsequent physical approach, carrying, handling, waits and required settling are included.
+For each complexity and rule, compare one successful representative per team. `D` is actual cup-centre travel while held, summed over physical outer steps and rounded once to the nearest whole millimetre, with half a millimetre rounded up. `T` is the verified task-completion time in integer `0.0025 s` ticks. The initial 200 preparation ticks and zero-time donor returns are excluded from `T`. Subsequent physical approach, carrying, handling, waits and required robot/cup rest are included. Robot/cup dynamics and the existing fixed handling holds continue while supplied bead handling is idealized. Bead-state resets have zero simulation duration and do not move the cup, so they do not change D or T. Only extra material-settling waits and retries are removed. A spill detected during carrying remains failed after any reset.
 
 Normalize each metric using that comparison population:
 

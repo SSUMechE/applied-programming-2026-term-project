@@ -74,7 +74,7 @@ def validate_dense_envelope(path,*,anchor,local_origin,remaining_translation_m,g
 
 
 def refresh_measured_held(world,scenario,model,observation,recent_rows,previous_held,initial_supply,arm):
-    """Require one retained native body, continuous qualified holder and four IDs.
+    """Require one retained native body, continuous qualified holder and three IDs.
 
     This is a current held-frame observation, not a new supported acquisition
     or a reset of the native handling guard. The caller owns native truth.
@@ -97,7 +97,7 @@ def refresh_measured_held(world,scenario,model,observation,recent_rows,previous_
     if empty:
         if initial_supply!=[] or observation.get('materials')!=[] or 'particle_material' in observation:
             raise ContractError('Empty held refresh requires no original or observed content inventory')
-    elif len(supply)!=4 or len(initial_supply)!=4:raise ContractError('Keep the original four native material IDs')
+    elif len(supply)!=3 or len(initial_supply)!=3:raise ContractError('Keep the original three native material IDs')
     selected=list(recent_rows)[-HOLDER_WINDOW_ROWS:]
     end=observation['native_scene_step']
     if (len(selected)!=HOLDER_WINDOW_ROWS or selected[-1]['native_scene_step']!=end
@@ -120,11 +120,11 @@ def refresh_measured_held(world,scenario,model,observation,recent_rows,previous_
                     or interval.get('automatic_grasp_post',{}).get('holder_arm_id')!=arm):
                 raise ContractError('Empty held refresh lacks the actual continuous automatic attachment')
         materials=row['materials']
-        if (len(materials)!=(0 if empty else 4) or {m['id']:(m['mass_kg'],m['entity_idx']) for m in materials}!=supply
+        if (len(materials)!=(0 if empty else 3) or {m['id']:(m['mass_kg'],m['entity_idx']) for m in materials}!=supply
                 or any(m.get('inside_carrier') is not True for m in materials)):
             raise ContractError('Measured seating cannot replace, refill or lose a native material')
     actual={m['id']:(m['mass_kg'],m['entity_idx']) for m in observation['materials']}
-    if len(observation['materials'])!=(0 if empty else 4) or actual!=supply or any(m.get('inside_carrier') is not True for m in observation['materials']):
+    if len(observation['materials'])!=(0 if empty else 3) or actual!=supply or any(m.get('inside_carrier') is not True for m in observation['materials']):
         raise ContractError('Current native material identity or retention differs')
     hand=observation['arms'][arm]['hand_world'];body=observation['body_world']
     if math.dist(point(hand['position_m'],3),point(body['position_m'],3))>.20:

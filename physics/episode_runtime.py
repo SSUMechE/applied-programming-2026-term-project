@@ -215,8 +215,8 @@ def runtime_scene_options(world,scenario):
             validate_request(world,scenario)
         elif empty_payload_mode(world,scenario):
             pass
-        elif len(world['initial_contents'])!=4 or any(c.get('shape')!='sphere' for c in world['initial_contents']):
-            raise ContractError('Current live material palette requires the actual four-sphere supply')
+        elif len(world['initial_contents'])!=3 or any(c.get('shape')!='sphere' for c in world['initial_contents']):
+            raise ContractError('Current live material palette requires the actual three-sphere supply')
     return groups,v
 
 
@@ -392,7 +392,7 @@ def rigid16_duration_counters(timeline, *, phase, active_arm_id, support_id, sta
 
 
 def validate_inputs(world, scenario, approach, reference, *, student_limits=None):
-    """Bind the supplied world, external trajectory and prior measured settings."""
+    """Bind the supplied world, external trajectory and declared physics settings."""
     rigid_runtime_profile(world)
     if (digest(world)!=scenario['provenance']['world_sha256'] or world['case_record']!=scenario['case']
             or world['object_id']!=scenario['body_id'] or world['source_body_world']!=scenario['body_pose']
@@ -411,9 +411,10 @@ def validate_inputs(world, scenario, approach, reference, *, student_limits=None
         validate_request(world,scenario)
     elif empty_payload_mode(world,scenario):
         pass
-    elif (len(world['initial_contents'])!=4 or len(scenario['contents'])!=4
-            or [c['id'] for c in world['initial_contents']]!=['tray_0:'+str(i) for i in range(4)]):
-        raise ContractError('Need four fixed persistent material identities')
+    elif (len(world['initial_contents'])!=3 or len(scenario['contents'])!=3
+            or len(world['initial_content_world_centers_m'])!=3
+            or [c['id'] for c in world['initial_contents']]!=['tray_0:'+str(i) for i in range(3)]):
+        raise ContractError('Need three fixed persistent material identities')
     for expected,actual,center in zip(world['initial_contents'],scenario['contents'],world['initial_content_world_centers_m']):
         if (actual!={'id':expected['id'],'radius_m':expected['radius_m'],'center_world_m':center}
                 or expected['radius_m']!=.012 or not math.isfinite(expected['mass_kg']) or expected['mass_kg']<=0):
@@ -455,13 +456,13 @@ def _validated_physics_settings(world,reference):
     if digest(settings)!=world['physics_settings_sha256']:raise ContractError('World physics settings hash changed')
     request=validate_request(settings['instructor_contact_accuracy'])
     expected={'noslip_iterations':5,'torsional_friction':True,'tray_torsional_radius_m':.001}
-    if (reference.get('status')!='RELEASED_DELIVERY_SAMPLED_PASS'
+    if (reference.get('status')!='CONFIGURATION_REFERENCE_ONLY'
+            or reference.get('native_scene_verified') is not False
             or reference['configured_grasp_physics']['requested']!=expected
             or reference['contact_accuracy_configuration']['requested']!=request
-            or reference['configured_grasp_physics']['diagnostic_simulation']!={'dt_s':DT,'substeps':1,'finger_equality_timeconst_s':.01}
-            or reference.get('input_source_hashes_still_match') is not True
-            or reference.get('frozen_snapshot_hashes_still_match') is not True):
-        raise ContractError('Explicit measured ninth-configuration provenance is missing')
+            or reference['configured_grasp_physics']['simulation']!={'dt_s':DT,'substeps':16,'substeps_local':1,'finger_equality_timeconst_s':.01}
+            or settings['configured_grasp_physics']!=reference['configured_grasp_physics']):
+        raise ContractError('Explicit three-bead physics configuration reference differs')
     for key in ('kp','kv','effort_limits'):
         if settings['controller'][key]!=reference['controller'][key]:raise ContractError('Controller differs from measured reference')
     if settings['execution_limits']!=reference['execution_limits']:raise ContractError('Execution limits changed')
@@ -908,10 +909,10 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
         from physics.particle_episode_state import packet_from_reader_result,validate_particle_packet,window_rest
         from physics.particle_contact_coverage import (build_particle_contact_coverage,require_particle_contact_coverage,
             particle_contact_coverage_stamp,validate_particle_contact_coverage)
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
-        raise ContractError('This hardware package supports the fixed four-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
+        raise ContractError('This hardware package supports the fixed three-bead tiers only')
         particle_request=particle_bridge.validate_request(world,scenario)
         if student_driver is None or observation_readback!='batched':
             raise ContractError('Native particles require the explicit measured student executor')
@@ -987,9 +988,9 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
     if tilt_limits is not None:result['reference_body_tilt_limits']=tilt_limits
     if rigid_profile is not None:
         result['rigid_runtime_profile']=rigid_profile
-        result['payload_mode']='empty' if empty_mode else 'native_particles' if particle_request is not None else 'four_beads'
+        result['payload_mode']='empty' if empty_mode else 'native_particles' if particle_request is not None else 'three_beads'
         result['physical_profile']=rigid_profile or (EMPTY_RIGID_PROFILE if empty_mode else None)
-        result['physics_reference_scope']='Byte-preserved old ninth-run provenance binds controller/rest only. Rigid16/TC2h changes native numerical physics and is not established by that historical PASS. All16 and fresh model/mission verification remain required.'
+        result['physics_reference_scope']='Configuration reference only. Native16 source, geometry, control, contact, payload and complete mission checks must establish this actual scene.'
     if gravity_readback!='scalar':result['gravity_readback']=gravity_readback
     if automatic_performance_selection:
         result['performance_readback_selection']={'gravity':gravity_readback,'batched_motor_control':batched_motor_control,
@@ -1029,7 +1030,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             relay_placement_verified=False,query_contents_model='Measured body-local sphere proxy. Actual contents remain free dynamic bodies.')
     if repeated_three_arm_mode:
         result.update(schema_version='persistent-three-arm-repeated-handoff-v1',repeated_three_arm_mode=True,
-            repeated_mode_scope='Instructor reference: one persistent four-bead batch, two supported handoffs and fixed-goal delivery. Not full project or student release approval.')
+            repeated_mode_scope='Instructor reference: one persistent three-bead batch, two supported handoffs and fixed-goal delivery. Not full project or student release approval.')
     def save(name,value):
         formatting=({'separators':(',',':')} if compact_setup_logs and name in ('built_geometry.json','live_contact_coverage.json') else {'indent':2})
         (output/name).write_text(json.dumps(_json_safe(value),ensure_ascii=False,allow_nan=False,**formatting)+'\n',encoding='utf-8')
@@ -1083,7 +1084,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
         if profile_native_timing is not None:
             if private_contact_fixture:
                 import inspect
-                raise ContractError('This hardware package supports the fixed four-bead tiers only')
+                raise ContractError('This hardware package supports the fixed three-bead tiers only')
                 expected=Path(__file__).resolve().parents[1]/'qa/all_material_physics_20261031/cache_runtime_branch/closed_grip_fixture_hook_v1/contact_profile_observer.py'
                 if (type(profile_native_timing) is not private_observer.ContactProfileObserver
                         or Path(private_observer.__file__).resolve()!=expected
@@ -1205,8 +1206,8 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 raise ContractError('Rigid16 actual constructed native clock differs')
             configuration['rigid_runtime_profile']={'name':rigid_profile,'outer_dt_s':DT,'substeps':16,
                 'substeps_local':1,'native_substep_dt_s':float(scene.rigid_solver.substep_dt),
-                'floor_and_four_bead_TC_s':.0003125,'cup_nine_TC_s':.005,
-                'old_reference_scope':'Controller/rest provenance only; not native physics equivalence or approval.',
+                'floor_and_three_bead_TC_s':.0003125,'cup_nine_TC_s':.005,
+                'configuration_reference_scope':'Declared controller/rest settings only. Native physics and full mission require actual validation.',
                 'native_integrated_validation':'NOT_ESTABLISHED'}
         save('solver_configuration.json',configuration);result['configuration_sha256']=digest(configuration)
         setup_mark('verify_native_physical_settings')
@@ -1312,7 +1313,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                 'nominal_geometry_only':True,'planning_clearance_applied_m':0.,'source_sha256':dict(SCENE_PRESENTATION_SOURCES),
                 'visual_contract':copy.deepcopy(visual),'camera_options':camera_options,
                 'shared_region_display':shared_display,'material_presentation':material_presentation,
-                'material_selection_scope':('Empty vessel. No content entities are constructed.' if empty_mode else 'Four actual sphere contents use balls palette. No water/sand physics selected by color.') if shared_display else None,
+                'material_selection_scope':('Empty vessel. No content entities are constructed.' if empty_mode else 'Three actual sphere contents use balls palette. No water/sand physics selected by color.') if shared_display else None,
                 'paint_patches':[{**s,'native_entity_idx':int(e.idx),'native_collision_geom_count':int(e.n_geoms)} for e,s in zip(paints,paint_specs)],
                 'scope':'Explicit nominal compound links and appearance only. Existing physical/controller/contact gates are unchanged.'}
             if embedded_supports:scene_evidence['embedded_support_components']=copy.deepcopy(embedded_supports)
@@ -1551,7 +1552,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                     or rigid_profile!='rigid16_bead_tc2h_v1' or empty_mode or particle_request is not None
                     or driver.current is not None or driver.held is not None or automatic_grasp.holder is not None
                     or digest(state['observation'])!=digest(observation) or pending_robot_reset_boundary is not None):
-                raise ContractError('Released robot operation requires the owned saved four-bead boundary')
+                raise ContractError('Released robot operation requires the owned saved three-bead boundary')
             op=completed_operation;arm_id=op['active_arm_id'];stage_id=op['stage_id']
             expected=(driver.saved_plan.kinematic_return_after(stage_id) if kinematic else driver.saved_plan.reset_after(stage_id))
             operation_events=robot_return_events if kinematic else robot_reset_events
@@ -2020,7 +2021,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             rigid16_observer.__enter__()
             from physics.student_episode_driver import StudentEpisodeDriver
             owned_rigid16_log=(rigid_profile==RIGID16_PROFILE and particle_request is None and not empty_mode
-                and len(beads)==4 and observation_readback=='batched'
+                and len(beads)==3 and observation_readback=='batched'
                 and type(observation_reader) is EpisodeObservationReader
                 and type(rigid16_pose_reader) is RigidPosePack and type(student_driver) is StudentEpisodeDriver)
         if particle_request is not None:
@@ -2546,7 +2547,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
             except Exception as exc:result['cleanup_errors'].append('particle archive: '+repr(exc))
         if particle_cpic_diagnostic and particle_reader is not None and steps>0:
             try:
-                raise ContractError('This hardware package supports the fixed four-bead tiers only')
+                raise ContractError('This hardware package supports the fixed three-bead tiers only')
                 result['post_outer_cpic_diagnostic']=capture_post_outer_cpic(scene,particle_reader,output/'cpic_diagnostic')
             except Exception as exc:
                 result.setdefault('diagnostic_errors',[]).append('post-outer CPIC: '+repr(exc))
@@ -2563,7 +2564,7 @@ def run_episode(gs, *, world, scenario, approach, physics_reference, output, sou
                         or not isinstance(locals().get('union_binding'),dict)):
                     raise ContractError('World-quality diagnostic requires one completed built particle endpoint and actual native geometry/union bindings')
                 import hashlib
-                raise ContractError('This hardware package supports the fixed four-bead tiers only')
+                raise ContractError('This hardware package supports the fixed three-bead tiers only')
                 world_helper=Path(world_quality.__file__).resolve()
                 if (world_helper!=Path(__file__).resolve().parents[1]/'qa/all_material_physics_20261031/world_quality_branch/read_other_world_particle_quality.py'
                         or hashlib.sha256(world_helper.read_bytes()).hexdigest()!='0530081c16c0bd4c205ad1439bca20b58f50f96906099052a45654f69262cecb'):

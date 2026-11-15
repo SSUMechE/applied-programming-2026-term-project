@@ -26,6 +26,26 @@ BONUSES = {'easy': (5, 3, 1), 'medium': (10, 5, 3), 'hard': (15, 10, 5)}
 BASE_CAPS = {'easy': 80, 'medium': 90, 'hard': 100}
 
 
+def official_rule_generation(rule):
+    """Term generations are distinct from the unchanged v3 wire protocol."""
+    if type(rule.get('rule_id')) is not str:
+        return None
+    match = re.fullmatch(r'ap2026-(easy|medium|hard)-beads-term-v([1-9][0-9]*)',
+                         rule.get('rule_id', ''))
+    return int(match[2]) if match else None
+
+
+def archived_rule(rule):
+    generation = official_rule_generation(rule)
+    return generation is not None and generation < 4
+
+
+def require_current_rule(rule):
+    require(not archived_rule(rule), 'RULE_REPLACED',
+            'This term rule has been replaced. Update supplied files and export a fresh '
+            'three-bead CPU plan before a new full run.', 409)
+
+
 def competition_contract():
     return {'schema_version': 'ap-distance-time-competition-v1',
             'distance_unit': 'mm', 'time_unit': 'native_ticks',
@@ -37,6 +57,16 @@ def competition_contract():
             'bonuses': {k: list(v) for k, v in BONUSES.items()},
             'lower_penalty': '-N*(C-C4)/(Cmax-C4) for rank>=5 and N>=5; zero when Cmax=C4',
             'freeze': 'explicit_instructor_command'}
+
+
+def ideal_bead_policy_contract():
+    """Official term-v4 handling policy, independent of the score formula."""
+    return dict(schema_version='provided-carry-only-bead-lifecycle-v1', sample_count=3,
+                physical_phase='carry', disabled_phases=['settle', 'approach', 'place', 'release', 'released_settle'],
+                reset_reasons=['INITIAL', 'PRE_PICK', 'PLACE'], reset_simulation_ticks=0,
+                carry_internal_substeps=16, spill_failures_sticky=True,
+                final_retention='last_carry_endpoint_before_reset',
+                outside_carry_material_rest_assessed=False)
 
 
 def validate_snapshot(value):
@@ -110,6 +140,16 @@ def commit_student_snapshot(project_root, commit_id):
 
 
 def validate_v3_rule_extras(rule):
+    generation = official_rule_generation(rule)
+    if generation in (3, 4):
+        require(rule['rule_id'] == 'ap2026-' + rule['difficulty'] + '-beads-term-v' + str(generation),
+                'RULE_TIER', 'The official rule ID must match its complexity.')
+        expected = 3 if generation == 4 else 4
+        require(type(rule['sample_count']) is int and rule['sample_count'] == expected,
+                'RULE_SAMPLE_COUNT', 'The official term rule fixes the original bead count.')
+    if generation == 4:
+        require(canonical_bytes(rule.get('ideal_bead_policy')) == canonical_bytes(ideal_bead_policy_contract()),
+                'BEAD_POLICY', 'This rule requires physical bead dynamics only during carry, with authenticated zero-time handling resets.')
     require(rule['competition'] == competition_contract(), 'COMPETITION_CONTRACT', 'The released distance/time formula is fixed.')
     allowed = rule['allowed_handoff_support_ids']
     require(type(allowed) is list and len(allowed) <= 100

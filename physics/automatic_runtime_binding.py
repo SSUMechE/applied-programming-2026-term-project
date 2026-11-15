@@ -6,7 +6,7 @@ The runtime owns the helper and the actual receipt returned by its transaction.
 import copy
 from transport_challenge.contracts import ContractError, digest
 
-HELPER_SHA = '7458d4f339da20d91d819f981cc8e30c3b018dd5cce375e9d61f32eb55e3c291'
+HELPER_SHA = 'a2c2c2aad83499e1f793d46a8893c59c96ab84d5e2741fc83228ed06350dcf60'
 
 
 def require(ok, message):

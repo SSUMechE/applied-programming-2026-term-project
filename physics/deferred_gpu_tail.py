@@ -311,8 +311,14 @@ def project_history(control, payload, support, *, start_step, arm_order, identit
     require(payload_owner_clock == dict(start_native_step=start_step,
             end_native_step=start_step+n, actual_POST_samples=n),
             'Actual payload owner start/end/capture clock differs')
-    require(payload['original_bead_ids'] == identities and len(identities) in (0,4),
+    require(payload['original_bead_ids'] == identities and len(identities) in (0,3),
             'Original actual bead identities changed')
+    prepared=payload.get('schema_version')=='provided-disabled-bead-observation-v1'
+    if prepared:
+        require(len(identities)==3 and phase!='carry' and payload.get('bead_dynamics_evaluated') is False
+                and payload.get('prepared_state_geometry_checked') is True
+                and payload.get('material_rest')==payload.get('material_retention')=='NOT_APPLICABLE_DISABLED',
+                'Disabled bead projection requires explicit prepared-state observations')
     from physics.deferred_gpu_control import CHANNELS
     require(tuple(control['arm_order']) == tuple(arm_order)
             and tuple(control['history_channels']) == CHANNELS
@@ -336,6 +342,9 @@ def project_history(control, payload, support, *, start_step, arm_order, identit
             body_up_tilt_deg=float(p[i, 13]), arms={}, materials=[],
             named_goal_support_every_internal=support['named_goal_support_every_internal_by_outer'][i],
             classified_contacts=[])
+        if prepared:
+            row.update(bead_dynamics_evaluated=False,prepared_state_geometry_checked=True,
+                material_rest='NOT_APPLICABLE_DISABLED',material_retention='NOT_APPLICABLE_DISABLED')
         if holder is None:
             row['provided_grasp'] = None
         for j, arm in enumerate(arm_order):
@@ -345,7 +354,9 @@ def project_history(control, payload, support, *, start_step, arm_order, identit
                 qdd_fd_rad_s2=a[:7, channels['post_qdd_fd']].tolist())
         for j, identity in enumerate(identities):
             offset = 14 + 8 * j
-            require(p[i, offset + 6] == 1., 'GPU history contains an unretained bead')
+            require(p[i, offset + 6] == 1.,
+                    'GPU history contains invalid prepared-state geometry' if prepared else
+                    'GPU history contains an unretained bead')
             row['materials'].append(dict(id=identity['id'], entity_idx=identity['entity_idx'],
                 mass_kg=identity['mass_kg'], inside_carrier=True,
                 position_world_m=p[i, offset:offset + 3].tolist(),
@@ -361,7 +372,8 @@ def project_history(control, payload, support, *, start_step, arm_order, identit
 
 
 def released_numeric_gate(rows, *, settings, rest_policy, goal, arm_order,
-                          finger_targets, load_bearing_s, model, identities, strict_material, contents='beads'):
+                          finger_targets, load_bearing_s, model, identities, strict_material, contents='beads',
+                          ideal_bead_prepared=None):
     """Original released numeric/rest conditions on explicit typed device facts."""
     from physics.episode_runtime import measured_rest, body_rest, PROTOCOL
     from physics.episode_transport_assessment import _angle, _materials, bead_material_rest_gate
@@ -372,6 +384,13 @@ def released_numeric_gate(rows, *, settings, rest_policy, goal, arm_order,
     nominal = goal.get('seating', {}).get('nominal_goal', goal)
     execution = settings['execution_limits']
     require(contents in ('beads','empty') and (contents!='empty' or identities==[]),'Explicit native material scope required')
+    prepared=ideal_bead_prepared is not None
+    if prepared:
+        from physics.automatic_manipulation import validate_prepared_bead_receipt,validate_prepared_bead_sample
+        require(contents=='beads' and strict_material is False,
+                'Disabled bead handling cannot claim strict physical material rest or empty scope')
+        validate_prepared_bead_receipt(ideal_bead_prepared,observation=rows[-1],
+            identities=identities,exact_observation=False)
     supply = {} if contents=='empty' else _materials(identities)
     for row, step in zip(selected, range(end - 199, end + 1)):
         require(row['step'] == row['native_scene_step'] == step
@@ -402,6 +421,9 @@ def released_numeric_gate(rows, *, settings, rest_policy, goal, arm_order,
                 and math.hypot(*value['body_angular_velocity_rad_s']) <= rest_policy['maximum_body_angular_speed_rad_s'],
                 'Original released body goal/rest failed')
             if contents=='empty':require(value['materials']==[],'Empty replay introduced material')
+            if prepared:
+                validate_prepared_bead_sample(value,ideal_bead_prepared)
+                continue
             current = {} if contents=='empty' else _materials(value['materials'])
             require(list(current) == list(supply), 'Original bead identity order changed')
             for name, item in current.items():
@@ -411,6 +433,13 @@ def released_numeric_gate(rows, *, settings, rest_policy, goal, arm_order,
                     'Original released bead identity/retention/speed failed')
     arms = measured_rest(rows, now, {**execution, 'rest_window_s': .5}, arm_order)
     body = body_rest(rows, now, .5, rest_policy)
+    if prepared:
+        require(arms['passed'] and body['passed'],'Original arm/body rest failed during disabled bead handling')
+        return dict(schema_version='deferred-prepared-bead-released-rest-gate-v1',passed=True,
+            support_id=nominal['support_id'],expected_intervals=200,expected_material_endpoints=0,
+            ending_s=now,all_arms_rest=arms,body_rest=body,ideal_bead_prepared=ideal_bead_prepared,
+            bead_dynamics_evaluated=False,material_rest='NOT_APPLICABLE_DISABLED',
+            actual_unsupported_held_s=load_bearing_s,strict_material=False,legacy_coverage_claimed=False)
     bulk = (dict(passed=True,quality_passed=True,material_assessed=False,payload_mode='empty') if contents=='empty'
         else bead_material_rest_gate(rows, now, identities, model))
     require(arms['passed'] and body['passed'] and bulk['quality_passed'], 'Original arm/body/material quality failed')
@@ -445,10 +474,10 @@ def run_supported_tail(runtime_context, last_command_table_row, *, output, wall_
         driver = c['student_driver']
         helper = c['automatic_grasp']
         arm = helper.holder
-        require(len(c['beads']) == len(c['ids']) == 4 and not driver.particle_mode
+        require(len(c['beads']) == len(c['ids']) == 3 and not driver.particle_mode
                 and helper is driver.automatic_grasp and arm in c['arms']
                 and scene.sim.substeps == SUBSTEPS and scene.sim.dt == DT,
-                'Supplied deferred tail is only the original four-bead automatic scene')
+                'Supplied deferred tail is only the original three-bead automatic scene')
         require(type(wall_deadline) in (int, float) and math.isfinite(wall_deadline), 'Require absolute host deadline')
         def check(*, sources=True):
             if time.perf_counter() >= wall_deadline:

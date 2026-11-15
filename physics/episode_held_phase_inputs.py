@@ -152,7 +152,7 @@ def build_held_phase_input(world, scenario, observation, *, active_arm_id, bindi
     model, robots, stations, limits = _check_fixed(world, scenario, observation, bindings, fixed_state,
         repeated_three_arm_mode=repeated_three_arm_mode)
     material = projection['state']['materials']; original = world['initial_contents']
-    if (len(original) != 4 or len(material) != 4
+    if (len(original) != 3 or len(material) != 3
             or any(a['id'] != b['id'] or a['mass_kg'] != b['mass_kg'] or a['radius_m'] != b['radius_m'] for a,b in zip(original,material))
             or any(m.get('inside_carrier') is not True for m in observation['materials'])
             or any(math.hypot(*m['velocity_world_m_s']) > world['physics_settings']['scenario']['stable_speed_m_s'] for m in material)):

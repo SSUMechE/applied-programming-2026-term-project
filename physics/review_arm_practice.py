@@ -76,6 +76,9 @@ def run_worker(args):
             raise RuntimeError('Practice scene callback invoked more than once')
         captured['native'] = execute(context, output=args.output / 'arm_execution',
                                      deadline=wall_deadline, arm_id=args.arm)
+        if captured['native'].get('practice_passed') is True:
+            from physics.arm_practice_validation import validate_arm_practice_native
+            validate_arm_practice_native(captured['native'],plan_record=context['student_driver'].saved_plan.record())
         raise ArmPracticeComplete('Local arm practice ended. No full-tier execution was requested.')
 
     args.output.mkdir(parents=True, exist_ok=False)

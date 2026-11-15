@@ -2514,8 +2514,8 @@
       "id": "tray_0:0",
       "radius_m": 0.012,
       "center_world_m": [
-        -0.125,
-        -0.025,
+        -0.13,
+        0.0,
         0.5680000000000001
       ]
     },
@@ -2523,8 +2523,8 @@
       "id": "tray_0:1",
       "radius_m": 0.012,
       "center_world_m": [
-        -0.125,
-        0.025,
+        -0.1,
+        0.0,
         0.5680000000000001
       ]
     },
@@ -2532,17 +2532,8 @@
       "id": "tray_0:2",
       "radius_m": 0.012,
       "center_world_m": [
-        -0.07500000000000001,
-        -0.025,
-        0.5680000000000001
-      ]
-    },
-    {
-      "id": "tray_0:3",
-      "radius_m": 0.012,
-      "center_world_m": [
-        -0.07500000000000001,
-        0.025,
+        -0.07,
+        0.0,
         0.5680000000000001
       ]
     }
@@ -2784,6 +2775,6 @@
   "provenance": {
     "scope": "Fixed initial joint, cup and bead states. Robot bases are supplied by the student's design before planning or simulation.",
     "student_base_design_required": true,
-    "world_sha256": "4a6eafbae72e5262b2397fc29ab56a5b6408b609b81ca5eb37eff6774f83990e"
+    "world_sha256": "73d536ad464473fb94c08ceb406f7214a02ccc4307dd37f5fe869cec026e704d"
   }
 }

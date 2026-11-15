@@ -19,7 +19,7 @@ from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 from .contracts import ProtocolError, canonical_bytes, decode_json, validate_rule, validate_submission
 from .store import Conflict, NotFound, Store, StoreError, TRUST_LABEL, Unauthorized
-from .v3 import RULE_SCHEMA
+from .v3 import RULE_SCHEMA, archived_rule, require_current_rule
 from .v3_store import AttemptStore
 
 
@@ -38,7 +38,7 @@ def strict_json(raw):
 def public_rule(rule):
     """Expose frozen board metadata, never tokens or internal operator settings."""
     fields = ("schema_version", "rule_id", "rule_digest", "difficulty", "material", "qualified",
-              "qualification_reason", "dt_s", "test_only", "completion_clock", "max_completion_ticks", "competition")
+              "qualification_reason", "dt_s", "test_only", "completion_clock", "max_completion_ticks", "competition", "sample_count")
     metadata = {**{name: rule[name] for name in fields if name in rule}, "evaluation_mode": TRUST_LABEL}
     if "max_completion_ticks" in rule:
         metadata["max_simulation_seconds"] = rule["max_completion_ticks"] * rule["dt_s"]
@@ -52,6 +52,12 @@ class LeaderboardApplication:
         self.store = Store(db_path)
         self.attempts = AttemptStore(self.store)
         self.max_request_bytes = max_request_bytes
+
+    def _rule(self, name):
+        # Reject replaced identities even after their private database archive
+        # has been removed from the live service.
+        require_current_rule({'rule_id': name})
+        return validate_rule(self.store.get_rule_by_id(name))
 
     def _team(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION", "")
@@ -91,7 +97,8 @@ class LeaderboardApplication:
         if method == "GET" and path in ("/health", "/api/health"):
             return 200, {"status": "ok", "application": "Applied Programming", "evaluation_mode": TRUST_LABEL}, None
         if method == "GET" and path == "/api/rules":
-            rules = [public_rule(validate_rule(r["rule"])) for r in self.store.list_rules()]
+            rules = [public_rule(validate_rule(r["rule"])) for r in self.store.list_rules()
+                     if not archived_rule(r['rule'])]
             for metadata in rules:
                 if metadata['schema_version'] == RULE_SCHEMA:
                     metadata['scoring_enabled'] = self.attempts.activation(metadata) is not None
@@ -104,7 +111,7 @@ class LeaderboardApplication:
                              strict_parsing=True, max_num_fields=4)
             if set(query) != {"rule_id"} or len(query["rule_id"]) != 1 or not query["rule_id"][0]:
                 raise ProtocolError("RULE_ID_REQUIRED", "Use exactly one rule_id query parameter")
-            rule = validate_rule(self.store.get_rule_by_id(query["rule_id"][0]))
+            rule = self._rule(query["rule_id"][0])
             if rule['schema_version'] == RULE_SCHEMA:
                 return 200, {**self.attempts.board(rule), 'rule': public_rule(rule),
                              'trust_description': TRUST_DESCRIPTION}, None
@@ -121,7 +128,7 @@ class LeaderboardApplication:
             name = payload.get("rule_id")
             if not isinstance(name, str):
                 raise ProtocolError("RULE_ID_REQUIRED", "Submission needs its frozen rule_id")
-            rule = validate_rule(self.store.get_rule_by_id(name))
+            rule = self._rule(name)
             if rule['schema_version'] == RULE_SCHEMA:
                 raise ProtocolError('V3_ATTEMPT_REQUIRED', 'Use automatic v3 attempt recording and explicit final selection.', 409)
             summary = validate_submission(rule, payload)
@@ -135,7 +142,9 @@ class LeaderboardApplication:
             name = path[len("/api/submissions/"):]
             if not name or "/" in name or environ.get("QUERY_STRING"):
                 raise ProtocolError("INVALID_SUBMISSION_ID", "Use a single submission ID without query parameters")
-            return 200, self.store.get_submission(team["team_id"], name), None
+            result = self.store.get_submission(team["team_id"], name)
+            require_current_rule(self.store.get_rule(result['rule_digest']))
+            return 200, result, None
         if path in ("/", "/api/rules", "/api/leaderboard", "/api/submissions") or path.startswith("/api/submissions/"):
             raise ProtocolError("METHOD_NOT_ALLOWED", "This endpoint does not support the requested method", 405)
         raise ProtocolError("NOT_FOUND", "Unknown endpoint", 404)
@@ -148,7 +157,7 @@ class LeaderboardApplication:
             name = value.get('rule_id')
             if not isinstance(name, str):
                 raise ProtocolError('RULE_ID_REQUIRED', 'Supply the exact rule ID.')
-            rule = validate_rule(self.store.get_rule_by_id(name))
+            rule = self._rule(name)
             if path.endswith('/records'):
                 result = self.attempts.record(team['team_id'], rule, value)
                 return 200 if result['duplicate'] else 201, result, None
@@ -161,11 +170,13 @@ class LeaderboardApplication:
                 if set(query) != {'run_id'}:
                     raise ProtocolError('RUN_ID_REQUIRED', 'Use one run_id query parameter.')
                 team = self._team(environ)
-                return 200, self.attempts.get_attempt(team['team_id'], query['run_id'][0]), None
+                result = self.attempts.get_attempt(team['team_id'], query['run_id'][0])
+                require_current_rule(result)
+                return 200, result, None
             allowed = {'rule_id', 'view'} if path == '/api/v3/board' else {'rule_id', 'before_sequence', 'limit'}
             if 'rule_id' not in query or set(query) - allowed:
                 raise ProtocolError('RULE_ID_REQUIRED', 'Use one rule_id and supported optional filters.')
-            rule = validate_rule(self.store.get_rule_by_id(query['rule_id'][0]))
+            rule = self._rule(query['rule_id'][0])
             if rule['schema_version'] != RULE_SCHEMA:
                 raise ProtocolError('V3_RULE_REQUIRED', 'Legacy time-only boards remain separate.', 409)
             if path == '/api/v3/board':

@@ -12,11 +12,11 @@
 
 Physical AI connects computational decisions to physical action. In this project, a robot transports an open cup through a materials-processing cell while respecting equipment and sample constraints. Genesis evaluates how the planned motion affects the robot, container and contents.
 
-Design robot placement, handoff locations, seven-joint paths and speed to reduce carrying distance and completion time. For the glass-bead stage, preserve all **four original beads**.
+Design robot placement, handoff locations, seven-joint paths and speed to reduce carrying distance and completion time. For the glass-bead stage, retain all **three original beads during every carry**. Supplied ideal handling resets them to prepared bead states between carries.
 
 Complete the required transport tasks for the materials released for your selected complexity. **Glass beads are released first.** Additional materials will be released according to students’ progress. 
 
-The supplied bead workflows have been tested on an RTX 4090. Your own design still needs verification. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
+Verify your own layout, path and timing with the supplied checks. Official bead competition and final representative selection are active. GTX 1660 SUPER runtime and memory remain unmeasured.
 
 ## 2 Layout and Design Conditions
 
@@ -48,7 +48,7 @@ Use the materials marked **Open** for your current work.
 | :---: | :---: | :---: |
 | ![Glass beads](docs/material-glass-beads.png)<br>**Glass beads** | ![Aqueous solution](docs/material-aqueous-solution.png)<br>**Aqueous solution** | ![Silica sand](docs/material-silica-sand.png)<br>**Silica sand** |
 
-*Original Project Outline concept illustrations. The glass-bead task uses four original beads.*
+*Original Project Outline concept illustrations. The glass-bead task uses three original beads.*
 
 ### 2.2 Design Inputs
 
@@ -74,6 +74,8 @@ Implement `plan_path` in `student/joint_strategy.py`. Each request gives one arm
 
 Only start and goal configurations are supplied. Generate intermediate configurations using RRT, bidirectional RRT, A*, or another suitable course method. Choose clearance constraints and connection sampling. Final validation resolution stays fixed.
 
+**Share the work by arm.** In `plan_path`, use `context.active_arm_id` and `context.motion_kind` to select your team's arm-specific search or helper function. Merge everyone's work into one strategy and one selected design JSON. CPU planning exports the complete mission. Then [practice one selected arm](#36-optionally-check-with-an-empty-cup) with an empty cup or beads before the full-scene review. See the [context contract](docs/STUDENT_API.md#implement-the-search).
+
 ![Supplied endpoints and checks connect student planning to a path or a failed search](docs/outline-planner-contract.png)
 
 *Figure 3. The student planner constructs the route. A failed search returns None for revision.*
@@ -92,7 +94,7 @@ You do not implement kinematics, a gripping controller, a physics solver or a te
 
 **Instructor-fixed constraints:** joint-angle bounds, maximum joint velocity and acceleration/deceleration, and tracking tolerance are supplied. Keep these limits unchanged. You may impose stricter constraints in your own planner.
 
-Keep the map, source/finish, robot, cup, material and original four beads unchanged. Handoffs never reset or replace beads. Angles must stay within `request.bounds`. Collision checks include the robot, cup, obstacles and other arms.
+Keep the map, source/finish, robot, cup, material properties and three original bead IDs unchanged. **Bead physics and contacts run only during carrying.** Preparation, approach, automatic pick/place and released or handoff waits use prepared bead states. The supplied routine instantly resets bead positions and velocities and timestamps those resets. Students do not implement or edit this handling routine. Angles must stay within `request.bounds`. Collision checks include the robot, cup, obstacles and other arms.
 
 **Provided motion control:** the supplied interpolator **accelerates and decelerates to rest at every waypoint**. Your path and edge durations change the commanded motion. They do not change the permitted limits. You do not implement a braking controller.
 
@@ -103,7 +105,7 @@ Keep the map, source/finish, robot, cup, material and original four beads unchan
 
 These instructor-fixed limits apply to commands and actual motion. Tracking error must stay within **0.03 rad**. Physics uses **0.0025 s** intervals and **16 internal substeps**. A legal command can still fail physical replay.
 
-Actual bead loss, prohibited contact, control-limit violations, or failed final support/rest reject a run. There is no separate 8° spill gate or required slowdown multiplier.
+A spill during carrying immediately fails the run. All three original beads must pass the carry-end check before a place reset. A reset cannot replenish a missing bead or erase failure. Robot/cup physics, contact and support/rest checks continue throughout. Prohibited contact, control-limit violations or failed final support/rest also reject a run. There is no separate 8° spill gate or required slowdown multiplier.
 
 After a handoff, the donor follows its reverse path kinematically with **zero physics time**. Only its final pose receives a contact check. This does not certify the return's swept collision freedom. The last carrier does not return.
 
@@ -237,20 +239,20 @@ Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity, c
 
 ### 3.6 Optionally check with an empty cup
 
-Choose the test that answers your current question. Empty-cup and glass-bead replays are physical simulations in Genesis, including control and contact. The CPU check does not simulate those physical effects.
+Choose the test that answers your current question. Use CPU geometry for inexpensive checks without physical integration. The GPU modes are **virtual experiments in Genesis**: predict what your path and timing will do, test, observe and revise.
 
-| CPU geometry | Genesis: empty cup | Genesis: glass beads |
+| CPU: geometry | GPU: empty cup | GPU: three glass beads |
 | :---: | :---: | :---: |
 | ![Cup geometry exported by the supplied CPU motion-preview renderer](docs/figures/test-cpu-geometry.png) | ![Empty cup and gripper cropped from a recorded Genesis animation](docs/figures/test-genesis-empty.png) | ![Cup containing beads cropped from a recorded Genesis animation](docs/figures/test-genesis-beads.png) |
-| Geometric preview · no physics | Recorded Genesis motion | Recorded Genesis motion with beads |
+| Geometry only · no physical integration | Physical robot and cup behavior | Added bead physics during carrying |
 
-*Figure 6. An actual CPU geometric-preview export and crops from previously recorded Genesis animations. These examples illustrate the three test modes. Use the original run receipts to judge physical success. Separate arm passes cannot establish full-mission completion.*
+*Figure 6. Actual CPU geometry and recorded Genesis carrying views. Empty-cup experiments isolate robot and cup behavior. Three-bead experiments add payload physics during carrying. Total wall times may be similar. Use original run receipts to judge success.*
 
-- [CPU planning and geometry checks](#35-export-your-cpu-checked-path): reject invalid configurations and connections before spending time on physics.
-- **Empty-cup Genesis:** use the command below to investigate tracking, contact and automatic handling. It cannot demonstrate bead retention.
-- [Glass-bead Genesis](#37-verify-the-full-glass-bead-mission): test physical bead motion, spill and retention as well as robot and cup behavior. Only a successful full bead mission can enter the ranking.
+- [CPU planning and geometry checks](#35-export-your-cpu-checked-path): get low-cost geometric feedback on configurations, clearance and connections. Search time still depends on your planning strategy.
+- **Empty-cup GPU experiment:** investigate robot/cup tracking, contact and automatic handling without bead physics. It cannot demonstrate bead retention.
+- [Three-bead GPU experiment](#37-verify-the-full-glass-bead-mission): test bead motion, spill and retention during carrying alongside the robot/cup checks. Only a successful full bead mission can enter the ranking.
 
-After a successful CPU export, you may proceed directly to beads or first use an empty cup. For focused experiments, use the per-arm commands below instead of replaying the full route. Keep the other arms, layout and saved motion unchanged when comparing empty and bead runs.
+Startup, cache state and the path affect total wall time. Neither GPU mode guarantees a shorter run. Let the observed failure or uncertainty decide your next test. After a successful CPU export, you may proceed directly to beads or first use an empty cup. For focused experiments, use the per-arm commands below instead of replaying the full route. Keep the other arms, layout and saved motion unchanged when comparing empty and bead runs. You do not need three full runs after every change. Revise your design, path or timing and export a fresh CPU plan before retesting.
 
 ```bat
 python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --contents empty --output "%RUN%/empty"
@@ -266,19 +268,35 @@ python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.jso
 python -B project_run.py practice --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --arm %ARM% --contents beads --output "%RUN%/practice_%ARM%_beads"
 ```
 
-Each command runs that arm's saved approach, automatic pick, carry, automatic release and rest. The layout, handoff target, path and times stay unchanged. Other robots remain in the scene at the saved boundary commands and participate in collision checks. For a later arm, the cup and samples start fresh on its saved source support. This does not reproduce the preceding arm's physical handoff. See the [practice scope and result fields](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional).
+Each command runs that arm's saved approach, automatic pick, carry, automatic release and rest. The layout, handoff target, path and times stay unchanged. Other robots remain in the scene at the saved boundary commands and participate in collision checks. For a later arm, practice starts the cup on its saved source support and uses the same provided pick/place reset policy. It does not execute preceding arms or prove the complete handoff sequence. See the [practice scope and result fields](docs/EVALUATION_AND_SUBMISSION.md#practice-one-arm-in-genesis-optional).
+
+Budget **computer wall time** separately from **simulation time**. A practice simulation includes initial preparation and the supplied handling/rest holds, as well as approach and carrying. These values are not the full-mission competition clock. See [time and cost](docs/EVALUATION_AND_SUBMISSION.md#interpret-time-and-cost) when comparing runs.
 
 Read `PRACTICE_RESULT.json` in each output folder. `ARM_PRACTICE_PASS` means that isolated practice passed. Results remain local and **never count as a full mission or leaderboard entry**, even if every arm passes separately. Use a fresh output folder when repeating a command. Continue with 3.7 for the scored full run.
 
 ### 3.7 Verify the full glass-bead mission
 
 ```bat
-python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v3/ap2026-%LEVEL%-beads-term-v3.json --output "%RUN%/full"
+python -B project_run.py review --saved-tier "%RUN%/cpu/saved_tier_mission.json" --difficulty %LEVEL% --task cases/difficulty_20261106/%MAP% --design student/%LEVEL%_design.json --rule leaderboard/rules/term_v4/ap2026-%LEVEL%-beads-term-v4.json --output "%RUN%/full"
 ```
 
-Genesis uses the same saved path and times with all **four original beads**. Grasping, placement and required handoffs are automatic. Every completed full bead review automatically records success or failure. No separate result packaging or manual upload is needed.
+Genesis uses the same saved path and times with all **three original bead IDs**. Bead dynamics run during each carry. Supplied ideal handling performs pick/place and timestamped resets to prepared bead states outside carries. Carry failure remains failed after any reset. Every completed full bead review automatically records success or failure. No separate result packaging or manual upload is needed.
 
 Wait for the review to finish, then inspect the results below. For expected computational cost and detailed failure recovery, see the [run guide](docs/EVALUATION_AND_SUBMISSION.md#interpret-time-and-cost).
+
+**Measured cost of one-arm practice**
+
+Use this instructor-PC example to budget the optional one-arm tests in 3.6. Higher isolated arm practice on NVIDIA GeForce RTX 4090. One run per arm and contents. Paired empty and bead runs reuse each arm's saved path and timing. Existing shared caches were reused. The cold/warm cache state was not measured.
+
+| Arm | Empty wall (mm:ss) | Three-bead wall (mm:ss) | Total simulation (s) | Motion only (s) |
+| --- | --- | --- | --- | --- |
+| arm_0 | 14:54 | 14:45 | 25.37 | 21.87 |
+| arm_1 | 12:31 | 13:02 | 22.46 | 18.96 |
+| arm_2 | 8:40 | 9:39 | 15.29 | 11.79 |
+
+**Wall** covers the complete command: startup, scene preparation, physics, checks and logging. It excludes previous CPU planning and queue waiting. **Total simulation** includes initial preparation and supplied handling/rest holds. **Motion only** is approach plus carry. A single simulation value applies to both modes. A pair means empty / beads.
+
+These are isolated practice measurements, not full-mission scores or runtime guarantees. Choose the test by the physical question. Empty and bead total wall times can be close.
 
 ### 3.8 Inspect or save your animation (optional)
 
@@ -288,7 +306,7 @@ After the bead review, export its recorded motion without running Genesis again:
 python -B export_physics_view.py --saved-tier "%RUN%/cpu/saved_tier_mission.json" --review-dir "%RUN%/full" --fps 30 --output "%RUN%/physics_preview.json"
 ```
 
-Load `physics_preview.json` using **Preview your saved motion** in the same local viewer. **Follow cup** keeps the moving container in view. **Cup interior only** hides surrounding equipment, and **Transparent cup** reveals the recorded beads. **Recorded cup path (current stage)** displays that phase's route. CPU previews label this **Planned cup path (current stage)**.
+Load `physics_preview.json` using **Preview your saved motion** in the same local viewer. **Follow cup** keeps the moving container in view. **Cup interior only** hides surrounding equipment, and **Transparent cup** reveals the recorded beads. **Recorded cup path (current stage)** displays that phase's route. CPU previews label this **Planned cup path (current stage)**. Instant bead changes at logged handling resets are supplied idealization, not continuous bead dynamics.
 
 Choose **Visual quality**, then **Save PNG** or **Save WebM**. Video can include the selected stage or all stages. Higher quality changes image resolution and video frame rate, not physics or grading. Keep the browser tab visible during recording. See the [animation controls and limits](docs/EVALUATION_AND_SUBMISSION.md#inspect-and-save-animations-optional). Animations stay local and are not uploaded to the public leaderboard. No animation submission is required.
 
@@ -299,7 +317,7 @@ Choose **Visual quality**, then **Save PNG** or **Save WebM**. Video can include
 ```bat
 type "%RUN%\full\REVIEW_SUPERVISOR.json"
 type "%RUN%\full\LEADERBOARD_STATUS.json"
-python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v3
+python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v4
 ```
 
 Check the two results separately:
@@ -307,13 +325,13 @@ Check the two results separately:
 - **Physical pass:** `review_accepted`, `physical_transport_accepted` and `full_mission_passed` must all be `true` in `REVIEW_SUPERVISOR.json`.
 - **Upload acknowledged:** `LEADERBOARD_STATUS.json` reports `"status": "uploaded"`. This alone is not a physics pass. A failed full attempt can also upload successfully.
 
-[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), select your complexity and its `term_v3` rule, then refresh. A successful acknowledged full run appears in the live comparison. Team registration, CPU planning and empty-cup checks do not create a ranked result.
+[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), select your complexity, then refresh. A successful acknowledged full run appears in the live comparison. Team registration, CPU planning and empty-cup checks do not create a ranked result.
 
 The live comparison uses each team's **latest successful run**. A later failure stays in team history without replacing that success. The official comparison uses the successful representative each team explicitly selects.
 
-![Live leaderboard before successful student uploads](docs/leaderboard-live-20261114.jpg)
+![Public leaderboard with a temporary instructor HTTPS verification entry](docs/leaderboard-live-20261114.jpg)
 
-*Live leaderboard captured on 14 November 2026, before successful student uploads.*
+*Public leaderboard captured on 15 November 2026 with a temporary instructor HTTPS verification entry. The entry was removed after verification. It is not a student result.*
 
 **Live · latest success** and **Final selections** show those separate comparisons. **D** is carried cup-centre distance displayed in millimetres. **T** is simulated task time displayed in seconds, not computer runtime. **C** combines normalized D and T with equal weights within the displayed group. Smaller C ranks higher.
 
@@ -325,7 +343,7 @@ If the upload status is `pending`, keep your output and run this after reconnect
 
 ```bat
 python -B project_run.py retry
-python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v3
+python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v4
 ```
 
 Inspect the retry response and updated history. Retry uploads queued results and diagnostics **without rerunning Genesis**. It also prompts for first-use sign-in if needed. Acknowledged duplicates do not create extra records.

@@ -69,9 +69,9 @@ def make_saved_empty_overlay(world, scenario):
     require(world.get('rigid_runtime_profile') == 'rigid16_bead_tc2h_v1'
             and 'payload_mode' not in world and 'particle_material_request' not in world
             and EMPTY_OVERLAY_KEY not in world
-            and len(world.get('initial_contents', [])) == len(scenario.get('contents', [])) == 4
-            and len(world.get('initial_content_world_centers_m', [])) == 4,
-            'Empty saved replay requires the original explicit four-bead rigid16 inputs')
+            and len(world.get('initial_contents', [])) == len(scenario.get('contents', [])) == 3
+            and len(world.get('initial_content_world_centers_m', [])) == 3,
+            'Empty saved replay requires the original explicit three-bead rigid16 inputs')
     marker = {'schema_version': 'saved-empty-payload-overlay-v1',
               'source_world_sha256': digest(world), 'source_scenario_sha256': digest(scenario),
               'initial_contents': copy.deepcopy(world['initial_contents']),
@@ -366,7 +366,7 @@ class SavedMissionPlan:
             world_sha256=value['world_sha256'], scenario_sha256=value['scenario_sha256'])
         require(world.get('rigid_runtime_profile') == 'rigid16_bead_tc2h_v1'
                 and world.get('payload_mode') != 'empty' and 'particle_material_request' not in world,
-                'This saved replay branch requires the explicit original four-bead rigid16 profile')
+                'This saved replay branch requires the explicit original three-bead rigid16 profile')
         route = [world['source_support']['id'], *[s['id'] for s in world['relay_supports']], world['goal_support']['id']]
         require(len(route) == 4 and len(set(route)) == 4, 'Saved replay requires two distinct supported handoffs')
         for stage in value['stages']:
@@ -402,7 +402,7 @@ class SavedMissionPlan:
                      if item['after_stage_id'] == stage_id), None)
 
 
-def _endpoint(query, request, stage, spec, oracle):
+def _endpoint(query, request, stage, spec, oracle, *, fixed_pick_endpoint=False):
     """Check a frozen nominal endpoint, retaining actual physical placement gates.
 
     This is explicitly not the original precise actual-grasp seating IK receipt.
@@ -445,10 +445,15 @@ def _endpoint(query, request, stage, spec, oracle):
             'Frozen endpoint native FK differs from its saved CPU nominal target: '+repr(nominal_error))
     if request['kind'] == 'approach':
         actual_error = pose_error(hand, request['goal'])
-        result['actual_current_grasp_target_error'] = actual_error
+        supplied = fixed_pick_endpoint
+        if supplied:
+            require(request['goal']['position_m']==nominal_hand['position_m']
+                    and request['goal']['quaternion_wxyz']==nominal_hand['quaternion_wxyz'],
+                    'Provided pickup target must be the unchanged saved CPU endpoint')
+        result['supplied_grasp_target_error' if supplied else 'actual_current_grasp_target_error'] = actual_error
         require(actual_error['position_m'] <= POSITION_TOLERANCE_M and actual_error['orientation_rad'] <= ORIENTATION_TOLERANCE_RAD,
-                'Frozen approach does not align with the actual current vessel for provided attachment: '+repr(actual_error))
-        result.update(passed=True, kind='actual_current_provided_grasp_alignment', endpoint_hand_pose=request['goal'])
+                'Frozen approach does not reach its provided attachment target: '+repr(actual_error))
+        result.update(passed=True, kind='saved_nominal_provided_grasp_alignment' if supplied else 'actual_current_provided_grasp_alignment', endpoint_hand_pose=request['goal'])
         return result
     require(spec is not None and spec.grasp_model == 'provided_ideal', 'Saved carry requires its actual native provided attachment')
     require(isinstance(witness, dict) and witness.get('pair_witness_multiset_agrees') is True, 'Frozen carry endpoint lacks same-query native contact witnesses')
@@ -487,11 +492,13 @@ def _endpoint(query, request, stage, spec, oracle):
     return result
 
 
-def validate_saved_motion(request, saved_plan, index, *, previous_commands, output, source_check, wall_check, fixture_readback='scalar'):
+def validate_saved_motion(request, saved_plan, index, *, previous_commands, output, source_check, wall_check, fixture_readback='scalar', fixed_pick_endpoint=False):
     from physics import student_motion_planning as motion
     from physics.run_joint_path import _json_safe
     require(isinstance(saved_plan, SavedMissionPlan), 'Require an owned saved CPU mission')
     require(callable(source_check) and callable(wall_check), 'Saved replay requires live wall and source guards')
+    require(type(fixed_pick_endpoint) is bool and (not fixed_pick_endpoint or request.get('kind')=='approach'),
+            'Fixed pickup endpoint applies only to a supplied approach')
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     require(not any((output/name).exists() for name in ('saved_motion_request.json', 'saved_motion_result.json', 'path_validation.jsonl', 'assets')),
@@ -535,7 +542,8 @@ def validate_saved_motion(request, saved_plan, index, *, previous_commands, outp
     try:
         guard()
         timed('saved_cpu_source_boundary_s', saved_plan.verify_sources)
-        save('saved_motion_request.json', {'request': request, 'saved_stage': stage, 'saved_bundle_sha256': saved_plan.sha256})
+        save('saved_motion_request.json', {'request': request, 'saved_stage': stage, 'saved_bundle_sha256': saved_plan.sha256,
+                                         'fixed_pick_endpoint':fixed_pick_endpoint})
         actual_body_error = pose_error(request['observation']['body_world'], stage['nominal_body_world'])
         execution = request['world']['physics_settings']['execution_limits']
         peer_errors = {name: max(abs(a-b) for a, b in zip(robot_coordinates(request['observation'],name)[:7], command['q_rad']))
@@ -571,7 +579,8 @@ def validate_saved_motion(request, saved_plan, index, *, previous_commands, outp
         require(tr['limits'] == limits.to_record(), 'Frozen trajectory native limits differ')
         trajectory = JointTrajectory(tr['waypoints'], tr['edge_durations_s'], limits)
         require(trajectory.to_record() == tr, 'Frozen saved waypoints or edge times changed')
-        endpoint = timed('saved_endpoint_native_validation_s', lambda: _endpoint(query, request, stage, spec, oracle))
+        endpoint = timed('saved_endpoint_native_validation_s', lambda: _endpoint(query, request, stage, spec, oracle,
+                                                                                fixed_pick_endpoint=fixed_pick_endpoint))
         save('saved_endpoint_receipt.json', endpoint)
         planning_request = make_joint_request(start, trajectory.waypoints[-1], limits, max_queries=request['planning']['max_queries'],
                                              seed=request['planning']['seed'], options=request['planning']['options'])

@@ -26,7 +26,7 @@ def example():
         command=dict(kind="plan", exit_code=1, duration_s=3.5, arguments={"seed": 71, "output": "output/example", "cuda": False}),
         source=dict(package_version="diagnostics-v1", git_commit="1"*40, evaluation_sources_sha256="2"*64,
             student_snapshot_sha256=None, dirty=False),
-        context=dict(difficulty="hard", phase="arm_2__carry", rule_id="ap2026-hard-beads-term-v3",
+        context=dict(difficulty="hard", phase="arm_2__carry", rule_id="ap2026-hard-beads-term-v4",
             run_directory="output/example", contents="beads", case_id="hard_industrial_v1", saved_plan_sha256=None, native_run_id=None),
         failure=dict(category="planning_failure", code="CPU_PLAN_FAILED", exception_type="ContractError",
             message="Planner returned no bounded path.", traceback_tail=""),
@@ -277,8 +277,15 @@ class DiagnosticsServerTests(unittest.TestCase):
             self.assertEqual(request(self.app,path)["status"],401)
         self.assertEqual(request(self.app,"/api/instructor/issues/list",token="비밀")["status"],401)
 
-    def test_old_routes_are_byte_exact_delegation_and_no_activation(self):
-        for path, query, method, value in [("/","","GET",None),("/health","","GET",None),
+    def test_classroom_root_and_byte_exact_api_delegation_without_activation(self):
+        from diagnostics.enrollment_server import CLASSROOM_DASHBOARD
+        page = request(self.app, "/")
+        self.assertEqual(page["status"], 200)
+        self.assertEqual(page["raw"], CLASSROOM_DASHBOARD.read_bytes())
+        self.assertEqual(page["headers"]["Cache-Control"], "no-store")
+        self.assertIn("history --rule-id ap2026-easy-beads-term-v4", page["value"])
+        self.assertNotIn('type="file"', page["value"])
+        for path, query, method, value in [("/health","","GET",None),
             ("/api/rules","","GET",None),("/api/v3/history","rule_id=absent","GET",None),
             ("/api/v3/records","","POST",{}),("/unknown","","GET",None)]:
             direct=request(self.app.leaderboard,path,query=query,method=method,value=value,token=self.team_a)

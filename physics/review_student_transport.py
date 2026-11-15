@@ -73,7 +73,7 @@ def main(argv=None):
     try:require_unlocked_material(args.material)
     except ValueError as exc:p.error(str(exc))
     particles=args.material!='beads'
-    if args.execution_backend=='device' and particles:p.error('Device execution is qualified only for the four-bead recipe')
+    if args.execution_backend=='device' and particles:p.error('Device execution is qualified only for the three-bead recipe')
     if args.rigid16_readback is None:args.rigid16_readback='legacy' if particles else 'native'
     if args.trace_mode is None:args.trace_mode='full' if particles else 'compact'
     if particles and (args.rigid16_readback!='legacy' or args.trace_mode!='full'):
