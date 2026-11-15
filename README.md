@@ -983,7 +983,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-outline-guide-20261116"
+set "RELEASE=term-v6-outline-exam-ppt-only-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1038,7 +1038,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-outline-guide-20261116"
+set "RELEASE=term-v6-outline-exam-ppt-only-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
@@ -1056,16 +1056,5 @@ The one-time bootstrap fetch updates Git's `FETCH_HEAD`. It does not merge branc
 If creating the bootstrap folder or fetching the release failed, stop and preserve the error. Do not run a previously downloaded file by assuming the failed command succeeded. No package reinstall is part of an update.
 
 </details>
-
-</details>
-
-### 9.3 Written examination and optional planning review
-
-![Written examination: tentative date December 11 or December 14, 2026. One date will be confirmed. Scope: course content after the midterm and project content.](docs/written-exam-date.svg)
-
-<details>
-<summary>Optional RRT review links — no additional installation or submission</summary>
-
-For optional revision, MIT's [RRT exercise](https://manipulation.csail.mit.edu/Fall2020/pset5/rrt_planner.html) covers single-tree RRT, bidirectional RRT and shortcut smoothing. The [Motion Planning chapter](https://manipulation.csail.mit.edu/trajectories.html) explains configuration-space search. Apply the ideas through the supplied interfaces above. No MIT Docker/Drake installation or extra submission is required.
 
 </details>

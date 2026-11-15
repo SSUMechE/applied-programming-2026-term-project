@@ -25,7 +25,3 @@ The links below preserve bookmarks from earlier PDFs and releases.
 <a id="test-and-interpret-results"></a>
 
 [Test and interpret results — open the README section](../README.md#5-test-your-design)
-
-<a id="optional-planning-review"></a>
-
-[Optional planning review — open the README section](../README.md#93-written-examination-and-optional-planning-review)
