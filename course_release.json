@@ -3,7 +3,7 @@
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
     "PACKAGE_STATUS.json": "ed5b049ba37c88916025bd78abafeaa0b09ab677c6b0aecfa0a2bc83f7d4932f",
-    "README.md": "c9beefca93ae857a681840d1edb7cad854fa28e0441fb15882ddebdd178d26e2",
+    "README.md": "0a75db35efc70c3ce50276dcc6f17555073935944a2d7baa5e6e9a5243a48b41",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "b175f615345b03b89ec28946cc3c44223ee49324f02cb499e5676782ebc9c3d3",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "c1645f3a24df041fc2a7e9ad5533b1bd332af0b8ca2fcc0af4a09b4f71b4a882",
@@ -48,7 +48,7 @@
     "docs/figures/test-genesis-beads.png": "a39c50b0a952bce7306aa49cf89642d50856a21dbd5c94007b217353b7674a17",
     "docs/figures/test-genesis-empty.png": "89f7e54f214dbde0870a1f4da58b5799668aee34ad93f5a5f33dfcae493d677f",
     "docs/leaderboard-live-20261114.jpg": "7dc60388fe4c9a5f74c397b65a6014ef7e4a67947689f53c6569f4f462e3014a",
-    "docs/map_viewer.html": "ef1612cfa1ca1cf660f3dab3401b2e2684df6458e5d0619d73c5ebaa7c819af9",
+    "docs/map_viewer.html": "b1534246e296eb5e147bbe68dd92f59c23422c90028b9218bcab0e872f617ef6",
     "docs/material-aqueous-solution.png": "cf2d0cd05abcb0272f15ec7cb22a6e956d5863b72d72ebd34b347d3f24a5e360",
     "docs/material-glass-beads.png": "0904c3318d7c0f39c0b428ec3d9bc8375514ca5d8a89fde39c46e3da18e7af70",
     "docs/material-silica-sand.png": "15a2b32a75ff28c10cb0602ba1e0e6b0ac7414b40c671068974402bab5d417a7",
@@ -232,7 +232,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v6-viewer-depth-20261116",
+  "release_tag": "term-v6-viewer-depth-r2-20261116",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v6": {

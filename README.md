@@ -741,7 +741,7 @@ In the viewer:
 - **Stage**, **Frame** and **Play** show the motion and joint angles. Select **Planned cup path** or **Recorded cup path** to show that stage's route.
 - **Top XY**, **Front XZ** and **Side YZ** give comparison views. **Follow cup**, **Cup interior only** and **Transparent cup** help inspect contents. Hiding objects changes display only, not collision checks.
 - **Visual quality** selects Light (720p/15 fps), Standard (1080p/30 fps) or High (1440p/30 fps).
-- **Save PNG** exports the current view. **Save WebM** records selected or all stages from the beginning in real time. Keep the tab visible until recording ends. Hiding it or cancelling discards the unfinished video. If recording is unsupported, PNG remains available. The video format is WebM, not MP4.
+- **Save PNG** exports the current view. **Save WebM** records selected or all stages from the beginning. A cold video encoder may add a brief initial hold. Read the displayed simulation clock, not the video duration, for motion timing. Keep the tab visible until recording ends. Hiding it or cancelling discards the unfinished video. If recording is unsupported, PNG remains available. The video format is WebM, not MP4.
 
 Export `--fps` selects 15, 30 or 60 samples per second from existing logs. Kinematic donor returns retain their original 15 fps samples and zero physics time. Visible handling resets are the declared idealization, not continuous bead motion. Rendering quality never changes physics, results or the saved path. A preview is not a physical pass. Animations remain private and add no required submission item.
 
@@ -1026,7 +1026,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-viewer-depth-20261116"
+set "RELEASE=term-v6-viewer-depth-r2-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1081,7 +1081,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-viewer-depth-20261116"
+set "RELEASE=term-v6-viewer-depth-r2-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

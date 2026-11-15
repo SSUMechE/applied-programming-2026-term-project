@@ -75,8 +75,9 @@ function depthPrimitive(face) {
   return {id:o.id,points:face.points,
     color:depthColor(face.motionColor||objectColor(o),face.shade,face.alpha??(o.kind==='mount'?.82:1)),
     stroke:depthColor(active?'#111111':face.motionColor?'#53606b':o.kind==='mount'?'#252d35':'#647381',1,face.alpha??(o.kind==='mount'?.82:1)),
-    lineWidth:active?2.5:face.motionColor?.25:o.kind==='mount'?1.5:.6,
-    depthBias:o.kind==='mount'?0.000001:0};
+    lineWidth:active?2.5:face.motionColor?0:o.kind==='mount'?1.5:.6,
+    // Only the mounting-area annotation is lifted in display depth to avoid coplanar flicker.
+    depthBias:o.kind==='mount'?0.0002:0};
 }
 const QUALITY = {low:{width:1280,height:720,fps:15,bitrate:2500000,scale:1},standard:{width:1920,height:1080,fps:30,bitrate:6000000,scale:1.5},high:{width:2560,height:1440,fps:30,bitrate:12000000,scale:2}};
 const quality = () => QUALITY[$('visualQuality').value];
