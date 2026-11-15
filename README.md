@@ -2,31 +2,39 @@
 
 *Applied Programming · 2026-02 semester*
 
+## Start here: edit these files
+
+Work in your **private team copy**. Choose one layout file and either a shared planner or your own arm's planner.
+
+| Task | File to edit | Exact edit location |
+| --- | --- | --- |
+| **1. Layout** | Lower: `student/easy_design.json`<br>Moderate: `student/medium_design.json`<br>Higher: `student/hard_design.json` | Fill `arms` and `handoffs`: mounting surface, base XY/yaw, support and cup XY. |
+| **2. Path** | Shared: `student/joint_strategy.py`<br>By arm: `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py` | Replace `raise NotImplementedError(...)` inside **`plan_path`** at `BEGIN REQUIRED STUDENT EDIT`. **Return your path.** |
+| **3. Speed** | Your chosen JSON, or the same planner file | Set **`joint_speed_scale`**, or implement **`choose_edge_durations_s`** at `BEGIN OPTIONAL STUDENT EDIT`. |
+
+Your algorithm builds seven-angle states in **radians** and returns the start-to-goal sequence, or `None` if search fails. Do not edit generated path JSONs. FK/IK, 3D geometry, collision checks and automatic pick/place are supplied.
+
+**Edit only these student targets and your own helpers under `student/`. Unauthorized changes to supplied code/data or fabricated results may receive ZERO.**
+
+[Set up](#3-set-up-your-workspace) → [Write the three tasks](#4-complete-the-three-design-tasks) → [Test and combine](#5-test-your-design) → [Submit](#73-select-your-final-run-and-submit)
+
+Open the relevant detail panel below when you need its commands or API. Everything stays on this page.
+
 ![Franka Emika Panda sample transport concept from the original Project Outline](docs/outline-hero.png)
 
 *Figure 1. Franka Emika Panda sample transport concept, based on the Genesis robot and container. Concept illustration.*
-
-**Use this README for the complete assignment.** Follow the edit tasks, then the test and submission steps below. You do not need to read separate Markdown guides.
-
-[1. Mission](#1-project-background-and-task) · [2. Conditions](#2-layout-and-design-conditions) · [3. Setup](#3-set-up-your-workspace) · [4. What to edit](#4-complete-the-three-design-tasks) · [5. Test and combine](#5-test-your-design) · [6. View your motion](#6-inspect-your-path-and-animation-optional) · [7. Results and submission](#7-results-leaderboard-and-submission) · [8. Assessment](#8-assessment) · [9. Help and updates](#9-troubleshooting-and-updates)
 
 [Project Outline PDF](docs/project_outline_with_appendix.pdf) · [Public course template](https://github.com/SSUMechE/applied-programming-2026-term-project) · [Leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev)
 
 ## 1 Project Background and Task
 
-Physical AI connects computational decisions to physical action. In this project, a robot transports an open cup through a materials-processing cell while respecting equipment and sample constraints. Genesis evaluates how the planned motion affects the robot, container and contents.
-
-Design robot placement, handoff locations, seven-joint paths and speed to reduce carrying distance and completion time. For the glass-bead stage, retain all **five original beads during every carry**. Supplied ideal handling resets them to prepared bead states between carries.
-
-Complete the required transport tasks for the materials released for your selected complexity. **Glass beads are released first.** Additional materials will be released according to students’ progress.
-
-Verify your own layout, path and timing with the supplied checks. Successful full bead missions can enter competition through the current rule. Final representative selection is separate from uploading a result. GTX 1660 SUPER runtime and memory remain unmeasured.
+Design robot placement, handoff points, seven-joint paths and speed to reduce **carrying distance and simulated completion time**. Retain all **five original glass beads during every carry**. Extra materials may open later according to progress.
 
 ## 2 Layout and Design Conditions
 
 ### 2.1 Layout Examples
 
-Compare team size, required handoffs and the **simulated** deadline before choosing a task.
+Choose your complexity. Deadlines below are **simulated time**, not computer runtime.
 
 | Complexity | CLI name | Students | Base maximum | Carrying arms / handoffs | Deadline |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -34,7 +42,7 @@ Compare team size, required handoffs and the **simulated** deadline before choos
 | Moderate | `medium` | 1–2 | 90 | 2 / 1 | 85 s |
 | Higher | `hard` | 2–3 | 100 | 3 / 2 | 105 s |
 
-Lower has wide passages and alternative routes. Moderate adds staggered barriers and a low roof. Higher adds separated mounting regions, overhead obstacles and two handoffs.
+Lower uses one arm and alternative passages. Moderate adds staggered barriers and a low roof. Higher requires three arms and two handoffs.
 
 The supplied scene parks unused robot models automatically. You choose placements only for the arms that carry the cup.
 
@@ -44,7 +52,7 @@ The supplied scene parks unused robot models automatically. You choose placement
 
 *Figure 2. Layout illustrations from the original Project Outline. See the [current map](docs/project-map-overview.png) and [3D viewer](docs/map_viewer.html) for exact geometry and permitted placements.*
 
-Open `docs/map_viewer.html` from your cloned repository in Chrome or Edge. Keep its supplied JavaScript files beside it. Choose your complexity, then use **Preview your design JSON** to inspect selected bases and exact handoff points. Use **Preview your saved motion** to load your exported animation. **Stage**, **Frame** and **Play** show your motion. The **Planned cup path** or **Recorded cup path** checkbox shows the current stage's route. Use [Task 1](#41-task-1-fill-in-your-layout-json) to choose legal placements and [Section 6](#6-inspect-your-path-and-animation-optional) to view your own motion.
+Open `docs/map_viewer.html` locally in Chrome or Edge. Select your complexity. [Task 1](#41-task-1-fill-in-your-layout-json) explains placement inputs, and [Section 6](#6-inspect-your-path-and-animation-optional) explains previews.
 
 Use the materials marked **Open** for your current work.
 
@@ -56,30 +64,15 @@ Use the materials marked **Open** for your current work.
 
 ### 2.2 Design Inputs
 
-**Student-designed inputs:** choose the carrying robots' placements, intermediate handoff locations and seven-joint paths. Choose motion speed within the given limits. In filenames, `<tier>` means `easy`, `medium` or `hard`. Replace editable JSON `null` values with your choices. A **base** is a robot's mounting location. A **handoff** is where one arm places the cup for the next arm. Lower needs **1 base and no handoff**, Moderate **2 bases and 1 handoff**, and Higher **3 bases and 2 handoffs**. The supplied code fixes the source, finish and unused-arm parking. Fill only the entries for your selected complexity in [Task 1](#41-task-1-fill-in-your-layout-json).
-
-| Decision | Input and units | Edit location |
-| --- | --- | --- |
-| Robot placement | Mounting surface, X/Y in m, yaw in rad. Surface choice fixes height. | `student/<tier>_design.json` → `arms` |
-| Handoffs | Existing support ID and cup reference point's **world X/Y in m**. Height and orientation are supplied. | Same JSON → `handoffs` |
-| Joint path | A sequence of seven-angle configurations in rad | Your shared or selected arm strategy below → `plan_path` |
-| Speed | `joint_speed_scale` in (0, 1], or one duration in seconds per path edge | Design JSON or `choose_edge_durations_s` |
-
-In each `handoffs` entry, select an existing surface with `support_id`. Set the cup reference point with `x_m` and `y_m` in world metres, not offsets from the surface centre. The table stays fixed. Cup height and orientation are supplied.
+Choose **base surface + XY + yaw**, **handoff support + cup XY**, path and speed. XY uses world **metres**, yaw uses **radians**. The chosen surface supplies height. Source, finish and cup orientation are fixed.
 
 ![An actual map view distinguishes the handoff support from the cup reference point and its world X/Y coordinates](docs/figures/handoff-xy-design.png)
 
 *P is an illustrative cup reference point. The dashed region limits P. Obstacles are faded for visibility only. Use the JSON fields and allowed-region lookup in [Task 1](#41-task-1-fill-in-your-layout-json).*
 
-**Edit only the selected design JSON and your planner modules under `student/`.** [Tasks 1–3](#4-complete-the-three-design-tasks) identify the exact fields, function bodies and checks.
-
-**Do not manually modify anything else supplied by the course. Unauthorized changes to supplied code or fixed data, or fabricated results, may receive ZERO for the project.** This includes planners outside `student/`, checkers, tests, physics, maps, limits, scoring rules and registration/recording code. Do not edit generated paths, logs or result receipts. Use the official updater for instructor-announced fixes. An authorized update is not a prohibited edit.
-
 ### 2.3 Your Implementation
 
-Your `plan_path` function generates the intermediate seven-joint configurations between supplied start and goal. [Task 2](#42-task-2-implement-plan_path-and-return-your-path) shows where to return that path.
-
-**Share the work by arm.** Moderate has two arm problems and Higher has three. Agree on one placement/handoff design, then each member can [plan and practice their own arm](#53-plan-and-practice-one-arm) before the other arms' code is ready. Use separate planner modules under `student/`, with the same `plan_path` interface. The supplied merger checks the saved paths and times without replanning them. Finish with one whole-scene bead review. Passing separate arm tests does not prove the full handoff sequence.
+Implement `plan_path` to generate and **return** the seven-joint route. For separate arm work, agree on one shared design first. Other arms' planners may remain unfinished. Separate practice never replaces the final whole-scene review.
 
 ![Supplied endpoints and checks connect student planning to a path or a failed search](docs/outline-planner-contract.png)
 
@@ -87,15 +80,28 @@ Your `plan_path` function generates the intermediate seven-joint configurations 
 
 ### 2.4 Provided Support
 
-FK, IK, geometry/surface queries, full-robot collision checks, automatic grasp/release and interpolation are provided. [Task 2](#42-task-2-implement-plan_path-and-return-your-path) defines the calls and returns. FK and IK do not establish collision freedom.
+FK/IK, obstacle 3D coordinates and surface queries, whole-robot collision checks, automatic pick/place and interpolation are supplied. You implement the planner and allowed design choices, not the physics solver or gripper controller.
 
 ![Inputs and outputs of the provided FK and IK helpers](docs/outline-kinematics.png)
 
 *Figure 4. Inputs and outputs of the supplied kinematics helpers. State and connection checks remain separate.*
 
-You do not implement kinematics, a gripping controller, a physics solver or a test harness. Keep the supplied code unchanged. Your work is the planner and permitted design inputs in Section 2.2.
-
 ### 2.5 Fixed Conditions
+
+Keep maps, physics, limits and supplied code unchanged. Bead physics runs **during carrying**. A carry spill fails immediately and cannot be erased by the provided handling reset.
+
+| Fixed limit | Value |
+| --- | --- |
+| Joint 1–4 speed / acceleration | 1.0 rad/s / 2.0 rad/s² |
+| Joint 5–7 speed / acceleration | 1.4 rad/s / 2.8 rad/s² |
+| Tracking error | At most 0.03 rad |
+| Physics | 0.0025 s, 16 internal substeps |
+| Sampled process VRAM | At most 5,000,000,000 bytes. Missing measurement is not zero. |
+
+Joint bounds are supplied. Interpolation stops at each waypoint. Contact, bead retention and support/rest checks still apply.
+
+<details>
+<summary>Fixed handling, control and return conventions</summary>
 
 **Instructor-fixed constraints:** joint-angle bounds, maximum joint velocity and acceleration/deceleration, and tracking tolerance are supplied. Keep these limits unchanged. You may impose stricter constraints in your own planner.
 
@@ -114,19 +120,15 @@ A spill during carrying immediately fails the run. All five original beads must 
 
 After a handoff, the donor follows its reverse path kinematically with **zero physics time**. Only its final pose receives a contact check. This does not certify the return's swept collision freedom. The last carrier does not return.
 
+</details>
+
 ### 2.6 Development Process
 
-Treat a Genesis replay as a **virtual experiment**. Predict how a change in placement, path or timing will affect the motion, choose a suitable test, inspect its results, and revise your design. [Section 5](#5-test-your-design) gives the exact commands.
+Use **CPU geometry → empty-cup experiment → bead experiment** for an initial comparison. Then choose focused tests for your next design question. Re-export after changing bound inputs. Only a full successful bead run can rank.
 
 ![Plan, check geometry, execute in Genesis, inspect records and revise](docs/outline-development-loop.png)
 
 *Figure 5. Geometric checks establish route validity at the supplied resolution. Simulation reveals physical transport behavior.*
-
-**Recommended first experiment: CPU geometry → empty cup → five glass beads.** First find a geometrically valid path on the CPU. Use an empty-cup Genesis experiment to check robot/cup motion, contact and automatic handling. Then replay the same saved path and timing with beads to test their motion and retention during carrying.
-
-After the first comparison, target later experiments to the uncertainty you need to resolve. You do **not** need three full runs after every change. After editing the planner, layout, handoff or timing, export a fresh CPU plan before another physical experiment.
-
-Team members can also [practice one arm in Genesis](#53-plan-and-practice-one-arm) using an empty cup or glass beads. These separate runs help diagnose each arm. Only the full bead mission can enter the leaderboard.
 
 <a id="3-start-and-test-your-design"></a>
 
@@ -135,6 +137,11 @@ Team members can also [practice one arm in Genesis](#53-plan-and-practice-one-ar
 Use **Windows Anaconda Prompt**. Copy only the commands inside the code blocks, without terminal prompts or printed output. Run them from your team repository root, in the order below. Copy a complete command block. A trailing `^` continues the same command on the next line in Anaconda Prompt. Do not add spaces after `^`.
 
 ### 3.1 Create and clone your team's repository
+
+Create **one private team repository** from the course template. Name it with your student ID, or all members' IDs in ascending order joined by `-`. Invite SSUMechE and your teammates. Each member commits and pushes their own work.
+
+<details>
+<summary>Repository creation and clone commands</summary>
 
 On GitHub, choose **Use this template → Create a new repository**. Create **one private repository for your individual or team project**. Use the same name for this GitHub repository and your leaderboard account:
 
@@ -155,7 +162,14 @@ Continue only after cloning and environment activation succeed. `ap2026-team` is
 
 Each member must commit and push their own work using their own GitHub account. Keep design files, saved paths and motion previews in the private team workspace.
 
+</details>
+
 ### 3.2 Register your team and check the environment
+
+Use `applied-programming-cuda`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. Sign in once with the team name and a project password of at least 12 characters. Students do not install ngrok or a VPN.
+
+<details>
+<summary>First-use sign-in, environment command and expected results</summary>
 
 Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a project password of at least **12 characters**. Group members share that password. Then run:
 
@@ -176,7 +190,14 @@ The client stores this computer's credential outside Git and reuses it automatic
 
 Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for instructor guidance before changing packages. If sign-in is unavailable, local work can continue. Use [upload recovery](#72-retry-an-upload-without-repeating-physics) after reconnecting.
 
+</details>
+
 ### 3.3 Choose your complexity and output folder
+
+Set `LEVEL`, `MAP` and a fresh `RUN` for your chosen task. Use a new output folder for each revised attempt.
+
+<details>
+<summary>Copy the Lower, Moderate or Higher variable block</summary>
 
 Copy **one** block. These variables last only in the current prompt window. The CLI names `easy`, `medium` and `hard` correspond to Lower, Moderate and Higher complexity.
 
@@ -206,15 +227,27 @@ set "RUN=output\higher_01"
 
 For each revised attempt, choose a fresh `RUN`, such as `output\higher_02`. Keep earlier results. When reopening the prompt, return to your team repository folder, activate the environment and set these variables again.
 
+</details>
 
 <a id="34-implement-your-planner-and-design"></a>
 <a id="35-export-your-cpu-checked-path"></a>
 
 ## 4 Complete the three design tasks
 
-**Write only the permitted design JSON and your planner code under `student/`.** The three tasks below produce the layout, seven-joint path and timing used by the supplied validator. Keep the other course files and generated results unchanged.
+Complete these three tasks in the files named above. The provided code checks and executes your returned motion.
 
 ### 4.1 Task 1: Fill in your layout JSON
+
+**Edit your selected `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`.**
+
+- `arms`: choose each active arm's mounting surface, world XY in m and yaw in rad.
+- `handoffs`: choose the support and cup's world XY in m. These coordinates move the landing target, not the table.
+- Replace editable `null` values. Keep schema, IDs and entry counts. Do not add the fixed source/finish or unused arms.
+
+Use the **same completed JSON for all team members**. Surface heights and cup orientation are provided.
+
+<details>
+<summary>Allowed values, lookup command and JSON example — read when filling the file</summary>
 
 **Edit:** `student/easy_design.json`, `student/medium_design.json` or `student/hard_design.json`, matching `LEVEL` from Section 3.3. Replace every editable `null` in that file. For team work, agree on this one shared design before planning separate arms.
 
@@ -261,7 +294,25 @@ Choose distinct permitted handoff supports, excluding your tier's fixed finish. 
 
 **Inspect:** open `docs/map_viewer.html` locally in Chrome or Edge, select your complexity and load the edited JSON through **Preview your design JSON**. Confirm your base origins and the exact handoff points shown in Figure 2's map and the handoff illustration above. This preview is not a collision or reachability pass. The CPU plan in Section 5 performs those checks.
 
+</details>
+
 ### 4.2 Task 2: Implement `plan_path` and return your path
+
+**Edit `plan_path` in `student/joint_strategy.py`, or your assigned `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py`.**
+
+Find **`BEGIN REQUIRED STUDENT EDIT`**. Replace `raise NotImplementedError(...)` with your search. Keep the function signature. Your algorithm creates `path`, an ordered sequence of seven-angle tuples in radians, with the supplied start and goal as exact endpoints.
+
+```python
+# At the end of your successful search inside plan_path:
+return path
+```
+
+Return `None` on search failure. The returned path is passed to CPU validation, saved and replayed in Genesis. **Do not edit the generated path file.** Start and goal are supplied, intermediate configurations are your work.
+
+Obstacle coordinates and FK/IK are provided. Use state **and edge** checks. Default budget: 50,000 validity queries per stage. Maximum returned path: 10,000 states.
+
+<details>
+<summary>Starter-copy command, complete return contract, collision/geometry API and examples</summary>
 
 **Choose your edit file.** You may use one shared planner for all active arms, or split implementation by arm.
 
@@ -344,7 +395,19 @@ After rejection, `oracle.last_query_diagnostic()` returns a detached reason/cont
 
 </details>
 
+</details>
+
 ### 4.3 Task 3: Choose speed or individual edge times
+
+Choose **one** method:
+
+- **JSON:** set `joint_speed_scale` in `(0, 1]`. Leave the optional timing function returning `None`.
+- **Per edge:** edit `choose_edge_durations_s` at **`BEGIN OPTIONAL STUDENT EDIT`** in the same planner. Return one valid duration in seconds per edge. Set JSON scale to `1.0` and add `--edge-timing-hook` when planning.
+
+Smaller scale means slower motion. The supplied controller handles acceleration/deceleration. You do not change its limits.
+
+<details>
+<summary>Exact timing interface, minimum-duration condition and example</summary>
 
 **Option A — edit the JSON only.** Set `joint_speed_scale` in your selected design JSON to `(0, 1]`. Leave `choose_edge_durations_s` returning `None`. The supplied interpolator divides each edge's analytic minimum time by this scale. For example, `0.5` gives twice the minimum time for the same edge. Smaller values slow the command and reduce its acceleration.
 
@@ -364,9 +427,11 @@ def choose_edge_durations_s(path, limits, *, context):
 
 Invalid times are rejected, not stretched. Do not combine explicit times with a JSON scale below `1.0`. Provided quintic interpolation accelerates and decelerates to rest at every waypoint. More waypoints can add stops. You design the path and times, not the timestep or braking controller. A command within the limits can still fail physical tracking, contact or sample retention.
 
+</details>
+
 ## 5 Test your design
 
-Use the supplied tests and runners. You do not write a test harness or verification report. **CPU planning → empty-cup experiment → five-bead experiment** is the recommended first comparison. Afterwards, choose focused tests for the uncertainty you want to resolve rather than repeating every full experiment.
+Treat Genesis runs as **virtual experiments**. Start with cheap geometric checks, then isolate robot/cup behavior with an empty cup before testing bead retention. Use the supplied tests. No new test harness or report is required.
 
 | CPU geometry | GPU: empty cup | GPU: five glass beads |
 | :---: | :---: | :---: |
@@ -375,7 +440,14 @@ Use the supplied tests and runners. You do not write a test harness or verificat
 
 *Figure 6. CPU geometry and recorded Genesis carrying views. The bead image is from an earlier authenticated five-bead experiment and illustrates the mode, not a new-release qualification. Compare your own runs with the same saved path and times.*
 
+**Shared planner:** 5.1 → 5.2 → 5.5. **Separate arms:** 5.1 → 5.3 → 5.4 → 5.5. After editing bound inputs, export a fresh CPU plan before physical replay.
+
 ### 5.1 Run the supplied interface checks
+
+Run **`test` for the shared planner or `test-arm` for your selected arm module**. All three checks should pass. They test the interface, not map feasibility or physical success.
+
+<details>
+<summary>Copy your one interface-test command and interpret its result</summary>
 
 After completing Tasks 1–3, run **one** test command for your arrangement.
 
@@ -395,7 +467,14 @@ python -B project_run.py test-arm --strategy student.%ARM%_strategy --arm %ARM%
 
 **Choose your next route:** a shared planner handling every active arm goes to 5.2. Independent arm work goes directly to 5.3, then combines at 5.4. Both routes finish with 5.5.
 
+</details>
+
 ### 5.2 Export a complete CPU plan with one shared planner
+
+Use this route when `student/joint_strategy.py` handles all active arms. Expected: `CPU_GEOMETRIC_TIER_MISSION_PLANNED` and `saved_tier_mission.json`. Then continue to 5.5.
+
+<details>
+<summary>Shared-planner CPU command</summary>
 
 Use this command when `student/joint_strategy.py` handles all required arms:
 
@@ -407,7 +486,16 @@ python -B project_run.py plan --scope tier-mission --difficulty %LEVEL% --materi
 
 **Expected:** `CPU_GEOMETRIC_TIER_MISSION_PLANNED` and `%RUN%/cpu/saved_tier_mission.json`. It stores your exact paths, times, layout and source identities. Continue to 5.5. For explicit Task 3 times, append `--edge-timing-hook`. Keep `--material beads` even if the next experiment uses an empty cup. Replay selects contents separately.
 
+</details>
+
 ### 5.3 Plan and practice one arm
+
+Use `plan-arm` for your assigned arm while other planners remain unfinished. Replay its saved motion with an **empty cup or five beads**. Shared layout and the other robots remain in the scene.
+
+Expected local success: **`ARM_PRACTICE_PASS`** in `PRACTICE_RESULT.json`. Later-arm practice starts the cup at that arm's source support. It does not execute earlier handoffs and cannot rank.
+
+<details>
+<summary>Commands: own-arm CPU plan → empty-cup practice → bead practice</summary>
 
 **Use this route for separate arm work.** The other arm modules may be absent or unfinished. `ARM` selects your arm and `--strategy` names its Python module, without `.py`.
 
@@ -456,7 +544,16 @@ Other robots retain the saved boundary commands for that stage. The same local-o
 
 </details>
 
+</details>
+
 ### 5.4 Combine independently planned arms
+
+Bring together the **same shared design/release**, exact producing modules and each complete CPU output folder. **Git does not transfer ignored `output/` folders.** Transfer those folders privately.
+
+`merge-arms` checks and combines exact saved paths/times without replanning. Its output is the full `saved_tier_mission.json`. Continue to 5.5.
+
+<details>
+<summary>Team transfer steps and Lower / Moderate / Higher merge commands</summary>
 
 For Moderate, `arm_0` carries source → first handoff and `arm_1` carries handoff → finish. Higher adds `arm_1` between two handoffs and `arm_2` from the second handoff to finish.
 
@@ -495,11 +592,20 @@ python -B project_run.py merge-arms --difficulty %LEVEL% ^
 
 **Expected:** the merger creates `%RUN%/cpu/saved_tier_mission.json` after checking matching layout, endpoints, sources, limits, collisions and times. It does not call RRT or IK, move waypoints or retime your motion. Incompatible inputs are rejected. This is a complete CPU plan, not a physical pass. Continue to 5.5. Transfer folders are not an extra LMS submission.
 
+</details>
+
 <a id="36-optionally-check-with-an-empty-cup"></a>
 <a id="36-start-physical-experiments-with-an-empty-cup"></a>
 <a id="37-verify-the-full-glass-bead-mission"></a>
 
 ### 5.5 Experiment with the complete mission
+
+After 5.2 or 5.4, run the saved complete mission. **The full empty-cup run is optional. A successful full five-bead run is required for ranking.** Separate arm passes are not a whole-mission pass.
+
+Keep bound inputs unchanged during replay. Run **one verification process at a time**. Computer runtime has no automatic cutoff. Query budgets and simulated deadlines still apply. Ctrl+C stops manually, and an interrupted run cannot rank.
+
+<details>
+<summary>Full empty/bead commands, success fields, re-export rules and measured cost</summary>
 
 Both the shared-plan and merged-plan routes now use `%RUN%/cpu/saved_tier_mission.json`. Keep all bound planner, design and supplied files unchanged during replay. The replay does not rerun RRT/IK or silently change your times.
 
@@ -546,9 +652,16 @@ Practice `review_wall_s` measures supervisor elapsed time. Whole-command timing 
 
 </details>
 
+</details>
+
 <a id="38-inspect-or-save-your-animation-optional"></a>
 
 ## 6 Inspect your path and animation (optional)
+
+Open `docs/map_viewer.html` locally. Load your design, exported CPU path or successful recorded physics. Use **Follow cup**, **Transparent cup**, **Save PNG** or **Save WebM**. Rendering quality changes display only, not grading.
+
+<details>
+<summary>Preview/export commands and viewer controls</summary>
 
 Open `docs/map_viewer.html` locally in Chrome or Edge and select the same complexity. Keep its supplied JavaScript files beside it. Use **Preview your design JSON** for the layout. Use **Preview your saved motion** for one of the exports below.
 
@@ -591,9 +704,22 @@ In the viewer:
 
 Export `--fps` selects 15, 30 or 60 samples per second from existing logs. Kinematic donor returns retain their original 15 fps samples and zero physics time. Visible handling resets are the declared idealization, not continuous bead motion. Rendering quality never changes physics, results or the saved path. A preview is not a physical pass. Animations remain private and add no required submission item.
 
+</details>
+
 ## 7 Results, leaderboard and submission
 
 ### 7.1 Confirm physical success and registration
+
+Confirm **physical pass** in `REVIEW_SUPERVISOR.json` and **upload acknowledged** in `LEADERBOARD_STATUS.json`. They are separate checks. Full-run results upload automatically.
+
+[Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev). It shows result summaries, not team code, placements or paths.
+
+![Current five-bead Higher leaderboard with a temporary instructor HTTPS verification entry](docs/leaderboard-live-20261114.jpg)
+
+*Current five-bead Higher leaderboard captured on 15 November 2026 with a temporary instructor HTTPS verification entry. The entry was removed after verification. It is not a student result.*
+
+<details>
+<summary>Result commands, required success fields and live versus final ranking</summary>
 
 ```bat
 type "%RUN%\full\REVIEW_SUPERVISOR.json"
@@ -610,15 +736,22 @@ python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v6
 
 The live comparison uses each team's **latest successful run**. A later failure stays in team history without replacing that success. The official comparison uses the successful representative each team explicitly selects.
 
-![Current five-bead Higher leaderboard with a temporary instructor HTTPS verification entry](docs/leaderboard-live-20261114.jpg)
 
-*Current five-bead Higher leaderboard captured on 15 November 2026 with a temporary instructor HTTPS verification entry. The entry was removed after verification. It is not a student result.*
+
+
 
 **Live · latest success** and **Final selections** show those separate comparisons. **D** is carried cup-centre distance displayed in millimetres. **T** is simulated task time displayed in seconds, not computer runtime. **C** combines normalized D and T with equal weights within the displayed group. Smaller C ranks higher.
 
 The public board shows result summaries only. Other teams cannot see your robot layouts, handoff coordinates, joint paths or source code. The `history` command uses your saved sign-in to show your team's attempts. Signed-in teammates share that private history.
 
+</details>
+
 ### 7.2 Retry an upload without repeating physics
+
+If upload is pending, keep the results and run `python -B project_run.py retry`. It resends queued results and private diagnostics **without rerunning Genesis**.
+
+<details>
+<summary>Retry/history commands and recovery of a missing local record</summary>
 
 If the upload status is `pending`, keep your output and run this after reconnecting:
 
@@ -639,9 +772,22 @@ python -B project_run.py record ^
 
 This uses existing results and does not run physics.
 
+</details>
+
 <a id="43-select-your-final-run-and-submit"></a>
 
 ### 7.3 Select your final run and submit
+
+**Every team submits, including teams without a full success.** Commit/push the final student files in your one private team repository. If you have a successful run matching that commit, select it as your representative. Otherwise skip selection and submit your work.
+
+Submit **one team PPT** with 2–3 common slides plus 3 slides per member, excluding the title. Explain each member's contribution using their actual commit/push history.
+
+![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM.](docs/project-schedule.svg)
+
+Use the **LMS submission field and file-upload area**. Results posted only in Comments instead of the required submission incur a deduction. The leaderboard does not replace LMS submission.
+
+<details>
+<summary>Commit/selection commands, PPT contents and exact LMS deliverables</summary>
 
 **Every team submits its work, even without a successful full mission.** Use the same private team repository, presentation and LMS procedure. Follow the result branch below.
 
@@ -664,7 +810,7 @@ Confirm `status: selected`, the intended `run_id` and full `commit_id`. All Pyth
 
 Prepare **one team PowerPoint with 2–3 common slides plus 3 slides per member**, excluding the title. Include your private repository URL, the full commit ID for the presented results, case/settings, reproduction instructions and relevant execution records. Each member explains their role, changed files/functions, key code and effects on results, with links to their own pushed commits and relevant pull requests. Section 8.3 gives the presentation criteria.
 
-![Schedule: team PowerPoint to LMS by Sunday, December 6, 2026, 11:59 PM. Presentations Monday, December 7 and Thursday, December 10, 2026. Final code repository URL and full 40-character commit ID to LMS by Friday, December 11, 2026, 11:59 PM.](docs/project-schedule.svg)
+
 
 **Submit the team PPT file to LMS by December 6, 2026, 11:59 PM. Present on December 7 or December 10 as assigned. Submit the final private repository URL and full 40-character commit ID to LMS by December 11, 2026, 11:59 PM.**
 
@@ -672,9 +818,16 @@ Use the LMS submission field and file-upload area. Posting results only in Comme
 
 The presentation identifies the full commit ID used for its presented results. The final code submission identifies the final submitted revision. The leaderboard does not replace these deliverables. Section 8 states the assessment and competition rules.
 
+</details>
+
 ## 8 Assessment
 
 ### 8.1 Base assessment
+
+Base maximum: Lower **80**, Moderate **90**, Higher **100**. Design is 50% and verified completed carries are 50%. Multi-person contribution adjustment is ±5 within the base ceiling. Competition and presentation adjustments follow, with a final floor of zero.
+
+<details>
+<summary>Base rubric and partial-completion calculation</summary>
 
 Let `M` be the base maximum in Section 2.1: 80, 90 or 100. The maximum is not an automatic award. Apply these criteria to the submitted student implementation and its matching records.
 
@@ -691,7 +844,14 @@ For multi-person teams, the instructor adjusts each member's base by −5 to +5 
 
 For example, a Moderate team earning 30 of the 50 normalized design points and completing one of two valid carries has `90 × (30/100 + 0.5 × 1/2) = 49.5` base points before contribution adjustment.
 
+</details>
+
 ### 8.2 Distance, time and competition
+
+Successful teams are ranked by **`C = 0.5 × normalized distance + 0.5 × normalized time`**. Lower is better. Live standings use each team's latest success. Official standings use selected representatives. Computer runtime does not affect the score.
+
+<details>
+<summary>Distance/time definitions, normalization, ties, bonuses and lower-rank deductions</summary>
 
 `D` is the actual cup-centre travel distance while a robot holds the cup, summed over physical outer steps. The board stores it in whole millimetres. It includes motion during held waits or handling. It excludes unheld approach, released cup rest and the supplied zero-time donor return. It is not joint-space distance in radians or the length of the planned tool path.
 
@@ -727,7 +887,14 @@ A(C) = -N * (C - C4) / (Cmax - C4)
 
 `C4` is the composite of the fourth entry in sorted order, including ties. `Cmax` is the population's largest composite. If these are equal, every lower-rank adjustment is 0. With only four teams, fourth place also receives 0. For six teams with `C4 = 0.50` and `Cmax = 1.00`, composites 0.50, 0.75 and 1.00 give 0, −3 and −6 points. Failed runs receive no competition adjustment and are not part of `N`.
 
+</details>
+
 ### 8.3 Presentation assessment
+
+Presentation adjustment: shared team quality **±5**, plus individual explanation **±5**. Explain choices, code, results and contributions with actual evidence.
+
+<details>
+<summary>Team and individual presentation criteria and scoring anchors</summary>
 
 Use the team presentation specified in Section 7.3. Presentation contributes −10 to +10 after the base ceiling: shared team quality from −5 to +5, plus individual presentation from −5 to +5. Both apply to solo students too.
 
@@ -761,9 +928,16 @@ Use the individual table for each member's existing three-slide part. It evaluat
 
 Use the code and records already produced for the project. No new experiment count, test authorship, report or form is required. Accurate analysis of failed runs can earn strong presentation marks. Commit counts, line counts, slide decoration and the presence of a video earn no points by themselves. The separate code-contribution adjustment evaluates actual work. Presentation evaluates the explanation and its supporting code and records.
 
+</details>
+
 ## 9 Troubleshooting and updates
 
 ### 9.1 Read the first failure and revise the relevant input
+
+Start with `failure` in the CPU output's `CPU_PLANNING_RESULT.json`, or the physical review/practice result. The supplied runner sends bounded error summaries privately to the instructor. Keep original logs. No bug-report form is required.
+
+<details>
+<summary>Failure-to-action table and locating a failed control edge</summary>
 
 Use the first reported failure to choose an action. The supplied runner automatically sends a bounded error summary, execution stage, command settings, environment versions and source hashes to the instructor's private issue view. It separates design failures from program or environment errors. It does not upload student source code, credentials or full logs. Reporting does not change the result or score.
 
@@ -790,7 +964,15 @@ Deceleration is already supplied. Changing the relevant duration in `choose_edge
 </details>
 
 Retain original records, including failed attempts. Supplied checks and source matching establish reproducibility boundaries, not remote attestation of a student-controlled computer.
+
+</details>
+
 ### 9.2 Apply an instructor-announced update
+
+Use the supplied updater for the exact announced release. It preserves student code, records, credentials and Git history. Stop project commands first. Do not reinstall packages or overwrite your team repository.
+
+<details>
+<summary>Update check/apply/status, rollback and original-template recovery</summary>
 
 Use these maintenance commands from your repository root in **Windows Anaconda Prompt**. Stop **all** project commands first, including direct CPU debugging, preview export and leaderboard commands. Use the existing `applied-programming-cuda` environment. The updater preserves `student/`, saved results, pending uploads, credentials, unknown files and Git history. It changes only verified supplied files. It does not install dependencies, commit changes, plan a path or launch Genesis.
 
@@ -801,7 +983,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-readme-guide-20261115"
+set "RELEASE=term-v6-readme-quickstart-20261115"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -856,7 +1038,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-readme-guide-20261115"
+set "RELEASE=term-v6-readme-quickstart-20261115"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
@@ -875,10 +1057,15 @@ If creating the bootstrap folder or fetching the release failed, stop and preser
 
 </details>
 
+</details>
+
 ### 9.3 Written examination and optional planning review
 
 ![Written examination: tentative date December 11 or December 14, 2026. One date will be confirmed. Scope: course content after the midterm and project content.](docs/written-exam-date.svg)
 
-The written examination covers course content after the midterm and the project. December 11 or December 14, 2026 is tentative. One date will be confirmed.
+<details>
+<summary>Optional RRT review links — no additional installation or submission</summary>
 
 For optional revision, MIT's [RRT exercise](https://manipulation.csail.mit.edu/Fall2020/pset5/rrt_planner.html) covers single-tree RRT, bidirectional RRT and shortcut smoothing. The [Motion Planning chapter](https://manipulation.csail.mit.edu/trajectories.html) explains configuration-space search. Apply the ideas through the supplied interfaces above. No MIT Docker/Drake installation or extra submission is required.
+
+</details>
