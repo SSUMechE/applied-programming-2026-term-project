@@ -25,7 +25,7 @@
   },
   "student_repository_visibility": "one private shared repository per team",
   "contribution_evidence": "Each member uses their own account to commit and push. Present their actual contribution using the shared repository history.",
-  "public_leaderboard_privacy": "Results only. Other teams cannot access design inputs, joint paths, full receipts or diagnostics.",
+  "public_leaderboard_privacy": "Results only. Each student ID is masked to its last four digits in public names. Public board responses omit full team identities and run metadata. Full-ID sign-in and stored records stay unchanged. Other teams cannot access design inputs, joint paths, full receipts or diagnostics.",
   "safe_supplied_file_updates": "check/apply/status/rollback with official release hashes, backups and preservation of student work",
   "elapsed_time_policy": {
     "computer_time": "measure_only",

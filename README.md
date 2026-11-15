@@ -171,7 +171,7 @@ Use `applied-programming-cuda`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.
 <details>
 <summary>First-use sign-in, environment command and expected results</summary>
 
-Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a project password of at least **12 characters**. Group members share that password. Then run:
+Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a project password of at least **12 characters**. Group members share that password. Keep the full student IDs for sign-in. The public leaderboard masks each ID to its last four digits, for example `20260001-20260002` appears as `****0001-****0002`. Masked names do not change your account or combine teams. Then run:
 
 ```bat
 python -B project_run.py check --cuda --output output/environment.json
@@ -742,7 +742,7 @@ The live comparison uses each team's **latest successful run**. A later failure 
 
 **Live · latest success** and **Final selections** show those separate comparisons. **D** is carried cup-centre distance displayed in millimetres. **T** is simulated task time displayed in seconds, not computer runtime. **C** combines normalized D and T with equal weights within the displayed group. Smaller C ranks higher.
 
-The public board shows result summaries only. Other teams cannot see your robot layouts, handoff coordinates, joint paths or source code. The `history` command uses your saved sign-in to show your team's attempts. Signed-in teammates share that private history.
+The public board shows result summaries and only the last four digits of each student ID. Full login names and internal team IDs are omitted from public board responses. Other teams cannot see your robot layouts, handoff coordinates, joint paths or source code. The `history` command uses your saved sign-in to show your team's attempts. Signed-in teammates share that private history.
 
 </details>
 
@@ -983,7 +983,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-outline-exam-ppt-only-20261116"
+set "RELEASE=term-v6-public-id-masking-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1038,7 +1038,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-outline-exam-ppt-only-20261116"
+set "RELEASE=term-v6-public-id-masking-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"

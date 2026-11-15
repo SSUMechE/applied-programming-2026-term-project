@@ -301,8 +301,10 @@ class DiagnosticsApplication:
 
 def create_app(leaderboard_db, diagnostics_db, admin_secret_file, *, public_origin, session_ttl_s=3600):
     from .enrollment_server import EnrollmentApplication
-    return EnrollmentApplication(DiagnosticsApplication(leaderboard_db, diagnostics_db, admin_secret_file,
-        public_origin=public_origin, session_ttl_s=session_ttl_s))
+    from .public_identity import PublicIdentityApplication
+    return PublicIdentityApplication(EnrollmentApplication(DiagnosticsApplication(
+        leaderboard_db, diagnostics_db, admin_secret_file,
+        public_origin=public_origin, session_ttl_s=session_ttl_s)))
 
 
 def main(argv=None):
