@@ -3,7 +3,7 @@
     ".gitattributes": "b3cf2428aee60741e98b145a6357237b0ac03527c68fed976377bfc2c114240f",
     ".gitignore": "76851b3eb58674871730c585ecd57d4492c609eaa23a96f3dac10ade88fdad42",
     "PACKAGE_STATUS.json": "ed5b049ba37c88916025bd78abafeaa0b09ab677c6b0aecfa0a2bc83f7d4932f",
-    "README.md": "31654b29dfc961fc83f9d0ba30e4b964567f28738f8dd686010c37b7fa5ace2e",
+    "README.md": "bfa190f01556d9a0f828aa86e4650fcbeb92f0d98d75fbdd3d9e9bfb75eb6e33",
     "THIRD_PARTY_NOTICES.md": "7fbbe3f8bee88d6f46cbe59b29eae2f99fd332d1360f6728068393eeb76a11f7",
     "cases/difficulty_20261106/easy_open_v1/difficulty_target.json": "b175f615345b03b89ec28946cc3c44223ee49324f02cb499e5676782ebc9c3d3",
     "cases/difficulty_20261106/easy_open_v1/initialization.json": "c1645f3a24df041fc2a7e9ad5533b1bd332af0b8ca2fcc0af4a09b4f71b4a882",
@@ -42,6 +42,7 @@
     "docs/MAPS_AND_DESIGN.md": "794f6e7a57a1a4489bdb034145f3cace4a95e6c3768487d12032c089e264da67",
     "docs/SCORING.md": "858426ed239b100bb50de349990b1bf19c751d1349e1c73c6ee854c3611358a7",
     "docs/STUDENT_API.md": "25088b211d7d4ee3929f365c577fe3c3cef438fbecbae372ff4c66053f63d9fb",
+    "docs/figures/base-yaw-design.png": "0b8dba49663c1467a9cc7772647931ae24a6049ae71474c0ebc92cbd9e6f7576",
     "docs/figures/handoff-xy-design.png": "e8e3ce4f288478acd319bf60b215c42444776f7d26a9f61cd332cd9be73d0865",
     "docs/figures/test-cpu-geometry.png": "37e27b65697814afabc7a49dc0b53ee3461341d211064dd1043e4cedb823d4d1",
     "docs/figures/test-genesis-beads.png": "a39c50b0a952bce7306aa49cf89642d50856a21dbd5c94007b217353b7674a17",
@@ -230,7 +231,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v6-public-id-masking-20261116",
+  "release_tag": "term-v6-path-examples-yaw-20261116",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v6": {

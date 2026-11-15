@@ -9,10 +9,10 @@ Work in your **private team copy**. Choose one layout file and either a shared p
 | Task | File to edit | Exact edit location |
 | --- | --- | --- |
 | **1. Layout** | Lower: `student/easy_design.json`<br>Moderate: `student/medium_design.json`<br>Higher: `student/hard_design.json` | Fill `arms` and `handoffs`: mounting surface, base XY/yaw, support and cup XY. |
-| **2. Path** | Shared: `student/joint_strategy.py`<br>By arm: `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py` | Replace `raise NotImplementedError(...)` inside **`plan_path`** at `BEGIN REQUIRED STUDENT EDIT`. **Return your path.** |
+| **2. Path** | Shared: `student/joint_strategy.py`<br>By arm: `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py` | Start from the runnable example inside **`plan_path`**. Replace it at `BEGIN REQUIRED STUDENT EDIT` with your planner. **Return your path.** |
 | **3. Speed** | Your chosen JSON, or the same planner file | Set **`joint_speed_scale`**, or implement **`choose_edge_durations_s`** at `BEGIN OPTIONAL STUDENT EDIT`. |
 
-Your algorithm builds seven-angle states in **radians** and returns the start-to-goal sequence, or `None` if search fails. Do not edit generated path JSONs. FK/IK, 3D geometry, collision checks and automatic pick/place are supplied.
+Your `plan_path` function returns a sequence of seven-angle states in **radians**, or `None` if it cannot find a path. The CPU runner checks and saves it. Reuse that saved motion for physical tests without searching again. FK/IK, 3D geometry, collision checks and automatic pick/place are supplied.
 
 **Edit only these student targets and your own helpers under `student/`. Unauthorized changes to supplied code/data or fabricated results may receive ZERO.**
 
@@ -64,7 +64,13 @@ Use the materials marked **Open** for your current work.
 
 ### 2.2 Design Inputs
 
-Choose **base surface + XY + yaw**, **handoff support + cup XY**, path and speed. XY uses world **metres**, yaw uses **radians**. The chosen surface supplies height. Source, finish and cup orientation are fixed.
+Choose **base surface + XY + yaw**, **handoff support + cup XY**, path and speed. XY uses world **metres**. The chosen surface supplies height. Source, finish and cup orientation are fixed.
+
+**Yaw is the robot base's installation angle about the vertical world Z axis.** Zero aligns the base's local +X with world +X. Positive yaw turns counterclockwise when viewed from above. Enter radians: `1.5708` is approximately 90°. Base yaw stays fixed while the seven joint angles change during motion.
+
+![Same Panda base position and joint angles at zero yaw and a positive 90-degree rotation](docs/figures/base-yaw-design.png)
+
+*Static views of the actual Panda model. Edit `arms[i].base_placement.yaw_rad` in your selected design JSON, within the mounting region's bounds. The isolated mounting pad illustrates rotation, not a recommended map placement.*
 
 ![An actual map view distinguishes the handoff support from the cup reference point and its world X/Y coordinates](docs/figures/handoff-xy-design.png)
 
@@ -273,7 +279,7 @@ In the printed result, `mount_regions` gives mounting IDs, XY/yaw bounds and hei
 | --- | --- |
 | `arms[i].mount_region` | An allowed mounting-surface ID |
 | `arms[i].base_placement.x_m`, `y_m` | The base's world X/Y in metres, inside that region |
-| `arms[i].base_placement.yaw_rad` | Base direction in radians, inside that region's bounds |
+| `arms[i].base_placement.yaw_rad` | Fixed base rotation about world Z, in radians. Positive is counterclockwise from above. Use the region's bounds. |
 | `handoffs[i].support_id` | An allowed existing support for that transfer |
 | `handoffs[i].x_m`, `y_m` | The cup body origin's world X/Y in metres |
 | `joint_speed_scale` | A value in `(0, 1]`, explained in Task 3 |
@@ -300,19 +306,56 @@ Choose distinct permitted handoff supports, excluding your tier's fixed finish. 
 
 **Edit `plan_path` in `student/joint_strategy.py`, or your assigned `student/arm_0_strategy.py`, `student/arm_1_strategy.py` or `student/arm_2_strategy.py`.**
 
-Find **`BEGIN REQUIRED STUDENT EDIT`**. Replace `raise NotImplementedError(...)` with your search. Keep the function signature. Your algorithm creates `path`, an ordered sequence of seven-angle tuples in radians, with the supplied start and goal as exact endpoints.
+Find **`BEGIN REQUIRED STUDENT EDIT`**. The four files now contain this runnable example. It changes joint 1 to its goal angle, then joint 2, and so on. Other angles stay at their current values on each edge.
+
+**Input:** supplied `request.start` and `request.goal`, each containing seven joint angles in radians. **Output:** `path`, the ordered list of configurations to execute. `oracle` supplies collision/constraint checks. You do not write the checker.
 
 ```python
-# At the end of your successful search inside plan_path:
-return path
+def plan_path(request, oracle, *, kinematics=None, context=None):
+    # BEGIN REQUIRED STUDENT EDIT: replace this example with your planner.
+    # Each state is (joint1, ..., joint7), in radians.
+    try:
+        if not oracle.state_valid(request.start):
+            return None
+
+        path = [request.start]
+        for joint in range(7):
+            candidate = list(path[-1])
+            candidate[joint] = request.goal[joint]
+            candidate = tuple(candidate)
+
+            if candidate == path[-1]:
+                continue
+            if not oracle.state_valid(candidate):
+                return None
+            if not oracle.edge_valid(path[-1], candidate):
+                return None
+            path.append(candidate)
+
+        return tuple(path)
+    except PlanningBudgetExceeded:
+        return None
+    # END REQUIRED STUDENT EDIT
 ```
 
-Return `None` on search failure. The returned path is passed to CPU validation, saved and replayed in Genesis. **Do not edit the generated path file.** Start and goal are supplied, intermediate configurations are your work.
+For an open toy test, changing only the first two joints from `(-0.3, -0.3, 0, 0, 0, 0, 0)` to `(0.3, 0.3, 0, 0, 0, 0, 0)` returns:
 
-Obstacle coordinates and FK/IK are provided. Use state **and edge** checks. Default budget: 50,000 validity queries per stage. Maximum returned path: 10,000 states.
+```python
+(
+    (-0.3, -0.3, 0, 0, 0, 0, 0),  # start
+    ( 0.3, -0.3, 0, 0, 0, 0, 0),  # only joint 1 changed
+    ( 0.3,  0.3, 0, 0, 0, 0, 0),  # then joint 2: goal
+)
+```
+
+These toy values explain the return format, not a Panda workcell pose. The example tries only one ordering and **returns `None` if a state or connection is blocked**. Another route may still exist. The example is cheap to compute, but stops at intermediate waypoints can make its motion slow. To try slower commands, change `joint_speed_scale` in your design JSON, for example to `0.2`, and create a new CPU export. Slower motion does not remove a geometric collision.
+
+**Run the example first** with the matching command in [5.1](#51-run-the-supplied-interface-checks). Expect three passing interface checks. Then replace the one-joint loop with your own search, such as RRT or A*. Your implementation and design choices are assessed in [Section 8](#8-assessment). Passing the toy tests or copying this supplied example does not establish a workcell solution or earn implementation credit by itself.
+
+**Plan once, replay repeatedly.** `plan` / `plan-arm` checks your returned path and exports its exact states and times. `practice` / `review` reads that saved export and does **not** call your planner again. To change the path, edit your student function and export again. Do not hand-edit the generated `saved_*_mission.json`, which also records validation and source identities.
 
 <details>
-<summary>Starter-copy command, complete return contract, collision/geometry API and examples</summary>
+<summary>Choose your arm file, then use the complete return and geometry contract</summary>
 
 **Choose your edit file.** You may use one shared planner for all active arms, or split implementation by arm.
 
@@ -321,7 +364,7 @@ Obstacle coordinates and FK/IK are provided. Use state **and edge** checks. Defa
 | One shared planner | `student/joint_strategy.py` | `test` |
 | Separate arm planners | `student/arm_0_strategy.py`, `arm_1_strategy.py` or `arm_2_strategy.py` for your assigned arm | `test-arm` |
 
-For separate work, set `ARM` to your assigned arm and copy the starter only if that file does not exist:
+A fresh team copy includes all three arm files. Set `ARM` to your assigned arm. The copy command below is only a fallback for an older copy and never overwrites an existing file:
 
 ```bat
 set "ARM=arm_0"
@@ -330,7 +373,7 @@ if not exist "student\%ARM%_strategy.py" copy "student\joint_strategy.py" "stude
 
 For `ARM=arm_1`, edit `student/arm_1_strategy.py`, and likewise for `arm_2`. Other members' planners and the shared starter may remain unfinished. Everyone uses the same layout JSON and instructor release. Helpers you write must also stay under `student/`.
 
-**Edit the body of `plan_path` at `BEGIN REQUIRED STUDENT EDIT`.** Replace the supplied `raise NotImplementedError(...)` with your search and its return. Keep this signature:
+**Edit the body of `plan_path` at `BEGIN REQUIRED STUDENT EDIT`.** Replace the simple example with your search and its return. Keep this signature:
 
 ```python
 def plan_path(request, oracle, *, kinematics=None, context=None):
@@ -338,15 +381,7 @@ def plan_path(request, oracle, *, kinematics=None, context=None):
 
 Use RRT, bidirectional RRT, A*, or another suitable taught method to find intermediate seven-joint configurations. Recover them in start-to-goal order. **The returned list or tuple is where you give your path to the validator.**
 
-The following shows the successful return shape. `q_a` and `q_b` stand for two seven-angle tuples computed by your algorithm. They are not supplied variables or prescribed waypoints. Your actual path may have a different number of intermediate states.
-
-```python
-# At the end of a successful search inside plan_path:
-path = (request.start, q_a, q_b, request.goal)
-return path
-```
-
-Each state is `(joint1, joint2, joint3, joint4, joint5, joint6, joint7)` in **radians**, not an XYZ point. Return `None` when no path is found. Do not manually edit the saved path JSON. The runner validates your return, applies Task 3's times and saves that exact motion for replay.
+Each returned state is `(joint1, joint2, joint3, joint4, joint5, joint6, joint7)` in **radians**, not an XYZ point. The runner checks the path, applies Task 3's times and saves that exact motion for replay.
 
 Use the supplied objects below while constructing your path. Start and goal are the only prescribed configurations.
 
@@ -431,7 +466,9 @@ Invalid times are rejected, not stretched. Do not combine explicit times with a 
 
 ## 5 Test your design
 
-Treat Genesis runs as **virtual experiments**. Start with cheap geometric checks, then isolate robot/cup behavior with an empty cup before testing bead retention. Use the supplied tests. No new test harness or report is required.
+Treat Genesis runs as **virtual experiments**. First export a CPU-checked path. Test that **same saved path** with an empty cup, then five beads. Neither physical test reruns search. Use a fresh output folder for each experiment. Re-export only when the bound design, planner, times or supplied inputs change.
+
+Use the supplied tests. No new test harness or report is required.
 
 | CPU geometry | GPU: empty cup | GPU: five glass beads |
 | :---: | :---: | :---: |
@@ -449,7 +486,7 @@ Run **`test` for the shared planner or `test-arm` for your selected arm module**
 <details>
 <summary>Copy your one interface-test command and interpret its result</summary>
 
-After completing Tasks 1–3, run **one** test command for your arrangement.
+Run the supplied example before editing, then rerun the check after changing your implementation. Choose **one** command for your arrangement.
 
 For the shared `student/joint_strategy.py`:
 
@@ -457,13 +494,17 @@ For the shared `student/joint_strategy.py`:
 python -B project_run.py test
 ```
 
-For your selected `student/%ARM%_strategy.py`:
+For separate work, run the one command matching the file you edited:
 
 ```bat
-python -B project_run.py test-arm --strategy student.%ARM%_strategy --arm %ARM%
+python -B project_run.py test-arm --strategy student.arm_0_strategy --arm arm_0
+python -B project_run.py test-arm --strategy student.arm_1_strategy --arm arm_1
+python -B project_run.py test-arm --strategy student.arm_2_strategy --arm arm_2
 ```
 
-**Expected:** all three interface checks pass. The unfinished starter intentionally has two path errors and one passing default timing check. These toy-geometry checks verify the interface, not workcell feasibility. Complete your implementation if they fail.
+You only need your own arm's command. The other files can keep their supplied examples.
+
+**Expected:** all three interface checks pass with the supplied one-joint-at-a-time example, before and after your edits. These toy-geometry checks verify the interface, not workcell feasibility. If they fail, fix the reported input/return or timing issue before planning the real map.
 
 **Choose your next route:** a shared planner handling every active arm goes to 5.2. Independent arm work goes directly to 5.3, then combines at 5.4. Both routes finish with 5.5.
 
@@ -932,6 +973,8 @@ Use the code and records already produced for the project. No new experiment cou
 
 ## 9 Troubleshooting and updates
 
+The updater preserves `student/`. If you already have your own planner, keep it. The new examples are in [joint_strategy.py](student/joint_strategy.py), [arm_0_strategy.py](student/arm_0_strategy.py), [arm_1_strategy.py](student/arm_1_strategy.py) and [arm_2_strategy.py](student/arm_2_strategy.py). Compare and copy only what you need into your permitted student files.
+
 ### 9.1 Read the first failure and revise the relevant input
 
 Start with `failure` in the CPU output's `CPU_PLANNING_RESULT.json`, or the physical review/practice result. The supplied runner sends bounded error summaries privately to the instructor. Keep original logs. No bug-report form is required.
@@ -983,7 +1026,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-public-id-masking-20261116"
+set "RELEASE=term-v6-path-examples-yaw-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1038,7 +1081,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-public-id-masking-20261116"
+set "RELEASE=term-v6-path-examples-yaw-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
