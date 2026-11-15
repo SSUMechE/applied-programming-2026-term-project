@@ -34,12 +34,12 @@
     "diagnostics/protocol.py": "78777e432f08f8969f210e9fac49e1665858103029e1940b1840c201887ce61a",
     "diagnostics/server.py": "6ca1afdd72a006562ea71f9b0ca33c456a0916289fe73c1e367b0d13d1a28699",
     "diagnostics/store.py": "2baeda6f669b4f23141d61e99543095943c251fbc789eb261772d5f5c5ee4634",
-    "docs/EVALUATION_AND_SUBMISSION.md": "bac3bf51fc64f0747436f6ed1817ea30af3b21e949dc29a26711fa270b3abae9",
+    "docs/EVALUATION_AND_SUBMISSION.md": "bf5cf68588deafeac3b3584f4702146498bf5aad8bf253c4fd1ff38f93effe36",
     "docs/LEADERBOARD_OPERATIONS.md": "6d9ba567af04e02faa8e424f478e1eb99c688cfc5e4e7109c395d49125336d6a",
     "docs/MAPS_AND_DESIGN.md": "2bf6336d3fc026033542e6f9b0a687e5f9637e32ea4745a92408617b2e62304c",
     "docs/SCORING.md": "a4423f4d9db850c0e1db98c3f912668ff6bfe72c617483ae4aa11dd794e58f92",
     "docs/STUDENT_API.md": "e08358e0e720153d44e0ed4248eec4c9ec1b172d27007de37998c4b881996947",
-    "docs/figures/handoff-xy-design.png": "ff1bad2d62ccdc7408ac2dfe3d4696b3ebf680a556a1661a4b0c21853a7e2d5d",
+    "docs/figures/handoff-xy-design.png": "858dee835665043b055d195acc1e037921fabf7485325027f4e42d1eada2b414",
     "docs/figures/test-cpu-geometry.png": "37e27b65697814afabc7a49dc0b53ee3461341d211064dd1043e4cedb823d4d1",
     "docs/figures/test-genesis-beads.png": "20e5b0c6765b7ad20482591441c2ce1bd9b7565aa71d1a6fdd9a35ce1d3a27d2",
     "docs/figures/test-genesis-empty.png": "89f7e54f214dbde0870a1f4da58b5799668aee34ad93f5a5f33dfcae493d677f",
@@ -59,7 +59,7 @@
     "docs/outline-planner-contract.png": "ee9068cb4a9b2852bf8e1299f9ec28620162a8a9492cd38919268ebdc6d80993",
     "docs/project-map-overview.png": "db00a6c9a0d5a3a332036a134da7d736d050374e7ccb76fc201a6c50e507d88e",
     "docs/project-schedule.svg": "d00edb5fcc2f7ae9c27a98b8e690cb5c83fa14ecbadb9f9bee62c88a6a3d2d62",
-    "docs/project_outline_with_appendix.pdf": "c0bfc6f926e7702304c93eafbd9e8801c725f90339de957ab08d4195527b4669",
+    "docs/project_outline_with_appendix.pdf": "95efcf72396342c5e7b81050dc5f482e7d7ea6a3b31cc5eafa70bf2acbd821cc",
     "docs/viewer_capture.js": "a7ab1bc100bbc0626dfdfd6340bbda8006d998fb1e386f951a25512dceb09976",
     "docs/written-exam-date.svg": "9de58425e224cfee9f36f71b4351de4f627b6931fd2dbacf447df9961c2cb370",
     "environment_reference.json": "0aae029122295ed2fe0a2e29c28cc0546ad9322091991802dc99b191a1557c49",
@@ -213,7 +213,7 @@
     "output/",
     ".git/"
   ],
-  "release_tag": "term-v4-relay-visibility-20261115",
+  "release_tag": "term-v4-handoff-colours-20261115",
   "repository": "https://github.com/SSUMechE/applied-programming-2026-term-project",
   "rules": {
     "ap2026-easy-beads-term-v4": {
