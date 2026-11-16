@@ -251,6 +251,17 @@ def request(server, path, *, payload=None, token=None):
         raise EnrollmentError('TEAM_SIGN_IN_UNAVAILABLE', 'Team sign-in is unavailable. Local work can continue. Retry when the class server is online.') from None
 
 
+def validate_password(value):
+    try:
+        valid = (isinstance(value, str) and value.isprintable() and bool(value.strip())
+                 and len(value.encode('utf-8')) <= 256)
+    except UnicodeError:
+        valid = False
+    if not valid:
+        raise EnrollmentError('TEAM_PASSWORD_LENGTH', 'Use a nonempty printable team password of at most 256 UTF-8 bytes.')
+    return value
+
+
 def connect(root, server, team_name, password, *, new_device=False):
     with account_lock(root, server):
         return _connect_locked(root, server, team_name, password, new_device=new_device)
@@ -260,9 +271,7 @@ def _connect_locked(root, server, team_name, password, *, new_device=False):
     if (not isinstance(team_name, str) or not 1 <= len(' '.join(unicodedata.normalize('NFKC', team_name).split())) <= 60
             or any(unicodedata.category(c).startswith('C') for c in team_name)):
         raise EnrollmentError('TEAM_NAME_INVALID', 'Use an agreed team name of 1 to 60 printable characters.')
-    if (not isinstance(password, str) or len(password) < 12 or len(password.encode('utf-8')) > 256
-            or not password.strip() or any(unicodedata.category(c).startswith('C') for c in password)):
-        raise EnrollmentError('TEAM_PASSWORD_LENGTH', 'Use a printable team password of at least 12 characters and at most 256 UTF-8 bytes.')
+    validate_password(password)
     data, token = _read(root, server)
     if data and data.get('team_name'):
         # Changing accounts must not silently attach pending runs to a new team.
@@ -270,12 +279,15 @@ def _connect_locked(root, server, team_name, password, *, new_device=False):
             raise EnrollmentError('TEAM_ALREADY_BOUND', 'This checkout is already linked to another team. Keep its outputs and use a separate team checkout.')
     expected_id = (data or {}).get('team_id') or (data or {}).get('expected_team_id')
     if not token or new_device:
+        existing_token = token
         token = 'apd_' + secrets.token_urlsafe(32)
         data = {'team_name': team_name}
         if expected_id:
             data['expected_team_id'] = expected_id
-        # Save before the POST. A lost response reuses the exact same device.
-        _save(root, server, data, token)
+        # First registration retains lost-response recovery. Reconnection must
+        # not overwrite an existing credential before the server acknowledges it.
+        if not existing_token:
+            _save(root, server, data, token)
     answer = request(server, '/api/enrollment/connect', payload={
         'team_name': team_name, 'password': password, 'device_token': token})
     if (answer.get('status') not in ('connected', 'registered')
@@ -315,9 +327,43 @@ def ensure_account(root, server, *, interactive=None, read_name=input, read_pass
         write('First use: enter the SAME team name and shared password on each teammate\'s computer.')
         write('A new name creates a team. Use a unique agreed name. Do not use your GitHub password.')
         name = read_name('Team name: ').strip()
-    password = read_password('Team password (at least 12 characters, hidden): ')
-    if len(password) < 12 or len(password.encode('utf-8')) > 256:
-        raise EnrollmentError('TEAM_PASSWORD_LENGTH', 'Use a team password of at least 12 characters and at most 256 UTF-8 bytes.')
+    password = validate_password(read_password('Team password (hidden): '))
+    if not data or not data.get('team_id'):
+        if read_password('Confirm team password (hidden): ') != password:
+            raise EnrollmentError('TEAM_PASSWORD_MISMATCH', 'Passwords did not match. No team registration was submitted.')
     account = connect(root, server, name, password, new_device=force)
     write('TEAM_CONNECTED: ' + account['team_name'] + '. Future runs upload automatically.')
     return account
+
+
+def change_password(root, server, *, read_password=getpass.getpass, write=print):
+    """Recover through the original signed-in device, without the old password."""
+    with account_lock(root, server):
+        data, token = _read(root, server)
+        if not token or not data:
+            raise EnrollmentError('TEAM_RECOVERY_REQUIRED', 'Use the original signed-in checkout and Windows account, or contact the instructor. Do not delete credentials or create another team.')
+        try:
+            identity = request(server, '/api/enrollment/identity', token=token)
+        except EnrollmentError as exc:
+            if exc.code == 'TEAM_SIGN_IN_REFUSED':
+                raise EnrollmentError('TEAM_RECOVERY_REQUIRED', 'This saved sign-in is no longer valid. Keep the original checkout and results, and contact the instructor to recover the same team.') from None
+            raise
+        expected_id = data.get('team_id') or data.get('expected_team_id')
+        if (identity.get('status') != 'connected' or not isinstance(identity.get('team_id'), str)
+                or not identity['team_id'] or not isinstance(identity.get('team_name'), str)
+                or not identity['team_name']):
+            raise EnrollmentError('TEAM_SIGN_IN_ACK', 'The server did not confirm the saved team identity.')
+        if ((expected_id and identity['team_id'] != expected_id)
+                or canonical_name(identity['team_name']) != canonical_name(data.get('team_name', ''))):
+            raise EnrollmentError('TEAM_ID_CHANGED', 'The saved team identity did not match. Keep local results and contact the instructor.')
+        write('Change password for team: ' + identity['team_name'])
+        new_password = validate_password(read_password('New team password (hidden): '))
+        if read_password('Confirm new team password (hidden): ') != new_password:
+            raise EnrollmentError('TEAM_PASSWORD_MISMATCH', 'Passwords did not match. The existing password was not changed.')
+        answer = request(server, '/api/enrollment/password', payload={'new_password': new_password}, token=token)
+        if (answer.get('status') != 'password_updated' or answer.get('team_id') != identity['team_id']
+                or answer.get('team_name') != identity['team_name']):
+            raise EnrollmentError('TEAM_PASSWORD_ACK', 'The password update was not acknowledged. Keep this checkout and retry the same new password.')
+        _save(root, server, {'team_id': identity['team_id'], 'team_name': identity['team_name']}, token)
+        write('TEAM_PASSWORD_UPDATED: ' + identity['team_name'] + '. Existing results and signed-in devices are kept. Share the new password with your teammates.')
+        return stored_account(root, server)

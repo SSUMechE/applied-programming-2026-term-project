@@ -562,12 +562,24 @@ def main(argv=None):
     setup = commands.add_parser("configure", help="Sign in to the team once. Normal project commands also sign in automatically.")
     setup.add_argument("--token-file", help="Compatibility option for an existing instructor-issued credential.")
     setup.add_argument("--server", default=DEFAULT_SERVER)
+    commands.add_parser("password", help="Set a new team password using this checkout's saved sign-in. The old password is not required.")
     commands.add_parser("retry", help="Retry queued diagnostics and full-review records without simulation.")
     for name in ("history", "select", "record"):
         commands.add_parser(name, help="Use your stored team sign-in with the supplied " + name + " command.")
     for name in COMMANDS:
         commands.add_parser(name, help="Forward remaining arguments unchanged to the supplied " + name + " command.")
     args = parser.parse_args(argv)
+    if args.action == "password":
+        from .enrollment_client import EnrollmentError, change_password
+        try:
+            config = configuration(ROOT)
+            change_password(ROOT, config["server"], write=lambda message: console(message + "\n"))
+            return 0
+        except (EnrollmentError, OSError, ValueError, EOFError) as exc:
+            code = getattr(exc, "code", "TEAM_PASSWORD_UNAVAILABLE")
+            message = str(exc) if isinstance(exc, EnrollmentError) else "Password change is unavailable. Keep the original checkout and retry."
+            console(code + ": " + message + "\n", error=True)
+            return 2
     if args.action == "configure":
         if not args.token_file:
             config = account_configuration(ROOT, ["--server-url", args.server], force=True)

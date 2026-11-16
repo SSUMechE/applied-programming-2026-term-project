@@ -49,8 +49,8 @@ def team_name(value):
 
 
 def password_bytes(value):
-    require(type(value) is str and len(value) >= 12 and value.isprintable() and bool(value.strip()),
-            "INVALID_TEAM_PASSWORD", "Use a shared team password of at least 12 printable characters.")
+    require(type(value) is str and value.isprintable() and bool(value.strip()),
+            "INVALID_TEAM_PASSWORD", "Use a nonempty printable team password.")
     try:
         raw = value.encode("utf-8")
     except UnicodeError:
@@ -277,6 +277,23 @@ class EnrollmentStore:
                 "ENROLLMENT_KEY_MISMATCH", "Team credentials require instructor recovery.", 503)
         return {"status": "connected", "team_id": row["team_id"], "team_name": row["display_name"]}, canonical
 
+    def change_password(self, device_token, new_password):
+        identity, _ = self.authenticate(device_token)
+        raw = password_bytes(new_password)
+        salt = secrets.token_bytes(16)
+        calculated = password_hash(raw, salt)
+        with self.legacy.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            device = db.execute("SELECT team_id,revoked_at FROM enrollment_devices WHERE token_digest=?",
+                                (device_digest(device_token),)).fetchone()
+            require(device is not None and device["revoked_at"] is None and device["team_id"] == identity["team_id"],
+                    "DEVICE_UNAUTHORIZED", "A connected device is required.", 401)
+            changed = db.execute("UPDATE enrollment_teams SET password_salt=?,password_hash=?,password_scheme=? WHERE team_id=?",
+                                 (salt, calculated, PASSWORD_SCHEME, identity["team_id"]))
+            require(changed.rowcount == 1, "ENROLLMENT_STORAGE", "The connected team could not be updated.", 503)
+            db.commit()
+        return {"status": "password_updated", "team_id": identity["team_id"], "team_name": identity["team_name"]}
+
     def revoke(self, device_token):
         with self.legacy.connection() as db:
             db.execute("UPDATE enrollment_devices SET revoked_at=? WHERE token_digest=?",
@@ -355,6 +372,15 @@ class EnrollmentApplication:
                     return self._response(start_response, 200, answer)
                 if path == "/api/enrollment/identity" and method == "GET":
                     answer, _ = self.enrollment.authenticate(self._bearer(environ))
+                    return self._response(start_response, 200, answer)
+                if path == "/api/enrollment/password" and method == "POST":
+                    token = self._bearer(environ)
+                    identity, _ = self.enrollment.authenticate(token)
+                    value = self.application._body(environ, MAX_BODY_BYTES)
+                    exact_object(value, ("new_password",))
+                    password_bytes(value["new_password"])
+                    with self.admission.admit(identity["team_id"], environ.get("REMOTE_ADDR", "unknown")):
+                        answer = self.enrollment.change_password(token, value["new_password"])
                     return self._response(start_response, 200, answer)
                 raise DiagnosticError("ENROLLMENT_ENDPOINT", "Unsupported enrollment endpoint or method.", 405)
             _, canonical = self.enrollment.authenticate(device)

@@ -172,18 +172,18 @@ Each member must commit and push their own work using their own GitHub account. 
 
 ### 3.2 Register your team and check the environment
 
-Use `applied-programming-cuda`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. Sign in once with the team name and a project password of at least 12 characters. Students do not install ngrok or a VPN.
+Use `applied-programming-cuda`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. Sign in once with the team name and a nonempty project password. Students do not install ngrok or a VPN.
 
 <details>
 <summary>First-use sign-in, environment command and expected results</summary>
 
-Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a project password of at least **12 characters**. Group members share that password. Keep the full student IDs for sign-in. The public leaderboard masks each ID to its last four digits, for example `20260001-20260002` appears as `****0001-****0002`. Masked names do not change your account or combine teams. Then run:
+Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a **nonempty project password**. There is no minimum character count. Group members share that password. Keep the full student IDs for sign-in. The public leaderboard masks each ID to its last four digits, for example `20260001-20260002` appears as `****0001-****0002`. Masked names do not change your account or combine teams. Then run:
 
 ```bat
 python -B project_run.py check --cuda --output output/environment.json
 ```
 
-At first use, enter that student-ID name and password when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
+At first use, enter that student-ID name and enter the same password twice when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
 
 If this checkout already has a registered name, this instruction does not rename it. Keep its existing results and contact the instructor if the name is wrong. Do not create a second account or delete credentials to rename it.
 
@@ -195,6 +195,23 @@ On your first successful sign-in, confirm these results:
 The client stores this computer's credential outside Git and reuses it automatically. Later checks do not repeat the sign-in prompt or TEAM_CONNECTED message. Each environment check must still report ENVIRONMENT_CUDA_SMOKE_PASS. No instructor-issued token, ngrok or VPN installation is required. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
 
 For package-version mismatches, use the [approved environment repair](#environment-version-fix) below. If sign-in is unavailable, local work can continue. Use [upload recovery](#72-retry-an-upload-without-repeating-physics) after reconnecting.
+
+</details>
+
+<a id="team-password-recovery"></a>
+
+<details>
+<summary>Forgot or mistyped your team password</summary>
+
+Keep the original checkout and saved sign-in. Apply the [current instructor update](#92-apply-an-instructor-announced-update), then run this in that checkout under the same Windows account:
+
+```bat
+python -B project_run.py password
+```
+
+The command confirms your saved team identity, then asks for the new password twice. **The old password is not required.** Continue when `TEAM_PASSWORD_UPDATED` appears. Tell your teammates the new password. Existing results and signed-in computers remain connected.
+
+If the original sign-in is unavailable or refused, contact the instructor with the error message. Do not delete credentials, create another team or send anyone your password. A failed `configure` attempt keeps the existing saved sign-in.
 
 </details>
 
@@ -1053,7 +1070,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-environment-help-20261116"
+set "RELEASE=term-v6-team-password-20261117"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1108,7 +1125,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-environment-help-20261116"
+set "RELEASE=term-v6-team-password-20261117"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
