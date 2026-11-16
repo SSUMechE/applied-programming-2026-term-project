@@ -194,7 +194,34 @@ On your first successful sign-in, confirm these results:
 
 The client stores this computer's credential outside Git and reuses it automatically. Later checks do not repeat the sign-in prompt or TEAM_CONNECTED message. Each environment check must still report ENVIRONMENT_CUDA_SMOKE_PASS. No instructor-issued token, ngrok or VPN installation is required. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
 
-Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.2**. On an environment mismatch, preserve the output and wait for instructor guidance before changing packages. If sign-in is unavailable, local work can continue. Use [upload recovery](#72-retry-an-upload-without-repeating-physics) after reconnecting.
+For package-version mismatches, use the [approved environment repair](#environment-version-fix) below. If sign-in is unavailable, local work can continue. Use [upload recovery](#72-retry-an-upload-without-repeating-physics) after reconnecting.
+
+</details>
+
+<a id="environment-version-fix"></a>
+
+<details>
+<summary>Fix MuJoCo, Pydantic or trimesh version mismatches</summary>
+
+If the checker reports `ENVIRONMENT_METADATA_MISMATCH` for `mujoco`, `pydantic` or `trimesh`, use this instructor-approved correction. Stop running project commands first. In **Windows Anaconda Prompt**, open your existing team repository folder and run these commands in order:
+
+```bat
+conda activate applied-programming-cuda
+python -m pip install --no-deps --only-binary=:all: "mujoco==3.14.0" "pydantic==2.13.5" "pydantic-core==2.46.5" "trimesh==5.1.0"
+python -m pip check
+python -B check_environment.py --cuda
+```
+
+This targets only the four named packages. `--no-deps` prevents dependency installation, so **PyTorch 2.14.0+cu126 and Genesis 1.3.2 are not reinstalled or replaced**.
+
+Continue when both checks succeed:
+
+- `python -m pip check` prints `No broken requirements found.`
+- The environment checker prints `ENVIRONMENT_CUDA_SMOKE_PASS`.
+
+The CUDA check verifies the environment and short CUDA operations. It does not run the project's transport simulation. Return to the step you were following. For first-time setup, continue with Section 3.3 and complete your design in Section 4 before testing in Section 5.
+
+If either check fails, or the mismatch concerns another package, PyTorch, Genesis or SDK sources, keep the complete output and contact the instructor before changing other packages.
 
 </details>
 
@@ -1026,7 +1053,7 @@ Use these maintenance commands from your repository root in **Windows Anaconda P
 Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
 
 ```bat
-set "RELEASE=term-v6-viewer-depth-r2-20261116"
+set "RELEASE=term-v6-environment-help-20261116"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
@@ -1081,7 +1108,7 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
 
 ```bat
-set "RELEASE=term-v6-viewer-depth-r2-20261116"
+set "RELEASE=term-v6-environment-help-20261116"
 set "BOOT=output\update_bootstrap_01"
 mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
 python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
