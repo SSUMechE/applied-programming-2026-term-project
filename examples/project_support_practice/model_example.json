@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "feature_names": ["joint_length_rad", "waypoint_count"],
+  "feature_units": ["rad", "count"],
+  "weights": [2.0, 0.5],
+  "offset_s": 1.0
+}

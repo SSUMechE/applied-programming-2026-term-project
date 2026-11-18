@@ -1,0 +1,7 @@
+{
+  "status": "CPU_ARM_OPERATION_FAILED",
+  "failure": {
+    "type": "ContractError",
+    "message": "Do not supply the same arm component twice"
+  }
+}

@@ -28,6 +28,8 @@ Open the relevant detail panel below when you need its commands or API. Everythi
 
 ## 1 Project Background and Task
 
+[Optional examples for Weeks 12–14](examples/project_support_practice/) accompany the Readings. They are not project deliverables.
+
 Design robot placement, handoff points, seven-joint paths and speed to reduce **carrying distance and simulated completion time**. Retain all **five original glass beads during every carry**. Extra materials may open later according to progress.
 
 ## 2 Layout and Design Conditions
