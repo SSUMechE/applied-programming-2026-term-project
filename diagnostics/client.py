@@ -161,6 +161,8 @@ def account_environment(config):
 
 def run_account_action(root, action, argv, config=None):
     args = [sys.executable, "-B", "-m", "leaderboard.auto_record", action, *argv]
+    if action == "select":
+        args = [sys.executable, "-B", "-m", "diagnostics.select_review", *argv]
     if any(arg in ("-h", "--help") for arg in argv):
         return subprocess.run(args, cwd=root).returncode
     config = config or account_configuration(root, argv)
@@ -352,6 +354,18 @@ def make_report(root, kind, argv, exit_code, duration_s, tail, records, source, 
             differences.append(str(probe.get("message") or "CUDA smoke check failed"))
         if differences:
             message = clean_text("\n".join(differences[:24]), root, 2048, secrets)
+    elif kind == "check" and not env_record:
+        # A repeat check intentionally leaves its old JSON receipt untouched.
+        # Report only this invocation's status and explicit mismatch lines.
+        lines = tail.splitlines()
+        for index, line in enumerate(lines):
+            if line in ("ENVIRONMENT_METADATA_MISMATCH", "ENVIRONMENT_CUDA_SMOKE_FAILED"):
+                code = line
+                details = [value for value in lines[index + 1:]
+                           if value.startswith(("Mismatch: ", "SDK source mismatch: "))]
+                if details:
+                    message = clean_text("\n".join(details[:24]), root, 2048, secrets)
+                break
     category = "program_error"
     if exit_code in (-2, 130, 3221225786, -1073741510) or exception == "KeyboardInterrupt":
         category, code = "interrupted", "USER_INTERRUPTED"

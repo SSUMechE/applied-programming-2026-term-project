@@ -26,6 +26,21 @@ OFFICIAL_REPOSITORY = "https://github.com/SSUMechE/applied-programming-2026-term
 LEADERBOARD_URL = "https://phoniness-reenact-veggie.ngrok-free.dev"
 LEGACY_TAG = "term-v3-student-20261114"
 LEGACY_COMMIT = "b12401c71981b1e9192263697612c8bebc6263fa"
+# Public e5f6c164 added these examples and changed README without a new manifest.
+# Identify its supplied bytes, not team Git history (template copies have their own).
+CONTINUITY_TAG = "term-v6-student-continuity-20261119"
+EXAMPLES_PARENT = "6f758dd09701f0ceda1049b88b097a65cc41206f"
+EXAMPLES_README = "2a11a3019942e56e2bb5c15b5dab12c415198c4716880cdaf5a26b80d9ed8fb7"
+EXAMPLES_BASELINE = {
+    ".gitignore": "35f1d92e71026b0574bf683974ea7ed2c168ccd8ec63c6e9aa757ee9d150a310",
+    "README.md": "52be05943f6b4352f6b63aef00fba9f8c0ea18906ada0e80f262c8e43861a1f5",
+    "batch_records.py": "fa35a3afd3f174d7807ae641cbf7572222822ccb709211c168d3a4b8e80086ef",
+    "cpu_failure_excerpt.json": "b927854fe6ec3e90d85df6d5c73456851d008663489c1795712fa12453e9fa29",
+    "cpu_success_excerpt.json": "2ec7c5817c41a6077af507ad0ab525e1f9b30b3634956de4b9d5e012ed5ee4f8",
+    "model_example.json": "e481b7707d6cbc5a7c804ea5c7b022fbe61e5eed39a88a744846392878cac755",
+    "model_example.py": "0063836bbcc9556c47b2fbffeccad986e66fd51a028a1ccb5356afd002ffdab3",
+    "result_meaning.py": "a5330ec9ee69f459890ebd31b0602a94a67a9283c4d864d360d75b57f4ec3e79",
+}
 MANIFEST = "course_release.json"
 SCHEMA = "ap-student-release-v1"
 FIXED_RUNTIME = {"torch": "2.14.0+cu126", "genesis-world": "1.3.2"}
@@ -416,9 +431,14 @@ def plan_update(root, source, tag):
     target = source.read(tag)
     new = validate_release(target)
     previous, old = current_release(root, source)
-    validate_local(root, old["managed_files"])
-    new_rules = verify_transition(old, previous, new, target)
     old_hashes = dict(old["managed_files"])
+    if (tag == CONTINUITY_TAG and previous["commit"] == EXAMPLES_PARENT and
+            sha(file_bytes(root, "README.md") or b"") == EXAMPLES_README):
+        old_hashes["README.md"] = EXAMPLES_README
+        old_hashes.update({"examples/project_support_practice/" + name: digest
+                           for name, digest in EXAMPLES_BASELINE.items()})
+    validate_local(root, old_hashes)
+    new_rules = verify_transition(old, previous, new, target)
     new_hashes = dict(new["managed_files"])
     if MANIFEST in previous["files"]:
         old_hashes[MANIFEST] = sha(previous["files"][MANIFEST])

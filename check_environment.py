@@ -178,7 +178,7 @@ def cuda_check():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cuda', action='store_true', help='Run actual CUDA/compiler checks without creating a scene')
-    parser.add_argument('--output', type=Path, help='Optional fresh JSON receipt path')
+    parser.add_argument('--output', type=Path, help='Optional JSON receipt; an existing receipt is kept unchanged')
     parser.add_argument('--json', action='store_true', help='Print the complete JSON receipt')
     args = parser.parse_args(argv)
     report = metadata_check()
@@ -195,8 +195,15 @@ def main(argv=None):
     text = json.dumps(report, indent=2, allow_nan=False)
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        with args.output.open('x', encoding='utf8') as stream:
-            stream.write(text+'\n')
+        try:
+            stream = args.output.open('x', encoding='utf8')
+        except FileExistsError:
+            if not args.output.is_file():
+                raise
+            print('Existing environment receipt kept. This check reports its current result on screen.', file=sys.stderr)
+        else:
+            with stream:
+                stream.write(text+'\n')
     if args.json:
         print(text)
     else:

@@ -1,12 +1,16 @@
-"""Supplied account-support checks. Temporary SQLite and mocked client I/O only."""
+"""Supplied account-support checks using temporary stores and loopback only."""
 import copy
 import json
+import os
 from pathlib import Path
 import secrets
 import tempfile
+import threading
 import unittest
 from unittest.mock import Mock, patch
+from wsgiref.simple_server import WSGIRequestHandler, make_server
 
+from diagnostics import client as reporting
 from diagnostics import enrollment_client as client
 from diagnostics.enrollment_server import password_bytes
 from diagnostics.protocol import DiagnosticError
@@ -145,6 +149,9 @@ class PasswordClientTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
+        profile = patch.dict(os.environ, {'LOCALAPPDATA': self.temp.name, 'XDG_DATA_HOME': self.temp.name})
+        profile.start()
+        self.addCleanup(profile.stop)
         self.root = Path(self.temp.name)/'repo'
         self.root.mkdir()
         self.server = 'https://class.example.test'
@@ -202,12 +209,189 @@ class PasswordClientTests(unittest.TestCase):
     def test_fresh_registration_confirmation_mismatch_does_not_connect(self):
         with patch.object(client,'stored_account',return_value=None), \
                 patch.object(client,'_read',return_value=(None,'')), \
-                patch.object(client,'connect') as connect:
+                patch.object(client,'_connect_locked') as connect:
             with self.assertRaises(client.EnrollmentError):
                 client.ensure_account(self.root,self.server,interactive=True,
                     read_name=lambda _:self.data['team_name'],
                     read_password=Mock(side_effect=['short','typo']),write=Mock())
             connect.assert_not_called()
+
+
+class ProvisionalCheckoutTests(unittest.TestCase):
+    password = 'sample08'  # Synthetic eight-character project password.
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name)
+        self.repo, self.peer = base/'repo', base/'peer'
+        self.repo.mkdir()
+        self.peer.mkdir()
+        profile = patch.dict(os.environ, {'LOCALAPPDATA': str(base/'profile'), 'XDG_DATA_HOME': str(base/'profile')})
+        profile.start()
+        self.addCleanup(profile.stop)
+        admin = base/'admin'
+        admin.write_text(secrets.token_urlsafe(48), encoding='ascii')
+        self.app = create_app(base/'board.sqlite', base/'reports.sqlite', admin,
+                              public_origin='https://class.example.test')
+
+        class Quiet(WSGIRequestHandler):
+            def log_message(self, *args):
+                pass
+
+        httpd = make_server('127.0.0.1', 0, self.app, handler_class=Quiet)
+        thread = threading.Thread(target=httpd.serve_forever, args=(.02,), daemon=True)
+        thread.start()
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(thread.join)
+        self.addCleanup(httpd.shutdown)
+        self.server = 'http://127.0.0.1:' + str(httpd.server_port)
+
+    def sign_in(self, root, names=(), passwords=(), *, force=False):
+        return client.ensure_account(root, self.server, interactive=True, force=force,
+            read_name=Mock(side_effect=names), read_password=Mock(side_effect=passwords), write=Mock())
+
+    def team_count(self):
+        with self.app.leaderboard.store.connection() as db:
+            return db.execute('SELECT count(*) FROM enrollment_teams').fetchone()[0]
+
+    def make_queue(self):
+        files = []
+        for kind in ('diagnostics', 'leaderboard'):
+            path = self.repo/'output'/(kind + '_queue')/'sample.json'
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b'pending local fixture')
+            files.append(path)
+        return files
+
+    def test_refused_first_password_then_corrected_team_confirms_queue_and_joins_peer(self):
+        wrong, right = '20990011', '20990022'
+        other = self.sign_in(self.peer, [wrong], ['wrong-team-pw'] * 2)
+        peer2 = self.peer.parent/'peer2'
+        peer2.mkdir()
+        target = self.sign_in(peer2, [right], [self.password] * 2)
+        with self.assertRaises(client.EnrollmentError) as first:
+            self.sign_in(self.repo, [wrong], [self.password] * 2)
+        self.assertEqual(first.exception.code, 'TEAM_SIGN_IN_REFUSED')
+        _, token = client._read(self.repo, self.server)
+        queue = self.make_queue()
+        report = example()
+        reporting.atomic_json(queue[0], report)
+        queued_bytes = [p.read_bytes() for p in queue]
+        before = client.credential_path(self.repo, self.server).read_bytes()
+        with self.assertRaises(client.EnrollmentError) as cancelled:
+            self.sign_in(self.repo, [right, ''], force=True)
+        self.assertEqual(cancelled.exception.code, 'TEAM_NAME_NOT_CONFIRMED')
+        self.assertEqual(client.credential_path(self.repo, self.server).read_bytes(), before)
+        joined = self.sign_in(self.repo, [right] * 2, [self.password] * 2, force=True)
+        self.assertEqual(joined['team_id'], target['team_id'])
+        self.assertEqual(joined['token'], token)
+        self.assertNotEqual(joined['token'], target['token'])
+        self.assertEqual(self.sign_in(self.repo)['team_id'], target['team_id'])
+        self.assertEqual([p.read_bytes() for p in queue], queued_bytes)
+        self.assertEqual(self.team_count(), 2)
+        self.assertEqual(client.request(self.server, '/api/diagnostics/own', token=target['token'])['reports'], [])
+        self.assertEqual(reporting.retry(self.repo, joined)[0]['status'], 'uploaded')
+        received = client.request(self.server, '/api/diagnostics/own', token=target['token'])['reports']
+        self.assertEqual([(r['report_id'], r['team_id']) for r in received], [(report['report_id'], target['team_id'])])
+        self.assertEqual(client.request(self.server, '/api/diagnostics/own', token=other['token'])['reports'], [])
+
+    def test_old_unconfirmed_file_corrects_and_recovers_accepted_post_when_reply_lost(self):
+        # Exact old on-disk shape, including its original device credential.
+        original = device('L')
+        client._save(self.repo, self.server, {'team_name': 'old-typo'}, original)
+        real = client.request
+
+        def drop_connect_reply(server, path, **options):
+            value = real(server, path, **options)
+            if path.endswith('/connect'):
+                raise client.EnrollmentError('TEAM_SIGN_IN_UNAVAILABLE', 'simulated lost reply')
+            return value
+
+        with patch.object(client, 'request', side_effect=drop_connect_reply):
+            with self.assertRaises(client.EnrollmentError):
+                self.sign_in(self.repo, ['correct-team'] * 2, [self.password] * 2)
+        path = client.credential_path(self.repo, self.server)
+        before = path.read_bytes()
+        with patch.object(client, 'request', side_effect=client.EnrollmentError('TEAM_SIGN_IN_UNAVAILABLE', 'offline')):
+            with self.assertRaises(client.EnrollmentError) as offline:
+                self.sign_in(self.repo, force=True)
+        self.assertEqual(offline.exception.code, 'TEAM_SIGN_IN_UNAVAILABLE')
+        self.assertEqual(before, path.read_bytes())
+        recovered = self.sign_in(self.repo, force=True)
+        self.assertEqual((recovered['team_name'], recovered['token']), ('correct-team', original))
+        self.assertEqual(self.team_count(), 1)
+
+    def test_first_post_already_registered_and_working_credential_survives_bad_reconnect(self):
+        token = device('P')
+        client._save(self.repo, self.server, {'team_name': 'agreed-team'}, token)
+        accepted = client.request(self.server, '/api/enrollment/connect',
+            payload={'team_name': 'agreed-team', 'password': self.password, 'device_token': token})
+        recovered = self.sign_in(self.repo, force=True)  # No name/password prompt.
+        self.assertEqual((recovered['team_id'], recovered['token']), (accepted['team_id'], token))
+        path = client.credential_path(self.repo, self.server)
+        before = path.read_bytes()
+        with self.assertRaises(client.EnrollmentError):
+            self.sign_in(self.repo, passwords=['mistyped'], force=True)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(client.request(self.server, '/api/enrollment/identity', token=token)['team_id'], recovered['team_id'])
+        with patch.object(client, 'request', side_effect=AssertionError('cached sign-in must work offline')):
+            self.assertEqual(self.sign_in(self.repo), recovered)
+
+    def test_noninteractive_first_run_does_not_write_to_the_account_profile(self):
+        with self.assertRaises(client.EnrollmentError) as required:
+            client.ensure_account(self.repo, self.server, interactive=False)
+        self.assertEqual(required.exception.code, 'TEAM_SIGN_IN_REQUIRED')
+        self.assertFalse(client.credential_path(self.repo, self.server).parent.exists())
+
+    def test_revoked_unconfirmed_credential_cannot_be_reassigned_even_with_consent(self):
+        original = self.sign_in(self.repo, ['original-team'], [self.password] * 2)
+        client._save(self.repo, self.server, {'team_name': 'original-team'}, original['token'])
+        self.app.enrollment.revoke(original['token'])
+        queue = self.make_queue()
+        with self.assertRaises(client.EnrollmentError) as refused:
+            self.sign_in(self.repo, ['different-team'] * 2, [self.password] * 2, force=True)
+        self.assertEqual(refused.exception.code, 'TEAM_SIGN_IN_REFUSED')
+        saved, token = client._read(self.repo, self.server)
+        self.assertEqual((saved['team_name'], token), ('original-team', original['token']))
+        self.assertFalse(client.stored_account(self.repo, self.server))
+        self.assertEqual(self.team_count(), 1)
+        self.assertEqual([p.read_bytes() for p in queue], [b'pending local fixture'] * 2)
+
+    def test_bound_or_expected_identity_cannot_change_and_reconnects_to_original_team(self):
+        original = self.sign_in(self.repo, ['original-team'], [self.password] * 2)
+        path = client.credential_path(self.repo, self.server)
+        for id_field in ('team_id', 'expected_team_id'):
+            with self.subTest(id_field=id_field):
+                client._save(self.repo, self.server,
+                    {'team_name': 'original-team', id_field: original['team_id']}, original['token'])
+                self.app.enrollment.revoke(original['token'])
+                before = path.read_bytes()
+                with self.assertRaises(client.EnrollmentError) as blocked:
+                    client.connect(self.repo, self.server, 'other-team', self.password, new_device=True)
+                self.assertEqual(blocked.exception.code, 'TEAM_ALREADY_BOUND')
+                prompts = ['incorrect'] * (2 if id_field == 'expected_team_id' else 1)
+                with self.assertRaises(client.EnrollmentError) as wrong:
+                    self.sign_in(self.repo, passwords=prompts, force=True)
+                self.assertEqual(wrong.exception.code, 'TEAM_SIGN_IN_REFUSED')
+                self.assertEqual(path.read_bytes(), before)
+                original = self.sign_in(self.repo, passwords=[self.password] * len(prompts), force=True)
+                self.assertEqual(original['team_name'], 'original-team')
+        self.assertEqual(self.team_count(), 1)
+
+    def test_uncertain_identity_cannot_prompt_for_another_team_or_change_credential(self):
+        client._save(self.repo, self.server, {'team_name': 'original-team'}, device('K'))
+        path = client.credential_path(self.repo, self.server)
+        before = path.read_bytes()
+        for reply in (client.EnrollmentError('TEAM_SIGN_IN_REFUSED', 'generic HTTP refusal'),
+                      client.EnrollmentError('TEAM_SIGN_IN_BUSY', 'temporary refusal'),
+                      {'status': 'unknown', 'team_id': 'one', 'team_name': 'original-team'},
+                      {'status': 'connected', 'team_id': 'two', 'team_name': 'different-team'}):
+            with self.subTest(reply=type(reply).__name__), patch.object(client, 'request', side_effect=[reply]) as remote:
+                with self.assertRaises(client.EnrollmentError):
+                    self.sign_in(self.repo, force=True)
+                self.assertEqual(remote.call_count, 1)
+                self.assertEqual(path.read_bytes(), before)
 
 
 if __name__ == '__main__':

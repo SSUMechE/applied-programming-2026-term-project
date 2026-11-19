@@ -146,6 +146,8 @@ Use **Windows Anaconda Prompt**. Copy only the commands inside the code blocks, 
 
 ### 3.1 Create and clone your team's repository
 
+Already working in a team folder? **Do not clone again.** Use [Update an existing team folder](#existing-team-update). A new copy of the current template already includes this update.
+
 Create **one private team repository** from the course template. Name it with your student ID, or all members' IDs in ascending order joined by `-`. Invite SSUMechE and your teammates. Each member commits and pushes their own work.
 
 <details>
@@ -182,17 +184,19 @@ Use `applied-programming-cuda`. Keep **PyTorch 2.14.0+cu126** and **Genesis 1.3.
 Use the student-ID name from [3.1](#31-create-and-clone-your-teams-repository) as your **Team name**, even when working alone. Choose a **nonempty project password**. There is no minimum character count. Group members share that password. Keep the full student IDs for sign-in. The public leaderboard masks each ID to its last four digits, for example `20260001-20260002` appears as `****0001-****0002`. Masked names do not change your account or combine teams. Then run:
 
 ```bat
-python -B project_run.py check --cuda --output output/environment.json
+python -B project_run.py check --cuda
 ```
 
 At first use, enter that student-ID name and enter the same password twice when prompted. Use a project-specific password, not your GitHub password. Type it only at the hidden password prompt. Each teammate uses the same pair once per checkout on each computer.
 
-If this checkout already has a registered name, this instruction does not rename it. Keep its existing results and contact the instructor if the name is wrong. Do not create a second account or delete credentials to rename it.
+If your **first** sign-in was refused and you never saw `TEAM_CONNECTED`, run `python -B project_run.py configure` in the same folder while online. Enter the agreed team name. If correcting a typo, confirm the corrected name only if this folder and its pending results belong to that team. A checkout already connected to a team cannot switch teams this way. Keep your files and contact the instructor if a registered name is wrong.
 
 On your first successful sign-in, confirm these results:
 
 - `TEAM_CONNECTED: <your team name>`: this checkout is connected to your team.
 - `ENVIRONMENT_CUDA_SMOKE_PASS`: the environment and short CUDA checks passed.
+
+Use the same command to check again. To save a JSON receipt, add `--output output/environment.json`. If that file already exists, it is kept and the **current** check result is printed on screen.
 
 The client stores this computer's credential outside Git and reuses it automatically. Later checks do not repeat the sign-in prompt or TEAM_CONNECTED message. Each environment check must still report ENVIRONMENT_CUDA_SMOKE_PASS. No instructor-issued token, ngrok or VPN installation is required. If saved sign-in is refused, run `python -B project_run.py configure` and re-enter the same team password.
 
@@ -819,6 +823,8 @@ python -B project_run.py history --rule-id ap2026-%LEVEL%-beads-term-v6
 - **Physical pass:** `review_accepted`, `physical_transport_accepted` and `full_mission_passed` must all be `true` in `REVIEW_SUPERVISOR.json`.
 - **Upload acknowledged:** `LEADERBOARD_STATUS.json` reports `"status": "uploaded"`. This alone is not a physics pass. A failed full attempt can also upload successfully.
 
+That file describes the **original** upload attempt. After `retry` or `record`, confirm the same run ID in the command output and team `history`; the original file is not rewritten.
+
 [Open the leaderboard](https://phoniness-reenact-veggie.ngrok-free.dev), select your complexity, then refresh. A successful acknowledged full run appears in the live comparison. Team registration, CPU planning and empty-cup checks do not create a ranked result.
 
 The live comparison uses each team's **latest successful run**. A later failure stays in team history without replacing that success. The official comparison uses the successful representative each team explicitly selects.
@@ -857,7 +863,7 @@ python -B project_run.py record ^
   --review-dir "%RUN%/full"
 ```
 
-This uses existing results and does not run physics.
+This uses existing results and does not run physics. Keep the printed `run_id` and `record_file`. If the upload is pending, run `retry` and check `history` for that run. For a recovered **successful** run use the same `select --review-dir` command in §7.3.
 
 </details>
 
@@ -1056,39 +1062,46 @@ Retain original records, including failed attempts. Supplied checks and source m
 
 </details>
 
+<a id="existing-team-update"></a>
+
 ### 9.2 Apply an instructor-announced update
 
 Use the supplied updater for the exact announced release. It preserves student code, records, credentials and Git history. Stop project commands first. Do not reinstall packages or overwrite your team repository.
 
 <details>
-<summary>Update check/apply/status, rollback and original-template recovery</summary>
+<summary>Existing folder: copy the commands, check, then apply</summary>
 
 Use these maintenance commands from your repository root in **Windows Anaconda Prompt**. Stop **all** project commands first, including direct CPU debugging, preview export and leaderboard commands. Use the existing `applied-programming-cuda` environment. The updater preserves `student/`, saved results, pending uploads, credentials, unknown files and Git history. It changes only verified supplied files. It does not install dependencies, commit changes, plan a path or launch Genesis.
 
 **Existing design files:** an older `three-arm-design-v1` file remains supported. Complete only the carrying arms and actual handoffs in its existing `arms` and `relays` arrays, and keep its prefilled fixed finish unchanged. Unused fields may remain `null` in their supplied entries. The runner fills them internally without rewriting your file. An already completed older design is used unchanged. Use the `project_run.py plan` and `project_run.py review` commands in this guide. No manual conversion or replacement of your answers is required.
 
-**Check and apply the exact announced release.**
-
-Set `RELEASE` to the exact tag announced by the instructor. The current guidance release is shown below:
+**For this update:** open the **existing team folder** in Anaconda Prompt and activate `applied-programming-cuda`. Download the official updater into a fresh folder under `output`. Use this block even if your folder already has an older updater: it handles the template that included the optional Weeks 12–14 examples. The long Git command is one line; copy it as shown.
 
 ```bat
-set "RELEASE=term-v6-team-password-20261117"
+set "RELEASE=term-v6-student-continuity-20261119"
+set "BOOT=output\course_update_20261119"
+mkdir "%BOOT%" && git -C "%BOOT%" init --bare -q && git -C "%BOOT%" fetch --quiet --no-tags --depth=1 https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git -C "%BOOT%" show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
+```
+
+If the folder already exists or the download fails, stop. For a new download use a fresh `BOOT` folder name and repeat the Git line. Do not delete any existing files. After the Git command succeeds, check the proposed update:
+
+```bat
+python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
+```
+
+Continue only after `UPDATE_CHECK_PASS`:
+
+```bat
+python -B "%BOOT%\update_project.py" apply --release "%RELEASE%"
 python -B project_run.py update check --release "%RELEASE%"
 ```
 
-`UPDATE_CHECK_PASS` means the official release and your current supplied files passed the update checks. It does not apply files. Read its proposed changes, then apply that same tag:
-
-```bat
-python -B project_run.py update apply --release "%RELEASE%"
-python -B project_run.py update status
-```
-
-`UPDATE_APPLIED` includes a `backup_id`. Keep the backup under `output/project_updates/`. `UPDATE_ALREADY_CURRENT` means no update was needed. `UPDATE_STATUS` reports local release and recovery information. Use `update check` to verify that state against the official release. Your own Python/JSON files and existing result records stay in place.
+`UPDATE_APPLIED` includes a `backup_id`. Keep the backup under `output/project_updates/`. `UPDATE_ALREADY_CURRENT` means no update was needed. The final check should report `UPDATE_CHECK_PASS` with `"changed_supplied_files": 0`. Your own Python/JSON files and existing result records stay in place.
 
 After an applied update, run the environment check and the supplied test for your chosen workflow. Review the supplied-file changes with your usual Git workflow and commit them to your team repository. The updater does not stage, commit or push for you. Create a **fresh CPU export** before the next physical replay. Do not edit or relabel older runs. A retry still uploads the original queued record under its original rule.
 
 ```bat
-python -B project_run.py check --cuda --output output/update_environment.json
+python -B project_run.py check --cuda
 ```
 
 Choose one test command. For the shared `student/joint_strategy.py`:
@@ -1118,31 +1131,6 @@ python -B project_run.py update rollback --backup BACKUP_ID
 Continue after `UPDATE_ROLLED_BACK`. Rollback restores supplied files only. It preserves student edits made after the update, results and Git history. It refuses to overwrite supplied files that you changed after applying the update. If you had already committed the update, commit the rollback as a new change through your normal Git workflow. Retain the backup and existing run records.
 
 If a maintenance command was interrupted, run `python -B project_run.py update status` before doing project work. The updater first recovers an unfinished file transaction. Ordinary runner commands refuse an unfinished update with `PROJECT_UPDATE_RECOVERY_REQUIRED`. If the main entry point is unavailable during the first migration, use the retained bootstrap file with `python -B "%BOOT%\update_project.py" status`. Recovery uses the local backup and does not need a network connection. Follow any reported recovery error instead of starting a new run.
-
-</details>
-
-<details>
-<summary>Only for the original template without the update command</summary>
-
-Use this block only if `project_run.py update` is unavailable in the original `term-v3-student-20261114` template. Keep your existing team repository. Choose a **fresh** `BOOT` folder name. These commands fetch the exact official tag and save the updater in ignored output storage without replacing your planner or the old runner:
-
-```bat
-set "RELEASE=term-v6-team-password-20261117"
-set "BOOT=output\update_bootstrap_01"
-mkdir "%BOOT%" && git fetch --no-tags https://github.com/SSUMechE/applied-programming-2026-term-project.git refs/tags/%RELEASE% && git show FETCH_HEAD:update_project.py > "%BOOT%\update_project.py"
-python -B "%BOOT%\update_project.py" check --release "%RELEASE%"
-```
-
-Continue only after `UPDATE_CHECK_PASS`, then apply:
-
-```bat
-python -B "%BOOT%\update_project.py" apply --release "%RELEASE%"
-python -B project_run.py update status
-```
-
-The one-time bootstrap fetch updates Git's `FETCH_HEAD`. It does not merge branches, alter your index, replace commits or change your remote URL. Normal updater fetches use their own isolated cache. Keep the bootstrap file. If rollback restores the old runner without an update command, invoke that saved file instead: `python -B "%BOOT%\update_project.py" rollback --backup BACKUP_ID`.
-
-If creating the bootstrap folder or fetching the release failed, stop and preserve the error. Do not run a previously downloaded file by assuming the failed command succeeded. No package reinstall is part of an update.
 
 </details>
 

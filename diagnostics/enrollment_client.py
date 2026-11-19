@@ -11,6 +11,7 @@ import ctypes
 from ctypes import wintypes
 import getpass
 import hashlib
+from http.client import HTTPException
 import json
 import os
 from pathlib import Path
@@ -242,12 +243,22 @@ def request(server, path, *, payload=None, token=None):
         return value
     except HTTPError as error:
         # Never echo a remote body, password or credential into diagnostics.
+        with error:
+            if path == '/api/enrollment/identity' and error.code == 401:
+                try:
+                    raw_error = error.read(4097)
+                    detail = json.loads(raw_error) if len(raw_error) <= 4096 else None
+                except (OSError, HTTPException, ValueError):
+                    detail = None
+                if (type(detail) is dict and type(detail.get('error')) is dict
+                        and detail['error'].get('code') == 'DEVICE_UNAUTHORIZED'):
+                    raise EnrollmentError('TEAM_DEVICE_INACTIVE', 'The server did not recognize an active sign-in for this device.') from None
         if error.code in (401, 403, 409):
             raise EnrollmentError('TEAM_SIGN_IN_REFUSED', 'Team sign-in was refused. Use the exact team name and shared password agreed with your teammates.') from None
         if error.code == 429:
             raise EnrollmentError('TEAM_SIGN_IN_BUSY', 'Too many sign-in attempts. Wait before trying again.') from None
         raise EnrollmentError('TEAM_SIGN_IN_UNAVAILABLE', 'Team sign-in is unavailable. Local work can continue. Retry when the class server is online.') from None
-    except (OSError, ValueError):
+    except (OSError, HTTPException, ValueError):
         raise EnrollmentError('TEAM_SIGN_IN_UNAVAILABLE', 'Team sign-in is unavailable. Local work can continue. Retry when the class server is online.') from None
 
 
@@ -267,18 +278,21 @@ def connect(root, server, team_name, password, *, new_device=False):
         return _connect_locked(root, server, team_name, password, new_device=new_device)
 
 
-def _connect_locked(root, server, team_name, password, *, new_device=False):
+def _connect_locked(root, server, team_name, password, *, new_device=False, correct_provisional=False):
     if (not isinstance(team_name, str) or not 1 <= len(' '.join(unicodedata.normalize('NFKC', team_name).split())) <= 60
             or any(unicodedata.category(c).startswith('C') for c in team_name)):
         raise EnrollmentError('TEAM_NAME_INVALID', 'Use an agreed team name of 1 to 60 printable characters.')
     validate_password(password)
     data, token = _read(root, server)
-    if data and data.get('team_name'):
-        # Changing accounts must not silently attach pending runs to a new team.
-        if canonical_name(data['team_name']) != canonical_name(team_name):
-            raise EnrollmentError('TEAM_ALREADY_BOUND', 'This checkout is already linked to another team. Keep its outputs and use a separate team checkout.')
     expected_id = (data or {}).get('team_id') or (data or {}).get('expected_team_id')
-    if not token or new_device:
+    if data and data.get('team_name'):
+        if canonical_name(data['team_name']) != canonical_name(team_name):
+            if expected_id or not correct_provisional:
+                raise EnrollmentError('TEAM_ALREADY_BOUND', 'Keep this checkout linked to its original team. Use configure to check an unconfirmed first sign-in.')
+            # A response may be lost. Keep the old name and record exactly which
+            # correction was authorized before posting with the SAME device token.
+            _save(root, server, {**data, 'requested_team_name': team_name}, token)
+    if not token or (new_device and expected_id):
         existing_token = token
         token = 'apd_' + secrets.token_urlsafe(32)
         data = {'team_name': team_name}
@@ -292,7 +306,8 @@ def _connect_locked(root, server, team_name, password, *, new_device=False):
         'team_name': team_name, 'password': password, 'device_token': token})
     if (answer.get('status') not in ('connected', 'registered')
             or type(answer.get('team_id')) is not str or not answer['team_id']
-            or type(answer.get('team_name')) is not str):
+            or type(answer.get('team_name')) is not str
+            or canonical_name(answer['team_name']) != canonical_name(team_name)):
         raise EnrollmentError('TEAM_SIGN_IN_ACK', 'The server did not acknowledge this team sign-in.')
     if expected_id and answer['team_id'] != expected_id:
         raise EnrollmentError('TEAM_ID_CHANGED', 'This checkout must remain linked to its original team. Keep its local results.')
@@ -304,34 +319,60 @@ def ensure_account(root, server, *, interactive=None, read_name=input, read_pass
     account = stored_account(root, server)
     if account and not force:
         return account
-    data, token = _read(root, server)
-    if token and not force:
-        # Recover an acknowledged server-side registration after a lost response.
-        try:
-            answer = request(server, '/api/enrollment/identity', token=token)
-            if type(answer.get('team_id')) is str and type(answer.get('team_name')) is str:
-                if data.get('expected_team_id') and data['expected_team_id'] != answer['team_id']:
-                    raise EnrollmentError('TEAM_ID_CHANGED', 'Keep this checkout linked to its original team.')
-                _save(root, server, {'team_id': answer['team_id'], 'team_name': answer['team_name']}, token)
-                return stored_account(root, server)
-        except EnrollmentError:
-            pass
     if interactive is None:
         interactive = bool(sys.stdin and sys.stdin.isatty())
+    if not interactive and not credential_path(root, server).is_file():
+        raise EnrollmentError('TEAM_SIGN_IN_REQUIRED', 'Run a project command once in Anaconda Prompt to sign in to your team. Local results are kept.')
+    # The identity check, any correction consent and the POST must all apply to
+    # the same saved device even when two project commands start concurrently.
+    with account_lock(root, server):
+        return _ensure_locked(root, server, interactive, read_name, read_password, write, force)
+
+
+def _ensure_locked(root, server, interactive, read_name, read_password, write, force):
+    data, token = _read(root, server)
+    expected_id = (data or {}).get('team_id') or (data or {}).get('expected_team_id')
+    if data and data.get('team_id') and not force:
+        return stored_account(root, server)
+    unconfirmed = False
+    if token and not data.get('team_id'):
+        try:
+            answer = request(server, '/api/enrollment/identity', token=token)
+        except EnrollmentError as exc:
+            if exc.code != 'TEAM_DEVICE_INACTIVE':
+                raise
+            # This class response includes revoked devices. Never rotate a
+            # provisional token: the server forbids reassignment of such a device.
+            unconfirmed = not expected_id
+        else:
+            if (answer.get('status') != 'connected' or type(answer.get('team_id')) is not str
+                    or not answer['team_id'] or type(answer.get('team_name')) is not str or not answer['team_name']):
+                raise EnrollmentError('TEAM_SIGN_IN_ACK', 'The server did not confirm the saved team identity. Keep this checkout and retry.')
+            names = {canonical_name(name) for name in (data.get('team_name'), data.get('requested_team_name')) if name}
+            if ((expected_id and expected_id != answer['team_id']) or canonical_name(answer['team_name']) not in names):
+                raise EnrollmentError('TEAM_ID_CHANGED', 'The saved team identity did not match. Keep local results and contact the instructor.')
+            _save(root, server, {'team_id': answer['team_id'], 'team_name': answer['team_name']}, token)
+            return stored_account(root, server)
     if not interactive:
         raise EnrollmentError('TEAM_SIGN_IN_REQUIRED', 'Run a project command once in Anaconda Prompt to sign in to your team. Local results are kept.')
-    if force and data and data.get('team_name'):
+    if expected_id:
         name = data['team_name']
         write('Reconnect this checkout to team: ' + name)
     else:
         write('First use: enter the SAME team name and shared password on each teammate\'s computer.')
         write('A new name creates a team. Use a unique agreed name. Do not use your GitHub password.')
         name = read_name('Team name: ').strip()
+    correcting = unconfirmed and canonical_name(name) != canonical_name(data['team_name'])
+    if correcting:
+        write('Previous unconfirmed team name: ' + data['team_name'])
+        write('Only continue if this checkout and its queued results belong to: ' + name)
+        if not name or read_name('Type the corrected team name again to confirm (blank cancels): ').strip() != name:
+            raise EnrollmentError('TEAM_NAME_NOT_CONFIRMED', 'No new sign-in was submitted. Local results are kept.')
     password = validate_password(read_password('Team password (hidden): '))
     if not data or not data.get('team_id'):
         if read_password('Confirm team password (hidden): ') != password:
             raise EnrollmentError('TEAM_PASSWORD_MISMATCH', 'Passwords did not match. No team registration was submitted.')
-    account = connect(root, server, name, password, new_device=force)
+    account = _connect_locked(root, server, name, password, new_device=force, correct_provisional=correcting)
     write('TEAM_CONNECTED: ' + account['team_name'] + '. Future runs upload automatically.')
     return account
 
@@ -345,7 +386,7 @@ def change_password(root, server, *, read_password=getpass.getpass, write=print)
         try:
             identity = request(server, '/api/enrollment/identity', token=token)
         except EnrollmentError as exc:
-            if exc.code == 'TEAM_SIGN_IN_REFUSED':
+            if exc.code in ('TEAM_SIGN_IN_REFUSED', 'TEAM_DEVICE_INACTIVE'):
                 raise EnrollmentError('TEAM_RECOVERY_REQUIRED', 'This saved sign-in is no longer valid. Keep the original checkout and results, and contact the instructor to recover the same team.') from None
             raise
         expected_id = data.get('team_id') or data.get('expected_team_id')
