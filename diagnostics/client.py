@@ -506,6 +506,12 @@ def run_course(root, kind, argv):
     root = Path(root).resolve()
     if any(arg in ("-h", "--help") for arg in argv):
         return subprocess.run(child_command(kind, argv), cwd=root).returncode
+    from .failure_help import watch, explain, producer_signal
+    action = kind
+    if kind == "plan":
+        action = {("-m", "physics.plan_arm_transport"): "plan-arm",
+                  ("-m", "physics.merge_arm_transport"): "merge-arms"}.get(tuple(COMMANDS[kind]), kind)
+    watched = watch(root, action, argv)
     config = account_configuration(root, argv)
     files = observed_files(root, kind, argv)
     before = {name: fingerprint(path) for name, path in files.items()}
@@ -518,6 +524,8 @@ def run_course(root, kind, argv):
     if not env.get("AP_LEADERBOARD_URL"):
         env["AP_LEADERBOARD_URL"] = config["server"]
     started, tail, process, job = time.monotonic(), deque(maxlen=256), None, None
+    # Local provenance only. The instructor report receives its original tail.
+    owned = False
     exit_code = 1
     try:
         job = OwnedJob()
@@ -530,6 +538,8 @@ def run_course(root, kind, argv):
         for line in iter(lambda: process.stdout.readline(8192), ""):
             console(line)
             tail.append(line[-2048:])
+            if watched and not owned:
+                owned = producer_signal(action, line)
         exit_code = process.wait()
     except KeyboardInterrupt:
         if process:
@@ -562,6 +572,8 @@ def run_course(root, kind, argv):
         retry(root, config, maximum=2, budget_s=4)
     except (Exception, KeyboardInterrupt):
         console("Diagnostic upload unavailable. Keep this command's local output.\n", error=True)
+    if exit_code and watched:
+        explain(watched, "".join(tail), owned=owned)
     return exit_code
 
 

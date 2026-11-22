@@ -1135,3 +1135,32 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 </details>
 
 </details>
+
+<a id="optional-project-updates"></a>
+
+## Project update history
+
+**2026-11-22 — Optional: clearer failure messages.** If a plan, review or arm practice fails, the terminal identifies the failed step and points to the result file from that run, if one was created. The assignment, scoring and successful commands are unchanged. Teams can continue in their existing folder without installing this update. A fresh copy of the current template already includes it.
+
+<details>
+<summary>Install this update in an existing team folder (optional)</summary>
+
+Use Anaconda Prompt in your team folder with `applied-programming-cuda` active. Let any project command already running finish. Check `release_tag` in `course_release.json`: if it is missing or older than 19 November, complete [§9.2](#existing-team-update) first. From the 19 November version, use the commands below. If you already have the 22 November version, no action is needed. No new clone or package installation is needed.
+
+```bat
+set "RELEASE=term-v6-optional-failure-help-20261122"
+python -B project_run.py update check --release "%RELEASE%"
+```
+
+Only after `UPDATE_CHECK_PASS`, apply the update if you want it:
+
+```bat
+python -B project_run.py update apply --release "%RELEASE%"
+python -B project_run.py update check --release "%RELEASE%"
+```
+
+The final check should show `"changed_supplied_files": 0`. A refusal is a stop: do not delete or overwrite your files. This update preserves student code, existing results and team sign-in.
+
+</details>
+
+**2026-11-19 — Existing-team continuity.** Corrections to updating an existing folder, repeated environment checks, first sign-in and selection of recovered results. [Original release and instructions](https://github.com/SSUMechE/applied-programming-2026-term-project/blob/term-v6-student-continuity-20261119/README.md#existing-team-update).

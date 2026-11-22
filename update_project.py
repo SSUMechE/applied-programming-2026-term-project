@@ -219,7 +219,15 @@ def activity_lock(root, *, exclusive=False):
             except (OSError, BlockingIOError) as exc:
                 raise UpdateError("UPDATE_BUSY", "A supplied project run or update is active. Stop it before maintenance.") from exc
         try:
-            yield
+            # The practice entry point is pinned in saved student plans. Observe
+            # its exit here without changing that entry point or its evaluator.
+            if (not exclusive and sys.argv[1:2] == ["practice"] and
+                    Path(sys.argv[0]).resolve() == Path(root).resolve() / "project_run.py"):
+                from diagnostics.failure_help import practice_messages
+                with practice_messages(root, sys.argv[2:]):
+                    yield
+            else:
+                yield
         finally:
             if os.name == "nt":
                 kernel.UnlockFileEx(handle, 0, 1, 0, ctypes.byref(overlapped))
