@@ -302,6 +302,8 @@ Complete these three tasks in the files named above. The provided code checks an
 
 Use the **same completed JSON for all team members**. Surface heights and cup orientation are provided.
 
+If `git diff` shows `^M` after you save the design, see [Check Windows line endings](#git-line-endings). Keep working in your existing team folder.
+
 <details>
 <summary>Allowed values, lookup command and JSON example — read when filling the file</summary>
 
@@ -1139,6 +1141,53 @@ If a maintenance command was interrupted, run `python -B project_run.py update s
 <a id="optional-project-updates"></a>
 
 ## Project update history
+
+<a id="git-line-endings"></a>
+
+### 23 November 2026: Windows line endings
+
+The current template handles Windows line endings in the editable designs and planners. Teams already working in their own repository can keep their current files and results.
+
+<details>
+<summary>Check a design diff that shows ^M</summary>
+
+`^M` can appear when Git displays Windows line endings (CRLF) as trailing whitespace. Open your existing team repository folder in **Windows Anaconda Prompt**. To check changes to the Higher design, run:
+
+```bat
+git --no-pager -c core.whitespace=cr-at-eol diff --ignore-cr-at-eol -- student/hard_design.json
+git -c core.whitespace=cr-at-eol diff --check --ignore-cr-at-eol -- student/hard_design.json
+```
+
+Use `student/easy_design.json` for Lower or `student/medium_design.json` for Moderate. If you already staged the changes with `git add`, insert `--cached` after `diff` in both commands. Review the changed values in the first output. No output from the second command means the whitespace check passed. An actual space at the end of an added line still produces a warning.
+
+These commands leave your files and Git settings as they are. They also work for an older team repository that already recorded CRLF in a commit.
+
+</details>
+
+<details>
+<summary>Apply the optional Git update in an existing team folder</summary>
+
+1. Let your project commands finish. In **Windows Anaconda Prompt**, open your existing team repository folder. Check `release_tag` in `course_release.json`. If it is missing or older than 19 November, complete [Section 9.2](#existing-team-update) first, then return here.
+
+2. Activate the same course environment and check the proposed update:
+
+   ```bat
+   conda activate applied-programming-cuda
+   set "RELEASE=term-v6-git-line-endings-20261123"
+   python -B project_run.py update check --release "%RELEASE%"
+   ```
+
+3. After `UPDATE_CHECK_PASS`, apply the update and verify it:
+
+   ```bat
+   python -B project_run.py update apply --release "%RELEASE%" && python -B project_run.py update check --release "%RELEASE%"
+   ```
+
+   The final check reports `UPDATE_CHECK_PASS` and `"changed_supplied_files": 0`. If you see `UPDATE_REFUSED`, keep your files and consult [Section 9.2](#existing-team-update).
+
+The updater preserves `student/`, saved results, queued uploads, team sign-in, staged changes and commits. If you started on the 19 November version, this update also includes the 22 November failure messages. Teams updating from 19 or 22 November can continue using their saved plans. Use the commands above whenever an earlier CRLF commit makes a design diff difficult to read.
+
+</details>
 
 **2026-11-22 — Optional: clearer failure messages.** If a plan, review or arm practice fails, the terminal identifies the failed step and points to the result file from that run, if one was created. The assignment, scoring and successful commands are unchanged. Teams can continue in their existing folder without installing this update. A fresh copy of the current template already includes it.
 

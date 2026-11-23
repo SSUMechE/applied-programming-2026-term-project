@@ -1,2 +1,6 @@
 # Preserve exact bytes for source-bound physics and geometry manifests.
 * -text
+
+# Scope Git newline handling to the editable student designs and planners.
+/student/*_design.json text=auto eol=crlf whitespace=cr-at-eol
+/student/*_strategy.py text=auto eol=lf whitespace=cr-at-eol
